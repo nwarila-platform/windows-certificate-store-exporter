@@ -16,7 +16,7 @@
 Require an explicit `-Path`; write the bundle atomically (temp file in the same
 directory, then replace) under `SupportsShouldProcess`; skip the write when the
 new bundle is byte-identical to the existing file (report `Unchanged`); and fail
-closed — throw via the house `ThrowError` helper and write nothing — when the
+closed by raising a structured error record and write nothing when the
 surviving certificate count is below `-MinimumCertificateCount` (default 1). The
 script is produce-only: it does not mutate the environment or `~/.aws/config`.
 
@@ -58,7 +58,7 @@ Chosen: option 1.
 - **Skip-if-unchanged** — when the generated bundle equals the file at `-Path`,
   skip the write and report `Unchanged` (relies on ADR-repo/0003 determinism).
 - **Fail closed** — when surviving certs `< -MinimumCertificateCount`
-  (default 1), throw via `ThrowError` and write nothing, preserving any existing
+  (default 1), throw a structured error record and write nothing, preserving any existing
   bundle. Operators may raise the floor to assert a known invariant.
 - **Produce-only** — print the `AWS_CA_BUNDLE` / `ca_bundle` wiring snippet to
   verbose output only; do not mutate the environment or `~/.aws/config`.

@@ -10,8 +10,8 @@
 !/PSScriptAnalyzerSettings.psd1
 !/README.md
 !/SECURITY.md
+!/build.ps1
 !/renovate.json5
-!/windows-certificate-store-exporter.ps1
 
 # CI and repo metadata
 !/.github/
@@ -28,7 +28,9 @@
 
 # Tests
 !/tests/
+!/tests/**/
 !/tests/*.ps1
+!/tests/**/*.ps1
 
 # Documentation
 !/docs/

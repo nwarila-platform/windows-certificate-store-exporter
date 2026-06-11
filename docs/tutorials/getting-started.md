@@ -9,15 +9,15 @@
 ## Run the scaffold
 
 ```powershell
-./windows-certificate-store-exporter.ps1
+./build.ps1 -Task All
+./build/Export-CertificateStoreBundle.ps1 -Path ./bundle.pem -WhatIf
 ```
 
-The script currently throws a clear "not implemented yet" message. The project
-is aligned with the template guardrails before exporter behavior is added.
+The built script is currently a P0 scaffold. It accepts the planned entry-point
+parameters and performs no certificate-store I/O or file writes yet.
 
 ## Validate the repo
 
 ```powershell
-Invoke-ScriptAnalyzer -Path . -Settings PSGallery -Recurse
-pwsh -File tests/Invoke-Tests.ps1
+./build.ps1 -Task All
 ```

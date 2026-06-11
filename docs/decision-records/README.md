@@ -35,12 +35,12 @@ MADR 4.0-aligned format.
 
 | # | Title | Status | Date | Summary |
 | --- | --- | --- | --- | --- |
-| [repo/0001](repo/0001-single-script-project.md) | Consume the powershell-template Guardrails as a Single-Script Project | Accepted | 2026-06-11 | Use template CI/lint/docs guardrails; stay a single script, not a module (diverges from [template/0001](template/0001-module-layout.md)). |
+| [repo/0001](repo/0001-single-script-project.md) | Assemble a Single Release Script from Structured Source | Accepted | 2026-06-11 | Author under `src/`; use `build.ps1` to emit one release script and one functions-only test artifact. |
 | [repo/0002](repo/0002-certificate-source-and-selection.md) | Source CA Certificates from the Logical LocalMachine Stores | Proposed | 2026-06-11 | Read `Root` + `CA` logical stores; subtract `Disallowed`; drop expired by default. |
 | [repo/0003](repo/0003-pem-bundle-format.md) | Emit a Deterministic certifi-Style PEM Bundle | Proposed | 2026-06-11 | PEM, ASCII/no-BOM/LF, certifi-style headers, thumbprint-sorted, no timestamp. |
 | [repo/0004](repo/0004-write-semantics-and-safety.md) | Write the Bundle Atomically and Fail Closed | Proposed | 2026-06-11 | Mandatory `-Path`, atomic + ShouldProcess write, skip-if-unchanged, minimum-count floor. |
 | [repo/0005](repo/0005-summary-and-manifest-output.md) | Return a Typed Summary and an Opt-In SHA-256 Manifest | Proposed | 2026-06-11 | Soft-return summary object with hashes; opt-in `-WriteManifest` sidecar. |
-| [repo/0006](repo/0006-script-structure-and-test-seam.md) | Structure the Script with the House Scaffold and a Mocked Read Seam | Proposed | 2026-06-11 | Full ScriptTemplate scaffold + targetstate idiom; mock the read seam for Linux CI. |
+| [repo/0006](repo/0006-script-structure-and-test-seam.md) | Use the Build Model and Mocked Read Seam | Proposed | 2026-06-11 | Build-model source split with a functions-only coverage artifact; mock the read seam for Linux CI. |
 
 ## Authoring Rules
 
