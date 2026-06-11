@@ -6,8 +6,8 @@
 [![Tested with Pester](https://img.shields.io/badge/tested%20with-Pester%20v5-green)](https://pester.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-PowerShell script project for exporting certificates from the Windows
-LocalMachine certificate store to `.crt` files for backup, inspection, and trust
+PowerShell script project for exporting Windows LocalMachine CA certificates
+(`Root` and `CA`) to a deterministic PEM bundle for backup, inspection, and trust
 distribution.
 
 This repository consumes
@@ -16,24 +16,32 @@ it uses the template's repo guardrails: Pester v5 test runner,
 PSGallery-aligned PSScriptAnalyzer settings, SHA-pinned GitHub Actions
 workflow, Renovate configuration, and Diataxis documentation structure.
 
-This is intentionally a single-script project, not a PowerShell module.
+The source is split under `src/` and assembled into a single release script by
+`build.ps1`. It is not a PowerShell module.
 
 ## Quickstart
 
 ```powershell
-./windows-certificate-store-exporter.ps1
+./build.ps1 -Task All
+./build/Export-CertificateStoreBundle.ps1 -Path ./bundle.pem -WhatIf
 ```
 
-Exporter behavior is not implemented yet; the current script is a scaffold that
-keeps CI and repo structure aligned with the template.
+Exporter behavior is still scaffolded. Release automation is planned but not yet
+implemented; when it lands, GitHub Releases will publish
+`Export-CertificateStoreBundle.ps1` plus a SHA-256 sidecar.
 
 ## Structure
 
 ```text
-windows-certificate-store-exporter.ps1
+build.ps1
+src/
+  EntryPoint.ps1
+  Private/
+  Public/
 tests/
-  windows-certificate-store-exporter.Tests.ps1
-  Invoke-Tests.ps1
+  Private/
+  Public/
+  Smoke/
 docs/
   README.md
 ```
@@ -44,8 +52,7 @@ for the full reference.
 ## Validate locally
 
 ```powershell
-Invoke-ScriptAnalyzer -Path . -Settings PSGallery -Recurse
-pwsh -File tests/Invoke-Tests.ps1
+./build.ps1 -Task All
 ```
 
 ## Documentation

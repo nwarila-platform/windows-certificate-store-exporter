@@ -1,7 +1,22 @@
 flowchart TD
-    Script[windows-certificate-store-exporter.ps1]
-    Tests[Pester tests] --> Script
-    Analyzer[PSScriptAnalyzer] --> Script
-    CI[GitHub Actions CI] --> Tests
-    CI --> Analyzer
-    Docs[Diataxis docs] --> Script
+    EntryPoint[src/EntryPoint.ps1]
+    Private[src/Private/*.ps1]
+    Public[src/Public/*.ps1]
+    Build[build.ps1]
+    Release[build/Export-CertificateStoreBundle.ps1]
+    Functions[build/Export-CertificateStoreBundle.Functions.ps1]
+    Tests[Pester tests]
+    Analyzer[PSScriptAnalyzer]
+    CI[GitHub Actions CI]
+    Docs[Diataxis docs]
+
+    EntryPoint --> Build
+    Private --> Build
+    Public --> Build
+    Build --> Release
+    Build --> Functions
+    Tests --> Functions
+    Analyzer --> Release
+    Analyzer --> Functions
+    CI --> Build
+    Docs --> Release
