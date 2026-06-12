@@ -29,7 +29,7 @@ function Get-Thing {
 function Get-Thing {
     [CmdletBinding()]
     param ()
-    $private:Value = 'thing'
+    [System.String]$Private:Value = 'thing'
     $Value
 }
 '@
@@ -40,6 +40,25 @@ function Get-Thing {
             -IncludeRule 'Measure-PrivateVariableDeclaration'
 
         $Results | Should -HaveCount 0
+    }
+
+    It 'flags New-Variable local declarations' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param ()
+    New-Variable -Name 'Value' -Force -Option Private -Value ([System.String]::Empty)
+    $Value = 'thing'
+    $Value
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-NoNewVariableDeclaration'
+
+        $Results.RuleName | Should -Contain 'Measure-NoNewVariableDeclaration'
     }
 
     It 'flags pipeline locals not declared in Begin' {
@@ -53,8 +72,8 @@ function ConvertTo-Thing {
     )
     begin { }
     process {
-        Clear-Variable -Name 'Value' -Force -ErrorAction SilentlyContinue
-        $private:Value = $InputObject.ToUpperInvariant()
+        $Value = [System.String]::Empty
+        [System.String]$Private:Value = $InputObject.ToUpperInvariant()
         $Value
     }
 }
@@ -69,7 +88,7 @@ function ConvertTo-Thing {
         $Results.Message | Should -Match 'without declaring it in Begin'
     }
 
-    It 'flags pipeline locals not cleared at the top of Process' {
+    It 'flags pipeline locals not reset at the top of Process' {
         $ScriptDefinition = @'
 function ConvertTo-Thing {
     [CmdletBinding()]
@@ -79,7 +98,7 @@ function ConvertTo-Thing {
         $InputObject
     )
     begin {
-        New-Variable -Name 'Value' -Force -Option Private -Value ([System.String]::Empty)
+        [System.String]$Private:Value = [System.String]::Empty
     }
     process {
         Write-Debug -Message 'not clear first'
@@ -95,10 +114,10 @@ function ConvertTo-Thing {
             -IncludeRule 'Measure-PipelineVariableLifecycle'
 
         $Results.RuleName | Should -Contain 'Measure-PipelineVariableLifecycle'
-        $Results.Message | Should -Match 'does not clear it at the top of Process'
+        $Results.Message | Should -Match 'does not reset it at the top of Process'
     }
 
-    It 'accepts the pipeline Begin and Clear idiom' {
+    It 'accepts the pipeline Begin and reset idiom' {
         $ScriptDefinition = @'
 function ConvertTo-Thing {
     [CmdletBinding()]
@@ -108,11 +127,11 @@ function ConvertTo-Thing {
         $InputObject
     )
     begin {
-        New-Variable -Name 'Value' -Force -Option Private -Value ([System.String]::Empty)
+        [System.String]$Private:Value = [System.String]::Empty
     }
     process {
-        Clear-Variable -Name 'Value' -Force -ErrorAction SilentlyContinue
-        Set-Variable -Name 'Value' -Value ($InputObject.ToUpperInvariant())
+        $Value = [System.String]::Empty
+        $Value = $InputObject.ToUpperInvariant()
         $Value
     }
     end { }
@@ -133,7 +152,7 @@ function Get-Thing {
     [CmdletBinding()]
     param ()
     begin {
-        New-Variable -Name 'Value' -Force -Option Private -Value ([System.String]::Empty)
+        [System.String]$Private:Value = [System.String]::Empty
     }
     process {
         $Value = 'thing'

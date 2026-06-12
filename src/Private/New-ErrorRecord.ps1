@@ -66,13 +66,14 @@ function New-ErrorRecord {
 
     begin {
         Write-Debug -Message '[New-ErrorRecord] Entering Begin'
-        New-Variable -Name 'ErrorRecord' -Force -Option Private -Value $Null -WhatIf:$False
-        New-Variable -Name 'Exception' -Force -Option Private -Value $Null -WhatIf:$False
+        [System.Management.Automation.ErrorRecord]$Private:ErrorRecord = $Null
+        [System.InvalidOperationException]$Private:Exception = $Null
         Write-Debug -Message '[New-ErrorRecord] Exiting Begin'
     }
 
     process {
-        Clear-Variable -Name 'ErrorRecord', 'Exception' -Force -ErrorAction SilentlyContinue -WhatIf:$False
+        $ErrorRecord = $Null
+        $Exception = $Null
         Write-Debug -Message '[New-ErrorRecord] Entering Process'
 
         $Exception = [System.InvalidOperationException]::new($Message)

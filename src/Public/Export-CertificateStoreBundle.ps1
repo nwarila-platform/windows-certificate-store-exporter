@@ -68,21 +68,24 @@ function Export-CertificateStoreBundle {
 
     begin {
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Begin'
-        New-Variable -Name 'Certificates' -Force -Option Private -Value $Null -WhatIf:$False
-        New-Variable -Name 'PemBlocks' -Force -Option Private -Value $Null -WhatIf:$False
-        New-Variable -Name 'SelectedCertificates' -Force -Option Private -Value $Null -WhatIf:$False
-        New-Variable -Name 'Status' -Force -Option Private -Value ([System.String]::Empty) -WhatIf:$False
-        New-Variable -Name 'StoreCertificates' -Force -Option Private -Value $Null -WhatIf:$False
-        New-Variable -Name 'WriteResult' -Force -Option Private -Value $Null -WhatIf:$False
+        [System.Collections.Generic.List[
+        System.Security.Cryptography.X509Certificates.X509Certificate2
+        ]]$Private:Certificates = $Null
+        [System.Collections.Generic.List[System.String]]$Private:PemBlocks = $Null
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:SelectedCertificates = @()
+        [System.String]$Private:Status = [System.String]::Empty
+        [System.Object]$Private:StoreCertificates = $Null
+        [System.Object]$Private:WriteResult = $Null
         Write-Debug -Message '[Export-CertificateStoreBundle] Exiting Begin'
     }
 
     process {
-        Clear-Variable `
-            -Name 'Certificates', 'PemBlocks', 'SelectedCertificates', 'Status', 'StoreCertificates', 'WriteResult' `
-            -Force `
-            -ErrorAction SilentlyContinue `
-            -WhatIf:$False
+        $Certificates = $Null
+        $PemBlocks = $Null
+        $SelectedCertificates = @()
+        $Status = [System.String]::Empty
+        $StoreCertificates = $Null
+        $WriteResult = $Null
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Process'
 
         $Certificates = [System.Collections.Generic.List[

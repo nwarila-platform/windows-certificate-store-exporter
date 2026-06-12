@@ -608,7 +608,7 @@ function Test-HouseRulePipelineParameter {
     }
 }
 
-function Get-HouseRuleClearVariableName {
+function Get-HouseRuleProcessResetVariableName {
     [CmdletBinding()]
     [OutputType([System.String[]])]
     param (
@@ -621,6 +621,14 @@ function Get-HouseRuleClearVariableName {
         $Names = [System.Collections.Generic.List[System.String]]::new()
 
         foreach ($Statement in $ProcessBlock.Statements) {
+            if ($Statement -is [System.Management.Automation.Language.AssignmentStatementAst]) {
+                Get-HouseRuleAssignedExpressionVariable -Ast $Statement.Left |
+                    ForEach-Object -Process {
+                        [void]$Names.Add($PSItem.Name)
+                    }
+                continue
+            }
+
             if ($Statement -isnot [System.Management.Automation.Language.PipelineAst]) {
                 break
             }
@@ -737,12 +745,12 @@ function Measure-PipelineVariableLifecycle {
                     [void]$BeginDeclarations.Add($PSItem)
                 }
 
-            $ClearedNames = [System.Collections.Generic.HashSet[System.String]]::new(
+            $ResetNames = [System.Collections.Generic.HashSet[System.String]]::new(
                 [System.StringComparer]::OrdinalIgnoreCase
             )
-            Get-HouseRuleClearVariableName -ProcessBlock $FunctionAst.Body.ProcessBlock |
+            Get-HouseRuleProcessResetVariableName -ProcessBlock $FunctionAst.Body.ProcessBlock |
                 ForEach-Object -Process {
-                    [void]$ClearedNames.Add($PSItem)
+                    [void]$ResetNames.Add($PSItem)
                 }
 
             $ExemptNames = [System.Collections.Generic.HashSet[System.String]]::new(
@@ -788,7 +796,7 @@ function Measure-PipelineVariableLifecycle {
             }
 
             foreach ($DeclaredName in $BeginDeclarations) {
-                if ($ClearedNames.Contains($DeclaredName)) {
+                if ($ResetNames.Contains($DeclaredName)) {
                     continue
                 }
 
@@ -796,7 +804,7 @@ function Measure-PipelineVariableLifecycle {
                     -RuleName 'Measure-PipelineVariableLifecycle' `
                     -Extent $FunctionAst.Body.ProcessBlock.Extent `
                     -Message (
-                        "Pipeline function '{0}' declares local variable '{1}' in Begin but does not clear it at the top of Process." -f
+                        "Pipeline function '{0}' declares local variable '{1}' in Begin but does not reset it at the top of Process." -f
                         $FunctionAst.Name,
                         $DeclaredName
                     )
@@ -844,6 +852,49 @@ function Measure-NoRemoveVariableCleanup {
                     -Extent $PSItem.Extent `
                     -Message (
                         "Function '{0}' uses Remove-Variable for end-of-scope cleanup." -f
+                        $FunctionAst.Name
+                    )
+            }
+        }
+    }
+}
+
+function Measure-NoNewVariableDeclaration {
+    <#
+    .SYNOPSIS
+        Flags New-Variable local declarations inside functions.
+    #>
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.ScriptBlockAst]
+        $ScriptBlockAst
+    )
+
+    process {
+        foreach ($FunctionAst in Get-HouseRuleFunctionAst -ScriptBlockAst $ScriptBlockAst) {
+            $FunctionAst.Body.FindAll(
+                {
+                    param (
+                        [System.Management.Automation.Language.Ast]
+                        $Ast
+                    )
+
+                    $Ast -is [System.Management.Automation.Language.CommandAst]
+                },
+                $True
+            ) | Where-Object -FilterScript {
+                Test-HouseRuleAstBelongsToFunction -Ast $PSItem -FunctionAst $FunctionAst
+            } | Where-Object -FilterScript {
+                $PSItem.GetCommandName() -imatch '^New-Variable$' -and
+                    (Test-HouseRuleCommandUsesNonLocalScope -CommandAst $PSItem) -eq $False
+            } | ForEach-Object -Process {
+                New-HouseRuleDiagnosticRecord `
+                    -RuleName 'Measure-NoNewVariableDeclaration' `
+                    -Extent $PSItem.Extent `
+                    -Message (
+                        "Function '{0}' uses New-Variable for a local declaration; use a typed `$Private:Name assignment instead." -f
                         $FunctionAst.Name
                     )
             }

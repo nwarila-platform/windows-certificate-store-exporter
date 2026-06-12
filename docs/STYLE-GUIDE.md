@@ -11,13 +11,16 @@ Severity convention: house rules are **Warning** (the settings file gates on
 
 ---
 
-## SG-1 — Variable discipline (Private scope, Begin-declaration, Clear, no Remove)
+## SG-1 — Variable discipline (Private scope, Begin-declaration, reset, no Remove)
 
-**Rule.** Every local variable a function *creates* must be **Private-scoped**,
-declared via either:
+**Rule.** Every local variable a function *creates* must be **Private-scoped**
+with a typed `$Private:` assignment:
 
-- `New-Variable -Name 'X' -Force -Option Private -Value (<typed default>)`, or
-- the `$private:X = <value>` scope modifier.
+- `[System.String]$Private:X = [System.String]::Empty`
+
+Do **not** use `New-Variable` for function-local declarations. It is slower,
+honors `-WhatIf` inside `SupportsShouldProcess` functions, and adds ceremony
+without buying type safety.
 
 **Exempt:** parameters, PowerShell automatic variables (`$PSItem`, `$_`,
 `$PSCmdlet`, `$true`/`$false`/`$null`, `$args`, `$matches`, …), and `for`/`foreach`
@@ -28,24 +31,24 @@ loop induction variables.
 
 1. use `Begin` / `Process` / `End` (the built-in `PSUseProcessBlockForPipelineCommand`
    already requires the process block);
-2. **declare** each local in `Begin` (`New-Variable -Option Private`, or a
-   `$private:` assignment in `Begin`); and
-3. **`Clear-Variable`** each declared local at the **top of `Process`**, so state
-   resets between piped items.
+2. **declare** each local in `Begin` using a typed `$Private:` assignment; and
+3. **reset** each declared local at the **top of `Process`**, preferably with a
+   direct assignment to its typed default, so state resets between piped items.
 
 **Non-pipeline functions** — pure producers with no pipeline-bound parameter
 (e.g. `Get-StoreCertificate`, which reads the whole store and cannot be piped
-into) — are **exempt** from the `Begin/Process/End` + `Clear-Variable` ceremony.
-They simply declare locals inline as `$private:X`.
+into) — are **exempt** from the `Begin/Process/End` + reset ceremony.
+They simply declare locals inline as typed `$Private:X` assignments.
 
 **Do NOT** use `Remove-Variable` for end-of-function cleanup. The function scope
 disposes its variables automatically; an explicit `Remove-Variable` in `End` adds
 runtime cost for no effect. (This is a deliberate correction of the older
 targetstate reference sample, which removed variables in `End`.)
 
-**Why.** Private scope keeps locals from leaking into child scopes; `Begin`
-declaration + `Process` `Clear-Variable` make per-item state explicit and
-reset-safe; dropping `Remove-Variable` removes dead overhead.
+**Why.** Private scope keeps locals from leaking into child scopes; typed
+assignments keep declaration cheap and explicit; `Begin` declaration + `Process`
+reset assignment make per-item state reset-safe; dropping `New-Variable` and
+`Remove-Variable` removes dead overhead.
 
 **Note (verified).** Private-scoped variables remain usable for *mutation* inside
 `ForEach-Object` blocks (e.g. `$list.Add(...)`); Private affects child-scope
@@ -56,10 +59,11 @@ worse by this rule.
 **Enforced by:** custom analyzer rules (Warning) — see the rules module wired via
 `CustomRulePath` in `PSScriptAnalyzerSettings.psd1`:
 - a rule that flags any function-local variable that is assigned but not
-  Private-scoped (neither `New-Variable -Option Private` nor `$private:`);
+  Private-scoped with `$Private:`;
 - a rule that, for pipeline-capable functions, flags locals not declared in
-  `Begin` or not `Clear-Variable`d at the top of `Process`;
+  `Begin` or not reset at the top of `Process`;
 - a rule that flags `Remove-Variable` used as end-of-scope cleanup.
+- a rule that flags `New-Variable` used for local declarations inside functions.
 
 ### Example (pipeline-capable)
 
@@ -73,11 +77,11 @@ function ConvertTo-Thing {
         $InputValue
     )
     begin {
-        New-Variable -Name 'Result' -Force -Option Private -Value ([System.String]::Empty)
+        [System.String]$Private:Result = [System.String]::Empty
     }
     process {
-        Clear-Variable -Name 'Result' -Force -ErrorAction SilentlyContinue
-        Set-Variable -Name 'Result' -Value ($InputValue.ToUpperInvariant())
+        $Result = [System.String]::Empty
+        $Result = $InputValue.ToUpperInvariant()
         $Result
     }
     end { }
@@ -91,8 +95,8 @@ function Get-Thing {
     [CmdletBinding()]
     [OutputType([System.Object[]])]
     param ()
-    $private:Items = [System.Collections.Generic.List[object]]::new()
-    foreach ($Name in 'a', 'b') { $private:Items.Add($Name) }
-    , $private:Items.ToArray()
+    [System.Collections.Generic.List[object]]$Private:Items = [System.Collections.Generic.List[object]]::new()
+    foreach ($Name in 'a', 'b') { $Private:Items.Add($Name) }
+    , $Private:Items.ToArray()
 }
 ```

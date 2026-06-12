@@ -71,5 +71,9 @@
         'Measure-NoRemoveVariableCleanup'    = @{
             Enable = $true
         }
+
+        'Measure-NoNewVariableDeclaration'   = @{
+            Enable = $true
+        }
     }
 }
