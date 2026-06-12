@@ -16,15 +16,14 @@
 Adopt the start-uninstaller build model: author `EntryPoint`, `Public`, and
 `Private` source files under `src/`, then assemble a single release script and a
 functions-only test artifact with `build.ps1`. Keep the Windows certificate read
-behind a mocked `Get-StoreCertificate` seam so Linux CI can exercise downstream
-logic.
+behind a mocked `Get-StoreCertificate` seam so tests remain deterministic and
+store-independent.
 
 ## Context and Problem Statement
 
 The exporter must align with the targetstate PowerShell style and still ship as a
-single script. CI runs on Linux PowerShell 7 and Windows PowerShell 5.1 with a
-90% coverage gate, while the live `LocalMachine` certificate stores are Windows
-runtime resources.
+single script. CI runs on Windows PowerShell 5.1 with a 90% coverage gate, while
+the live `LocalMachine` certificate stores are machine-local runtime resources.
 
 A single inline `Functions` region would make helper ownership and code coverage
 harder to maintain. A module layout would add consumer ceremony that the project
@@ -34,7 +33,8 @@ does not need.
 
 1. **Strict style alignment** with the portfolio PowerShell baseline.
 2. **Single-script release** without a module manifest.
-3. **Mockable certificate-store I/O** so Linux CI can cover pure logic.
+3. **Mockable certificate-store I/O** so tests can cover pure logic without
+   depending on the runner's certificate stores.
 4. **Coverage target matches executed code** by instrumenting the merged
    functions-only artifact.
 5. **PowerShell 5.1 baseline** with a Windows runtime guard before live store I/O.

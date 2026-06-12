@@ -3,7 +3,9 @@
 Describe 'SG-1 house analyzer rules' {
     BeforeAll {
         $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
-        Import-Module -Name PSScriptAnalyzer -Force -ErrorAction Stop
+        if (-not (Get-Module -Name PSScriptAnalyzer)) {
+            Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+        }
     }
 
     It 'flags function-local assignments that are not Private-scoped' {

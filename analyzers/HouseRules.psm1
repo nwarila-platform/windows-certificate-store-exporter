@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function New-HouseRuleDiagnosticRecord {
+function ConvertTo-HouseRuleDiagnosticRecord {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
@@ -701,7 +701,7 @@ function Measure-PrivateVariableDeclaration {
                     continue
                 }
 
-                New-HouseRuleDiagnosticRecord `
+                ConvertTo-HouseRuleDiagnosticRecord `
                     -RuleName 'Measure-PrivateVariableDeclaration' `
                     -Extent $AssignedVariable.Extent `
                     -Message (
@@ -784,7 +784,7 @@ function Measure-PipelineVariableLifecycle {
 
             foreach ($AssignedName in $AssignedNames.Keys) {
                 if ($BeginDeclarations.Contains($AssignedName) -eq $False) {
-                    New-HouseRuleDiagnosticRecord `
+                    ConvertTo-HouseRuleDiagnosticRecord `
                         -RuleName 'Measure-PipelineVariableLifecycle' `
                         -Extent $AssignedNames[$AssignedName] `
                         -Message (
@@ -800,7 +800,7 @@ function Measure-PipelineVariableLifecycle {
                     continue
                 }
 
-                New-HouseRuleDiagnosticRecord `
+                ConvertTo-HouseRuleDiagnosticRecord `
                     -RuleName 'Measure-PipelineVariableLifecycle' `
                     -Extent $FunctionAst.Body.ProcessBlock.Extent `
                     -Message (
@@ -847,7 +847,7 @@ function Measure-NoRemoveVariableCleanup {
             } | Where-Object -FilterScript {
                 $PSItem.GetCommandName() -imatch '^Remove-Variable$'
             } | ForEach-Object -Process {
-                New-HouseRuleDiagnosticRecord `
+                ConvertTo-HouseRuleDiagnosticRecord `
                     -RuleName 'Measure-NoRemoveVariableCleanup' `
                     -Extent $PSItem.Extent `
                     -Message (
@@ -890,7 +890,7 @@ function Measure-NoNewVariableDeclaration {
                 $PSItem.GetCommandName() -imatch '^New-Variable$' -and
                     (Test-HouseRuleCommandUsesNonLocalScope -CommandAst $PSItem) -eq $False
             } | ForEach-Object -Process {
-                New-HouseRuleDiagnosticRecord `
+                ConvertTo-HouseRuleDiagnosticRecord `
                     -RuleName 'Measure-NoNewVariableDeclaration' `
                     -Extent $PSItem.Extent `
                     -Message (
