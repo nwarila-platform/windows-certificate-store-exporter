@@ -2,14 +2,14 @@
 
 | Field          | Value                                                        |
 | -------------- | ------------------------------------------------------------ |
-| Status         | Proposed                                                     |
-| Date           | 2026-06-11                                                   |
+| Status         | Accepted                                                     |
+| Date           | 2026-06-12                                                   |
 | Authors        | Nick Warila (@NWarila)                                        |
 | Decision-maker | Nick Warila (sole portfolio maintainer)                      |
 | Consulted      | AWS CLI CA-bundle resolution order; portfolio ShouldProcess convention. |
 | Informed       | Operators and config-management tooling deploying the bundle. |
 | Reversibility  | Medium                                                       |
-| Review-by      | 2026-07-11                                                   |
+| Review-by      | N/A (Accepted)                                               |
 
 ## TL;DR
 

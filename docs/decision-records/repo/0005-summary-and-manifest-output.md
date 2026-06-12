@@ -2,14 +2,14 @@
 
 | Field          | Value                                                        |
 | -------------- | ------------------------------------------------------------ |
-| Status         | Proposed                                                     |
-| Date           | 2026-06-11                                                   |
+| Status         | Accepted                                                     |
+| Date           | 2026-06-12                                                   |
 | Authors        | Nick Warila (@NWarila)                                        |
 | Decision-maker | Nick Warila (sole portfolio maintainer)                      |
 | Consulted      | Portfolio SHA-256 manifest convention; PowerShell soft-return idiom. |
 | Informed       | Verification pipelines and automation consumers.             |
 | Reversibility  | High                                                         |
-| Review-by      | 2026-07-11                                                   |
+| Review-by      | N/A (Accepted)                                               |
 
 ## TL;DR
 

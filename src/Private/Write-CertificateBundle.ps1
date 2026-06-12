@@ -15,16 +15,16 @@ function Write-CertificateBundle {
         Destination bundle path.
 
     .PARAMETER PemBlock
-        PEM blocks that will eventually be written.
+        PEM blocks to write in bundle order.
 
     .PARAMETER MinimumCertificateCount
-        Minimum certificate count floor for the future fail-closed check.
+        Minimum PEM block count required before writing.
 
     .PARAMETER WriteManifest
-        Placeholder switch for manifest sidecar output.
+        Writes a sha256sum-style `<bundle>.sha256` sidecar.
 
     .EXAMPLE
-        Write-CertificateBundle -Path .\bundle.pem -PemBlock $PemBlocks
+        Write-CertificateBundle -Path .\bundle.pem -PemBlock $PemBlocks -WriteManifest
 
     .OUTPUTS
         [System.Management.Automation.PSCustomObject]

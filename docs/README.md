@@ -1,10 +1,26 @@
 # Documentation
 
-Documentation follows the Diataxis structure inherited from
-`NWarila/powershell-template`.
+This repository follows the Diataxis documentation framework.
 
-- [Tutorial: getting started](tutorials/getting-started.md)
-- [How-to: add a function](how-to/add-a-function.md)
-- [Reference: module structure](reference/module-structure.md)
-- [Explanation: why this layout](explanation/why-this-layout.md)
+## Tutorials
+
+- [Getting started](tutorials/getting-started.md)
+
+## How-to Guides
+
+- [Certificate bundle operations](how-to/certificate-bundle-operations.md)
+- [Add script behavior](how-to/add-a-function.md)
+
+## Reference
+
+- [CLI contract](reference/cli-contract.md)
+- [Module structure](reference/module-structure.md)
+
+## Explanation
+
+- [Trust and determinism model](explanation/trust-and-determinism.md)
+- [Why this layout](explanation/why-this-layout.md)
+
+## Architecture Decision Records
+
 - [Architecture Decision Records](decision-records/README.md)
