@@ -68,6 +68,8 @@ function Export-CertificateStoreBundle {
 
     begin {
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Begin'
+
+        # Initalize Variable(s)
         [System.Collections.Generic.List[
         System.Security.Cryptography.X509Certificates.X509Certificate2
         ]]$Private:Certificates = $Null
@@ -76,6 +78,7 @@ function Export-CertificateStoreBundle {
         [System.String]$Private:Status = [System.String]::Empty
         [System.Object]$Private:StoreCertificates = $Null
         [System.Object]$Private:WriteResult = $Null
+
         Write-Debug -Message '[Export-CertificateStoreBundle] Exiting Begin'
     }
 

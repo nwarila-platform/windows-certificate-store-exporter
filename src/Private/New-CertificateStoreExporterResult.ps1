@@ -125,9 +125,12 @@ function New-CertificateStoreExporterResult {
 
     begin {
         Write-Debug -Message '[New-CertificateStoreExporterResult] Entering Begin'
+
+        # Initalize Variable(s)
         [PSCustomObject]$Private:Excluded = $Null
         [PSCustomObject]$Private:Result = $Null
         [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null
+
         Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting Begin'
     }
 

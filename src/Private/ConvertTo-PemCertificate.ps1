@@ -37,7 +37,10 @@ function ConvertTo-PemCertificate {
 
     begin {
         Write-Debug -Message '[ConvertTo-PemCertificate] Entering Begin'
+
+        # Initalize Variable(s)
         [System.Boolean]$Private:HasCertificate = $False
+
         Write-Debug -Message '[ConvertTo-PemCertificate] Exiting Begin'
     }
 

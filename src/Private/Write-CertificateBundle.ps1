@@ -53,7 +53,10 @@ function Write-CertificateBundle {
 
     begin {
         Write-Debug -Message '[Write-CertificateBundle] Entering Begin'
+
+        # Initalize Variable(s)
         [System.Boolean]$Private:WouldWrite = $False
+
         Write-Debug -Message '[Write-CertificateBundle] Exiting Begin'
     }
 

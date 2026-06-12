@@ -66,8 +66,11 @@ function New-ErrorRecord {
 
     begin {
         Write-Debug -Message '[New-ErrorRecord] Entering Begin'
+
+        # Initalize Variable(s)
         [System.Management.Automation.ErrorRecord]$Private:ErrorRecord = $Null
         [System.InvalidOperationException]$Private:Exception = $Null
+
         Write-Debug -Message '[New-ErrorRecord] Exiting Begin'
     }
 

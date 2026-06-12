@@ -30,9 +30,12 @@ function Resolve-ExitCode {
 
     begin {
         Write-Debug -Message '[Resolve-ExitCode] Entering Begin'
+
+        # Initalize Variable(s)
         [hashtable]$Private:ExitCodeByErrorId = $Null
         [System.String]$Private:FullyQualifiedErrorId = [System.String]::Empty
         [System.String]$Private:ShortErrorId = [System.String]::Empty
+
         Write-Debug -Message '[Resolve-ExitCode] Exiting Begin'
     }
 

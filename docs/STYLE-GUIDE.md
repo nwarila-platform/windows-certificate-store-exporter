@@ -77,7 +77,12 @@ function ConvertTo-Thing {
         $InputValue
     )
     begin {
+        Write-Debug -Message '[ConvertTo-Thing] Entering Begin'
+
+        # Initalize Variable(s)
         [System.String]$Private:Result = [System.String]::Empty
+
+        Write-Debug -Message '[ConvertTo-Thing] Exiting Begin'
     }
     process {
         $Result = [System.String]::Empty

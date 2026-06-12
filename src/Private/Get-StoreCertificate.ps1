@@ -37,6 +37,9 @@ function Get-StoreCertificate {
 
     begin {
         Write-Debug -Message '[Get-StoreCertificate] Entering Begin'
+
+        # Initalize Variable(s)
+
         Write-Debug -Message '[Get-StoreCertificate] Exiting Begin'
     }
 
