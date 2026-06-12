@@ -6,14 +6,17 @@ function Get-StoreCertificate {
         Reads certificates from a Windows certificate store.
 
     .DESCRIPTION
-        Placeholder for the P3 X509Store seam. The P0 skeleton returns an empty
-        collection and performs no platform or store I/O.
+        Opens one Windows X509Store read-only and returns its certificates. This
+        is the only live certificate-store I/O seam in the exporter.
 
     .PARAMETER StoreLocation
         Logical certificate store location.
 
     .PARAMETER StoreName
         Logical certificate store name.
+
+    .PARAMETER StoreFactory
+        Internal factory used by tests to force store-open failures.
 
     .EXAMPLE
         Get-StoreCertificate -StoreLocation LocalMachine -StoreName Root
@@ -32,26 +35,88 @@ function Get-StoreCertificate {
         [Parameter()]
         [ValidateSet('Root', 'CA', 'Disallowed')]
         [System.String]
-        $StoreName = 'Root'
+        $StoreName = 'Root',
+
+        [Parameter(DontShow = $True)]
+        [ValidateNotNull()]
+        [System.Management.Automation.ScriptBlock]
+        $StoreFactory = {
+            param (
+                [Parameter(Mandatory = $True)]
+                [System.String]
+                $Name,
+
+                [Parameter(Mandatory = $True)]
+                [System.Security.Cryptography.X509Certificates.StoreLocation]
+                $Location
+            )
+
+            [System.Security.Cryptography.X509Certificates.X509Store]::new($Name, $Location)
+        }
     )
 
     begin {
         Write-Debug -Message '[Get-StoreCertificate] Entering Begin'
 
         # Initalize Variable(s)
+        [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]$Private:CertificateCollection = $Null
+        [System.String]$Private:FailureMessage = [System.String]::Empty
+        [System.Security.Cryptography.X509Certificates.OpenFlags]$Private:OpenFlags = [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly
+        [System.Security.Cryptography.X509Certificates.X509Store]$Private:Store = $Null
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:StoreCertificates = @()
+        [System.Security.Cryptography.X509Certificates.StoreLocation]$Private:TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine
 
         Write-Debug -Message '[Get-StoreCertificate] Exiting Begin'
     }
 
     process {
+        $CertificateCollection = $Null
+        $FailureMessage = [System.String]::Empty
+        $OpenFlags = [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly
+        $Store = $Null
+        $StoreCertificates = @()
+        $TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine
         Write-Debug -Message '[Get-StoreCertificate] Entering Process'
-        Write-Debug -Message (
-            '[Get-StoreCertificate] Stubbed read for {0}\{1}' -f
-            $StoreLocation,
-            $StoreName
-        )
 
-        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@()
+        if ((Test-CertificateStoreExporterWindows) -eq $False) {
+            New-ErrorRecord `
+                -Message 'Windows certificate stores are only available on Windows.' `
+                -ErrorId $Script:CertificateStoreExporterErrorIdNotWindows `
+                -Category ([System.Management.Automation.ErrorCategory]::InvalidOperation) `
+                -TargetObject ('{0}\{1}' -f $StoreLocation, $StoreName) `
+                -IsFatal
+        }
+
+        $TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::$StoreLocation
+        $OpenFlags = [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly -bor [System.Security.Cryptography.X509Certificates.OpenFlags]::OpenExistingOnly
+
+        try {
+            $Store = & $StoreFactory $StoreName $TypedStoreLocation
+            $Store.Open($OpenFlags)
+            $CertificateCollection = $Store.Certificates
+            $StoreCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
+                $CertificateCollection | ForEach-Object -Process {
+                    $PSItem
+                }
+            )
+        }
+        catch {
+            $FailureMessage = 'Failed to read Windows certificate store {0}\{1}: {2}' -f $StoreLocation, $StoreName, $PSItem.Exception.Message
+
+            New-ErrorRecord `
+                -Message $FailureMessage `
+                -ErrorId $Script:CertificateStoreExporterErrorIdStoreReadFailure `
+                -Category ([System.Management.Automation.ErrorCategory]::ReadError) `
+                -TargetObject ('{0}\{1}' -f $StoreLocation, $StoreName) `
+                -IsFatal
+        }
+        finally {
+            if ($Null -ne $Store) {
+                $Store.Dispose()
+            }
+        }
+
+        $StoreCertificates
 
         Write-Debug -Message '[Get-StoreCertificate] Exiting Process'
     }

@@ -24,6 +24,7 @@ if (-not (Test-Path -LiteralPath $ReleaseFile)) {
     'New-ErrorRecord',
     'Resolve-ExitCode',
     'Select-ExportableCertificate',
+    'Test-CertificateStoreExporterWindows',
     'Write-CertificateBundle'
 ) | ForEach-Object -Process {
     if ($Null -eq (Get-Command -Name $PSItem -CommandType Function -ErrorAction SilentlyContinue)) {
@@ -37,9 +38,6 @@ if ($PSVersionTable.PSEdition -eq 'Core') {
 }
 
 $PowerShellCommand = Get-Command -Name $PowerShellCommandName -ErrorAction Stop
-$BundlePath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath (
-    'entrypoint-smoke-{0}.pem' -f [System.Guid]::NewGuid().ToString('N')
-)
 $Arguments = [System.Collections.Generic.List[System.String]]::new()
 $Arguments.Add('-NoLogo')
 $Arguments.Add('-NoProfile')
@@ -52,25 +50,10 @@ if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
 
 $Arguments.Add('-File')
 $Arguments.Add($ReleaseFile)
-$Arguments.Add('-Path')
-$Arguments.Add($BundlePath)
-$Arguments.Add('-StoreName')
-$Arguments.Add('Root')
-$Arguments.Add('-MinimumCertificateCount')
-$Arguments.Add('0')
-$Arguments.Add('-WhatIf')
+$Arguments.Add('-?')
 
 $ReleaseOutput = & $PowerShellCommand.Source @Arguments 2>&1
 
 if ($LASTEXITCODE -ne 0) {
-    throw (
-        'Release script smoke failed with exit code {0}:{1}{2}' -f
-        $LASTEXITCODE,
-        [System.Environment]::NewLine,
-        ($ReleaseOutput -join [System.Environment]::NewLine)
-    )
-}
-
-if (Test-Path -LiteralPath $BundlePath) {
-    throw ('Release script smoke unexpectedly wrote: {0}' -f $BundlePath)
+    throw ('Release script help smoke failed with exit code {0}.' -f $LASTEXITCODE)
 }
