@@ -8,7 +8,11 @@ Describe 'Export-CertificateStoreBundle' {
     It 'wires the placeholder helpers without writing a bundle' {
         $Path = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'export-bundle.pem'
 
-        $Result = Export-CertificateStoreBundle -Path $Path -StoreName Root -WhatIf
+        $Result = Export-CertificateStoreBundle `
+            -Path $Path `
+            -StoreName Root `
+            -MinimumCertificateCount 0 `
+            -WhatIf
 
         $Result.PSTypeNames[0] | Should -Be 'CertificateStoreExporter.Result'
         $Result.Path | Should -Be $Path
