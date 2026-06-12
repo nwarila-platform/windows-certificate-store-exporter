@@ -6,8 +6,9 @@ function New-ErrorRecord {
         Creates or throws a structured PowerShell error record.
 
     .DESCRIPTION
-        Minimal house error helper for the P0 skeleton. P1 will add the concrete
-        exporter error identifiers and exit-code mapping.
+        Creates an ErrorRecord using one of the exporter failure-class ErrorIds.
+        The short ErrorId is the leading segment used by the EntryPoint exit-code
+        resolver.
 
     .PARAMETER Message
         Human-readable error message.
@@ -40,6 +41,12 @@ function New-ErrorRecord {
 
         [Parameter(Mandatory = $True)]
         [ValidateNotNullOrEmpty()]
+        [ValidateSet(
+            'NotWindows',
+            'StoreReadFailure',
+            'BelowMinimumCertificateCount',
+            'WriteFailure'
+        )]
         [System.String]
         $ErrorId,
 
