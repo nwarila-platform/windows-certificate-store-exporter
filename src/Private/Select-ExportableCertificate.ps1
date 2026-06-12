@@ -14,10 +14,10 @@ function Select-ExportableCertificate {
         Candidate certificates.
 
     .PARAMETER DisallowedThumbprint
-        SHA-256 thumbprints that will later be subtracted.
+        SHA-256 DER thumbprints to subtract.
 
     .PARAMETER IncludeExpired
-        Placeholder switch for the eventual validity filter.
+        Includes expired and not-yet-valid certificates.
 
     .EXAMPLE
         Select-ExportableCertificate -Certificate $Certificates

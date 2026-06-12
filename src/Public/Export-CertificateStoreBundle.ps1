@@ -11,28 +11,29 @@ function Export-CertificateStoreBundle {
         bundle, and emits the success result contract.
 
     .PARAMETER Path
-        Destination bundle path.
+        Destination bundle path. This parameter is mandatory.
 
     .PARAMETER StoreLocation
-        Logical certificate store location.
+        Logical certificate store location: LocalMachine or CurrentUser.
 
     .PARAMETER StoreName
-        Logical certificate store names to export.
+        Logical certificate store names to export: Root, CA, or both.
+        Disallowed is always read separately and subtracted.
 
     .PARAMETER IncludeExpired
-        Includes expired and not-yet-valid certificates.
+        Includes expired and not-yet-valid certificates in the candidate set.
 
     .PARAMETER MinimumCertificateCount
-        Minimum certificate count floor for the fail-closed write.
+        Minimum surviving certificate count required before writing.
 
     .PARAMETER WriteManifest
         Writes a sha256sum-style manifest sidecar.
 
     .EXAMPLE
-        Export-CertificateStoreBundle -Path .\bundle.pem -WhatIf
+        Export-CertificateStoreBundle -Path .\bundle.pem -WriteManifest -WhatIf
 
     .OUTPUTS
-        [System.Management.Automation.PSCustomObject]
+        CertificateStoreExporter.Result
     #>
     [CmdletBinding(SupportsShouldProcess = $True)]
     [OutputType([PSCustomObject])]

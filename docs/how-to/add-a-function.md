@@ -1,4 +1,4 @@
-# Add script behavior
+# Add Script Behavior
 
 ## Add source under `src/`
 
@@ -11,3 +11,14 @@ not edit files under `build/` directly.
 Add or update companion tests under `tests/Private/` or `tests/Public/`. Tests
 dot-source `build/Export-CertificateStoreBundle.Functions.ps1`, which is also
 the Pester coverage target.
+
+## Validate
+
+Run the full local gate before publishing a change:
+
+```powershell
+.\build.ps1 -Task All
+```
+
+The gate rebuilds generated artifacts, runs PSScriptAnalyzer with the house
+settings, runs smoke tests, and enforces Pester coverage.

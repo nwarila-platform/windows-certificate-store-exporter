@@ -2,14 +2,14 @@
 
 | Field          | Value                                                        |
 | -------------- | ------------------------------------------------------------ |
-| Status         | Proposed                                                     |
-| Date           | 2026-06-11                                                   |
+| Status         | Accepted                                                     |
+| Date           | 2026-06-12                                                   |
 | Authors        | Nick Warila (@NWarila)                                      |
 | Decision-maker | Nick Warila (sole portfolio maintainer)                      |
 | Consulted      | `nwarila-platform/targetstate` style; `nwarila-platform/start-uninstaller`; Pester v5; PSScriptAnalyzer. |
 | Informed       | Maintainers and reviewers of the script.                     |
 | Reversibility  | Medium                                                       |
-| Review-by      | 2026-07-11                                                   |
+| Review-by      | N/A (Accepted)                                               |
 
 ## TL;DR
 
@@ -64,7 +64,7 @@ Chosen: option 1.
 - **Tests:** `build.ps1 -Task Test` runs smoke scripts, Pester tests, and a 90%
   coverage gate against the functions-only artifact.
 
-### Proposed internal decomposition
+### Internal decomposition
 
 `Get-StoreCertificate` (seam) -> `Select-ExportableCertificate` (validity,
 `Disallowed` subtraction, de-dup) -> `ConvertTo-PemCertificate` (PEM block and

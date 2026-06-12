@@ -2,14 +2,14 @@
 
 | Field          | Value                                                        |
 | -------------- | ------------------------------------------------------------ |
-| Status         | Proposed                                                     |
-| Date           | 2026-06-11                                                   |
+| Status         | Accepted                                                     |
+| Date           | 2026-06-12                                                   |
 | Authors        | Nick Warila (@NWarila)                                        |
 | Decision-maker | Nick Warila (sole portfolio maintainer)                      |
 | Consulted      | Windows certificate-store architecture; AWS CLI `AWS_CA_BUNDLE` semantics. |
 | Informed       | Operators deploying the bundle via GPO/Ansible.              |
 | Reversibility  | Medium                                                       |
-| Review-by      | 2026-07-11                                                   |
+| Review-by      | N/A (Accepted)                                               |
 
 ## TL;DR
 

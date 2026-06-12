@@ -12,10 +12,10 @@ function ConvertTo-PemCertificate {
         \xHH.
 
     .PARAMETER Certificate
-        Certificate that will eventually be converted.
+        Certificate to convert.
 
     .PARAMETER StoreName
-        Source store name used by the eventual PEM header.
+        Source store name written to the PEM header.
 
     .EXAMPLE
         ConvertTo-PemCertificate -Certificate $Certificate -StoreName Root
