@@ -68,10 +68,21 @@ function Export-CertificateStoreBundle {
 
     begin {
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Begin'
+        New-Variable -Name 'Certificates' -Force -Option Private -Value $Null -WhatIf:$False
+        New-Variable -Name 'PemBlocks' -Force -Option Private -Value $Null -WhatIf:$False
+        New-Variable -Name 'SelectedCertificates' -Force -Option Private -Value $Null -WhatIf:$False
+        New-Variable -Name 'Status' -Force -Option Private -Value ([System.String]::Empty) -WhatIf:$False
+        New-Variable -Name 'StoreCertificates' -Force -Option Private -Value $Null -WhatIf:$False
+        New-Variable -Name 'WriteResult' -Force -Option Private -Value $Null -WhatIf:$False
         Write-Debug -Message '[Export-CertificateStoreBundle] Exiting Begin'
     }
 
     process {
+        Clear-Variable `
+            -Name 'Certificates', 'PemBlocks', 'SelectedCertificates', 'Status', 'StoreCertificates', 'WriteResult' `
+            -Force `
+            -ErrorAction SilentlyContinue `
+            -WhatIf:$False
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Process'
 
         $Certificates = [System.Collections.Generic.List[

@@ -125,10 +125,14 @@ function New-CertificateStoreExporterResult {
 
     begin {
         Write-Debug -Message '[New-CertificateStoreExporterResult] Entering Begin'
+        New-Variable -Name 'Excluded' -Force -Option Private -Value $Null -WhatIf:$False
+        New-Variable -Name 'Result' -Force -Option Private -Value $Null -WhatIf:$False
+        New-Variable -Name 'Thumbprints' -Force -Option Private -Value $Null -WhatIf:$False
         Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting Begin'
     }
 
     process {
+        Clear-Variable -Name 'Excluded', 'Result', 'Thumbprints' -Force -ErrorAction SilentlyContinue -WhatIf:$False
         Write-Debug -Message '[New-CertificateStoreExporterResult] Entering Process'
 
         $Thumbprints = [System.Collections.Generic.List[System.String]]::new()

@@ -19,6 +19,10 @@
 !/.github/workflows/
 !/.github/workflows/*.yaml
 
+# Analyzer rules
+!/analyzers/
+!/analyzers/*.psm1
+
 # Future module source, if this ever grows past a single script.
 !/src/
 !/src/**/

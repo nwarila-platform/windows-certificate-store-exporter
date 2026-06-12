@@ -37,10 +37,12 @@ function ConvertTo-PemCertificate {
 
     begin {
         Write-Debug -Message '[ConvertTo-PemCertificate] Entering Begin'
+        New-Variable -Name 'HasCertificate' -Force -Option Private -Value ([System.Boolean]$False) -WhatIf:$False
         Write-Debug -Message '[ConvertTo-PemCertificate] Exiting Begin'
     }
 
     process {
+        Clear-Variable -Name 'HasCertificate' -Force -ErrorAction SilentlyContinue -WhatIf:$False
         Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
 
         $HasCertificate = [System.Boolean]($Null -ne $Certificate)

@@ -9,7 +9,13 @@
 @{
     Severity            = @('Error', 'Warning')
 
+    CustomRulePath      = @(
+        './analyzers/HouseRules.psm1'
+    )
+
     IncludeDefaultRules = $true
+
+    IncludeRules        = @('*')
 
     ExcludeRules        = @(
         'PSUseShouldProcessForStateChangingFunctions'
@@ -51,6 +57,18 @@
         }
 
         PSUseCorrectCasing         = @{
+            Enable = $true
+        }
+
+        'Measure-PrivateVariableDeclaration' = @{
+            Enable = $true
+        }
+
+        'Measure-PipelineVariableLifecycle'  = @{
+            Enable = $true
+        }
+
+        'Measure-NoRemoveVariableCleanup'    = @{
             Enable = $true
         }
     }

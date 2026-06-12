@@ -57,16 +57,16 @@ function Test-Syntax {
     )
 
     process {
-        $Messages = [System.Collections.Generic.List[System.String]]::new()
+        $private:Messages = [System.Collections.Generic.List[System.String]]::new()
 
         $Path | ForEach-Object -Process {
-            $ScriptPath = [System.String]$PSItem
+            $private:ScriptPath = [System.String]$PSItem
             if (-not (Test-Path -LiteralPath $ScriptPath)) {
                 return
             }
 
-            $Tokens = $Null
-            $ParseErrors = $Null
+            $private:Tokens = $Null
+            $private:ParseErrors = $Null
             $Null = [System.Management.Automation.Language.Parser]::ParseFile(
                 $ScriptPath,
                 [ref]$Tokens,
@@ -103,24 +103,24 @@ function Get-EntryPointContent {
     param ()
 
     process {
-        $EntryPointPath = Join-Path -Path $SourceRoot -ChildPath 'EntryPoint.ps1'
-        $EntryPointText = (Get-Content -LiteralPath $EntryPointPath -Raw).Trim()
-        $EntryPointLines = [System.String[]]($EntryPointText -split '\r?\n')
-        $ParamEnd = -1
-        $InParamBlock = $False
-        $ParenDepth = 0
+        $private:EntryPointPath = Join-Path -Path $SourceRoot -ChildPath 'EntryPoint.ps1'
+        $private:EntryPointText = (Get-Content -LiteralPath $EntryPointPath -Raw).Trim()
+        $private:EntryPointLines = [System.String[]]($EntryPointText -split '\r?\n')
+        $private:ParamEnd = -1
+        $private:InParamBlock = $False
+        $private:ParenDepth = 0
 
         for ($Index = 0; $Index -lt $EntryPointLines.Count; $Index++) {
-            $Line = [System.String]$EntryPointLines[$Index]
-            $TrimmedLine = $Line.Trim()
+            $private:Line = [System.String]$EntryPointLines[$Index]
+            $private:TrimmedLine = $Line.Trim()
 
             if ($InParamBlock -eq $False -and $TrimmedLine -match '^Param\s*\(') {
                 $InParamBlock = $True
             }
 
             if ($InParamBlock -eq $True) {
-                $OpenParenCount = ([regex]::Matches($Line, '\(')).Count
-                $CloseParenCount = ([regex]::Matches($Line, '\)')).Count
+                $private:OpenParenCount = ([regex]::Matches($Line, '\(')).Count
+                $private:CloseParenCount = ([regex]::Matches($Line, '\)')).Count
                 $ParenDepth += ($OpenParenCount - $CloseParenCount)
 
                 if ($ParenDepth -eq 0) {
@@ -161,7 +161,7 @@ function Add-FunctionFileContent {
     )
 
     process {
-        $FunctionFiles = @(
+        $private:FunctionFiles = @(
             Get-ChildItem `
                 -LiteralPath $Directory `
                 -Filter '*.ps1' `
@@ -177,7 +177,7 @@ function Add-FunctionFileContent {
         $Null = $StringBuilder.AppendLine('')
 
         $FunctionFiles | ForEach-Object -Process {
-            $Content = (Get-Content -LiteralPath $PSItem.FullName -Raw).Trim()
+            $private:Content = (Get-Content -LiteralPath $PSItem.FullName -Raw).Trim()
             $Content = $Content -replace '(?m)^#Requires[^\r\n]*(\r?\n)?', ''
             $Null = $StringBuilder.AppendLine($Content.Trim())
             $Null = $StringBuilder.AppendLine('')
@@ -194,8 +194,8 @@ function Invoke-SmokeTest {
     param ()
 
     process {
-        $SmokeRoot = Join-Path -Path $TestRoot -ChildPath 'Smoke'
-        $SmokeFiles = @(
+        $private:SmokeRoot = Join-Path -Path $TestRoot -ChildPath 'Smoke'
+        $private:SmokeFiles = @(
             Get-ChildItem `
                 -LiteralPath $SmokeRoot `
                 -Filter '*.ps1' `
@@ -225,8 +225,8 @@ function Invoke-Build {
             $Null = New-Item -Path $BuildRoot -ItemType Directory
         }
 
-        $EntryPoint = Get-EntryPointContent
-        $FunctionBuilder = [System.Text.StringBuilder]::new(32768)
+        $private:EntryPoint = Get-EntryPointContent
+        $private:FunctionBuilder = [System.Text.StringBuilder]::new(32768)
         $Null = $FunctionBuilder.AppendLine('#Requires -Version 5.1')
         $Null = $FunctionBuilder.AppendLine('')
 
@@ -240,19 +240,19 @@ function Invoke-Build {
             -Directory (Join-Path -Path $SourceRoot -ChildPath 'Public') `
             -RegionName 'Public Functions'
 
-        $FunctionsContent = $FunctionBuilder.ToString().TrimEnd() + [System.Environment]::NewLine
+        $private:FunctionsContent = $FunctionBuilder.ToString().TrimEnd() + [System.Environment]::NewLine
         [System.IO.File]::WriteAllText(
             $FunctionsFile,
             $FunctionsContent,
             [System.Text.UTF8Encoding]::new($False)
         )
 
-        $FullBuilder = [System.Text.StringBuilder]::new(32768)
+        $private:FullBuilder = [System.Text.StringBuilder]::new(32768)
         $Null = $FullBuilder.AppendLine('#Requires -Version 5.1')
         $Null = $FullBuilder.AppendLine('')
 
         for ($Index = 0; $Index -le $EntryPoint.ParamEnd; $Index++) {
-            $Line = [System.String]$EntryPoint.Lines[$Index]
+            $private:Line = [System.String]$EntryPoint.Lines[$Index]
             if ($Line.Trim() -match '^#Requires') {
                 continue
             }
@@ -261,7 +261,7 @@ function Invoke-Build {
         }
 
         $Null = $FullBuilder.AppendLine('')
-        $FunctionBody = $FunctionsContent -replace '(?s)^#Requires[^\r\n]*\r?\n\r?\n', ''
+        $private:FunctionBody = $FunctionsContent -replace '(?s)^#Requires[^\r\n]*\r?\n\r?\n', ''
         $Null = $FullBuilder.Append($FunctionBody)
         $Null = $FullBuilder.AppendLine('#region Entry Point')
         $Null = $FullBuilder.AppendLine('')
@@ -273,7 +273,7 @@ function Invoke-Build {
         $Null = $FullBuilder.AppendLine('')
         $Null = $FullBuilder.AppendLine('#endregion')
 
-        $FullContent = $FullBuilder.ToString().TrimEnd() + [System.Environment]::NewLine
+        $private:FullContent = $FullBuilder.ToString().TrimEnd() + [System.Environment]::NewLine
         [System.IO.File]::WriteAllText(
             $OutputFile,
             $FullContent,
@@ -295,7 +295,7 @@ function Invoke-Analyze {
             Invoke-Build
         }
 
-        $SyntaxTargets = @(
+        $private:SyntaxTargets = @(
             Join-Path -Path $ProjectRoot -ChildPath 'build.ps1'
             $OutputFile
             $FunctionsFile
@@ -303,7 +303,7 @@ function Invoke-Analyze {
 
         Test-Syntax -Path $SyntaxTargets
 
-        $AnalyzerModule = Get-LatestAvailableModule -Name 'PSScriptAnalyzer'
+        $private:AnalyzerModule = Get-LatestAvailableModule -Name 'PSScriptAnalyzer'
         if ($Null -eq $AnalyzerModule) {
             Write-Warning -Message 'PSScriptAnalyzer is not installed. Syntax validation passed.'
             return
@@ -311,15 +311,15 @@ function Invoke-Analyze {
 
         Import-Module -Name $AnalyzerModule.Path -Force
 
-        $SettingsFile = Join-Path -Path $ProjectRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
-        $Results = @(
+        $private:SettingsFile = Join-Path -Path $ProjectRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
+        $private:Results = @(
             Invoke-ScriptAnalyzer -Path $OutputFile -Settings $SettingsFile
             Invoke-ScriptAnalyzer -Path $FunctionsFile -Settings $SettingsFile
             Invoke-ScriptAnalyzer -Path (Join-Path -Path $ProjectRoot -ChildPath 'build.ps1') -Settings $SettingsFile
         )
 
         if ($Results.Count -gt 0) {
-            $FormattedResults = $Results |
+            $private:FormattedResults = $Results |
                 Format-Table -Property RuleName, Severity, ScriptName, Line, Message -AutoSize |
                 Out-String
             Write-Information -MessageData $FormattedResults -InformationAction Continue
@@ -343,14 +343,14 @@ function Invoke-Test {
 
         Invoke-SmokeTest
 
-        $PesterModule = Get-LatestAvailableModule -Name 'Pester'
+        $private:PesterModule = Get-LatestAvailableModule -Name 'Pester'
         if ($Null -eq $PesterModule -or $PesterModule.Version.Major -lt 5) {
             throw 'Pester 5 or newer is required for tests and coverage.'
         }
 
         Import-Module -Name $PesterModule.Path -Force
 
-        $PesterConfig = [PesterConfiguration]::Default
+        $private:PesterConfig = [PesterConfiguration]::Default
         $PesterConfig.Run.Path = $TestRoot
         $PesterConfig.Run.Throw = $True
         $PesterConfig.Output.Verbosity = 'Detailed'

@@ -30,10 +30,14 @@ function Resolve-ExitCode {
 
     begin {
         Write-Debug -Message '[Resolve-ExitCode] Entering Begin'
+        New-Variable -Name 'ExitCodeByErrorId' -Force -Option Private -Value $Null -WhatIf:$False
+        New-Variable -Name 'FullyQualifiedErrorId' -Force -Option Private -Value ([System.String]::Empty) -WhatIf:$False
+        New-Variable -Name 'ShortErrorId' -Force -Option Private -Value ([System.String]::Empty) -WhatIf:$False
         Write-Debug -Message '[Resolve-ExitCode] Exiting Begin'
     }
 
     process {
+        Clear-Variable -Name 'ExitCodeByErrorId', 'FullyQualifiedErrorId', 'ShortErrorId' -Force -ErrorAction SilentlyContinue -WhatIf:$False
         Write-Debug -Message '[Resolve-ExitCode] Entering Process'
 
         $ExitCodeByErrorId = @{}
