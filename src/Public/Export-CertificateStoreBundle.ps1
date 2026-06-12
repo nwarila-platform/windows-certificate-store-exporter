@@ -6,9 +6,9 @@ function Export-CertificateStoreBundle {
         Exports a Windows certificate store bundle.
 
     .DESCRIPTION
-        P1 orchestration stub. The function wires the placeholder helper seams
-        together without real certificate store I/O, PEM encoding, atomic writes,
-        or manifest output.
+        Reads the requested certificate stores, subtracts Disallowed, filters and
+        de-duplicates exportable certificates, writes the deterministic PEM
+        bundle, and emits the success result contract.
 
     .PARAMETER Path
         Destination bundle path.
@@ -20,13 +20,13 @@ function Export-CertificateStoreBundle {
         Logical certificate store names to export.
 
     .PARAMETER IncludeExpired
-        Placeholder switch for the eventual validity filter.
+        Includes expired and not-yet-valid certificates.
 
     .PARAMETER MinimumCertificateCount
-        Minimum certificate count floor for the future fail-closed check.
+        Minimum certificate count floor for the fail-closed write.
 
     .PARAMETER WriteManifest
-        Placeholder switch for manifest sidecar output.
+        Writes a sha256sum-style manifest sidecar.
 
     .EXAMPLE
         Export-CertificateStoreBundle -Path .\bundle.pem -WhatIf
@@ -70,58 +70,170 @@ function Export-CertificateStoreBundle {
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Begin'
 
         # Initalize Variable(s)
+        [System.String]$Private:BundleSha256 = [System.String]::Empty
         [System.Collections.Generic.List[
         System.Security.Cryptography.X509Certificates.X509Certificate2
-        ]]$Private:Certificates = $Null
+        ]]$Private:CandidateCertificates = $Null
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:CandidateCertificateArray = @()
+        [System.String]$Private:CertificateHash = [System.String]::Empty
+        [System.String]$Private:DefaultSourceStore = [System.String]::Empty
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:DisallowedCertificates = @()
+        [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedThumbprintSet = $Null
+        [System.Collections.Generic.List[System.String]]$Private:DisallowedThumbprints = $Null
+        [System.Int32]$Private:ExcludedDisallowed = 0
+        [System.Int32]$Private:ExcludedDuplicate = 0
+        [System.Int32]$Private:ExcludedExpired = 0
+        [System.Int32]$Private:ExcludedNotYetValid = 0
+        [System.Collections.Generic.Dictionary[System.String, System.String]]$Private:FirstSourceStoreByHash = $Null
+        [System.String]$Private:ManifestPath = $Null
+        [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
+        [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
+        [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
         [System.Collections.Generic.List[System.String]]$Private:PemBlocks = $Null
         [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:SelectedCertificates = @()
-        [System.String]$Private:BundleSha256 = [System.String]::Empty
-        [System.String]$Private:ManifestPath = $Null
+        [System.Collections.Generic.HashSet[System.String]]$Private:SeenEligibleThumbprints = $Null
+        [System.String]$Private:SourceStore = [System.String]::Empty
         [System.String]$Private:Status = [System.String]::Empty
-        [System.Object]$Private:StoreCertificates = $Null
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:StoreCertificates = @()
         [System.Object]$Private:WriteResult = $Null
 
         Write-Debug -Message '[Export-CertificateStoreBundle] Exiting Begin'
     }
 
     process {
-        $Certificates = $Null
+        $BundleSha256 = [System.String]::Empty
+        $CandidateCertificates = $Null
+        $CandidateCertificateArray = @()
+        $CertificateHash = [System.String]::Empty
+        $DefaultSourceStore = [System.String]::Empty
+        $DisallowedCertificates = @()
+        $DisallowedThumbprintSet = $Null
+        $DisallowedThumbprints = $Null
+        $ExcludedDisallowed = 0
+        $ExcludedDuplicate = 0
+        $ExcludedExpired = 0
+        $ExcludedNotYetValid = 0
+        $FirstSourceStoreByHash = $Null
+        $ManifestPath = $Null
+        $NotAfterUtc = [System.DateTime]::MinValue
+        $NotBeforeUtc = [System.DateTime]::MinValue
+        $NowUtc = [System.DateTime]::MinValue
         $PemBlocks = $Null
         $SelectedCertificates = @()
-        $BundleSha256 = [System.String]::Empty
-        $ManifestPath = $Null
+        $SeenEligibleThumbprints = $Null
+        $SourceStore = [System.String]::Empty
         $Status = [System.String]::Empty
-        $StoreCertificates = $Null
+        $StoreCertificates = @()
         $WriteResult = $Null
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Process'
 
-        $Certificates = [System.Collections.Generic.List[
+        $NowUtc = [System.DateTime]::UtcNow
+        $CandidateCertificates = [System.Collections.Generic.List[
         System.Security.Cryptography.X509Certificates.X509Certificate2
         ]]::new()
+        $DisallowedThumbprints = [System.Collections.Generic.List[System.String]]::new()
+        $DisallowedThumbprintSet = [System.Collections.Generic.HashSet[System.String]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+        )
+        $FirstSourceStoreByHash = [System.Collections.Generic.Dictionary[
+        System.String,
+        System.String
+        ]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        $SeenEligibleThumbprints = [System.Collections.Generic.HashSet[System.String]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+        )
 
-        $StoreName | ForEach-Object -Process {
+        foreach ($RequestedStoreName in $StoreName) {
             $StoreCertificates = Get-StoreCertificate `
                 -StoreLocation $StoreLocation `
-                -StoreName $PSItem
-            $StoreCertificates | ForEach-Object -Process {
-                $Certificates.Add($PSItem)
+                -StoreName $RequestedStoreName
+
+            foreach ($StoreCertificate in $StoreCertificates) {
+                if ($Null -eq $StoreCertificate) {
+                    continue
+                }
+
+                $CandidateCertificates.Add($StoreCertificate)
+                $CertificateHash = Get-CertificateRawDataSha256 -Certificate $StoreCertificate
+
+                if ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $False) {
+                    $FirstSourceStoreByHash.Add($CertificateHash, $RequestedStoreName)
+                }
             }
         }
 
+        $DisallowedCertificates = Get-StoreCertificate `
+            -StoreLocation $StoreLocation `
+            -StoreName Disallowed
+
+        foreach ($DisallowedCertificate in $DisallowedCertificates) {
+            if ($Null -eq $DisallowedCertificate) {
+                continue
+            }
+
+            $CertificateHash = Get-CertificateRawDataSha256 -Certificate $DisallowedCertificate
+            $DisallowedThumbprints.Add($CertificateHash)
+            [void]$DisallowedThumbprintSet.Add($CertificateHash)
+        }
+
+        foreach ($CandidateCertificate in $CandidateCertificates) {
+            if ($IncludeExpired.IsPresent -eq $False) {
+                $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
+                $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
+
+                if ($NotAfterUtc -lt $NowUtc) {
+                    $ExcludedExpired++
+                    continue
+                }
+
+                if ($NotBeforeUtc -gt $NowUtc) {
+                    $ExcludedNotYetValid++
+                    continue
+                }
+            }
+
+            $CertificateHash = Get-CertificateRawDataSha256 -Certificate $CandidateCertificate
+
+            if ($DisallowedThumbprintSet.Contains($CertificateHash) -eq $True) {
+                $ExcludedDisallowed++
+                continue
+            }
+
+            if ($SeenEligibleThumbprints.Contains($CertificateHash) -eq $True) {
+                $ExcludedDuplicate++
+                continue
+            }
+
+            [void]$SeenEligibleThumbprints.Add($CertificateHash)
+        }
+
+        $CandidateCertificateArray = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$CandidateCertificates.ToArray()
         $SelectedCertificates = @(
             Select-ExportableCertificate `
-                -Certificate ([System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Certificates.ToArray()) `
-                -DisallowedThumbprint @() `
+                -Certificate $CandidateCertificateArray `
+                -DisallowedThumbprint ([System.String[]]$DisallowedThumbprints.ToArray()) `
                 -IncludeExpired:$IncludeExpired.IsPresent
         )
 
         $PemBlocks = [System.Collections.Generic.List[System.String]]::new()
-        $SelectedCertificates | ForEach-Object -Process {
+        $DefaultSourceStore = 'Root'
+        if ($StoreName.Count -gt 0) {
+            $DefaultSourceStore = [System.String]$StoreName[0]
+        }
+
+        foreach ($SelectedCertificate in $SelectedCertificates) {
+            $CertificateHash = Get-CertificateRawDataSha256 -Certificate $SelectedCertificate
+            $SourceStore = $DefaultSourceStore
+
+            if ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $True) {
+                $SourceStore = [System.String]$FirstSourceStoreByHash[$CertificateHash]
+            }
+
             $PemBlocks.Add(
                 (
                     ConvertTo-PemCertificate `
-                        -Certificate $PSItem `
-                        -StoreName $StoreName[0]
+                        -Certificate $SelectedCertificate `
+                        -StoreName $SourceStore
                 )
             )
         }
@@ -141,7 +253,11 @@ function Export-CertificateStoreBundle {
             -Status $Status `
             -Certificate $SelectedCertificates `
             -BundleSha256 $BundleSha256 `
-            -Examined $Certificates.Count `
+            -Examined $CandidateCertificates.Count `
+            -ExcludedExpired $ExcludedExpired `
+            -ExcludedNotYetValid $ExcludedNotYetValid `
+            -ExcludedDisallowed $ExcludedDisallowed `
+            -ExcludedDuplicate $ExcludedDuplicate `
             -StoreLocation $StoreLocation `
             -StoreName $StoreName `
             -ManifestPath $ManifestPath
