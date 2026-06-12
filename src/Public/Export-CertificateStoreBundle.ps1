@@ -6,9 +6,9 @@ function Export-CertificateStoreBundle {
         Exports a Windows certificate store bundle.
 
     .DESCRIPTION
-        P0 orchestration stub. The function wires the placeholder helper seams
-        together without reading certificate stores, converting DER to PEM, or
-        writing files.
+        P1 orchestration stub. The function wires the placeholder helper seams
+        together without real certificate store I/O, PEM encoding, atomic writes,
+        or manifest output.
 
     .PARAMETER Path
         Destination bundle path.
@@ -68,10 +68,27 @@ function Export-CertificateStoreBundle {
 
     begin {
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Begin'
+
+        # Initalize Variable(s)
+        [System.Collections.Generic.List[
+        System.Security.Cryptography.X509Certificates.X509Certificate2
+        ]]$Private:Certificates = $Null
+        [System.Collections.Generic.List[System.String]]$Private:PemBlocks = $Null
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:SelectedCertificates = @()
+        [System.String]$Private:Status = [System.String]::Empty
+        [System.Object]$Private:StoreCertificates = $Null
+        [System.Object]$Private:WriteResult = $Null
+
         Write-Debug -Message '[Export-CertificateStoreBundle] Exiting Begin'
     }
 
     process {
+        $Certificates = $Null
+        $PemBlocks = $Null
+        $SelectedCertificates = @()
+        $Status = [System.String]::Empty
+        $StoreCertificates = $Null
+        $WriteResult = $Null
         Write-Debug -Message '[Export-CertificateStoreBundle] Entering Process'
 
         $Certificates = [System.Collections.Generic.List[
@@ -87,10 +104,12 @@ function Export-CertificateStoreBundle {
             }
         }
 
-        $SelectedCertificates = Select-ExportableCertificate `
-            -Certificate ([System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Certificates.ToArray()) `
-            -DisallowedThumbprint @() `
-            -IncludeExpired:$IncludeExpired.IsPresent
+        $SelectedCertificates = @(
+            Select-ExportableCertificate `
+                -Certificate ([System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Certificates.ToArray()) `
+                -DisallowedThumbprint @() `
+                -IncludeExpired:$IncludeExpired.IsPresent
+        )
 
         $PemBlocks = [System.Collections.Generic.List[System.String]]::new()
         $SelectedCertificates | ForEach-Object -Process {
@@ -103,11 +122,25 @@ function Export-CertificateStoreBundle {
             )
         }
 
-        Write-CertificateBundle `
+        $WriteResult = Write-CertificateBundle `
             -Path $Path `
             -PemBlock ([System.String[]]$PemBlocks.ToArray()) `
             -MinimumCertificateCount $MinimumCertificateCount `
             -WriteManifest:$WriteManifest.IsPresent
+
+        $Status = 'Written'
+        if ($WriteResult.WouldWrite -eq $False) {
+            $Status = 'WhatIf'
+        }
+
+        New-CertificateStoreExporterResult `
+            -Path $Path `
+            -Status $Status `
+            -Certificate $SelectedCertificates `
+            -BundleSha256 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855' `
+            -Examined $Certificates.Count `
+            -StoreLocation $StoreLocation `
+            -StoreName $StoreName
 
         Write-Debug -Message '[Export-CertificateStoreBundle] Exiting Process'
     }

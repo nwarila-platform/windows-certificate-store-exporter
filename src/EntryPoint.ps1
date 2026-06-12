@@ -55,7 +55,7 @@ trap {
     $Script:ExitCode = 1
 
     if ($Script:TrapEnabled -eq $True) {
-        Write-Error -ErrorRecord $PSItem
+        Write-Error -ErrorRecord $PSItem -ErrorAction Continue
     }
 
     exit ([System.Int32]$Script:ExitCode)
@@ -94,14 +94,31 @@ $ExporterParameters = @{
     WriteManifest           = $WriteManifest
 }
 
-Write-Debug -Message '[EntryPoint] Invoking Export-CertificateStoreBundle'
-$Result = Export-CertificateStoreBundle @ExporterParameters
+try {
+    Write-Debug -Message '[EntryPoint] Invoking Export-CertificateStoreBundle'
+    $Result = Export-CertificateStoreBundle @ExporterParameters
 
-if ($Null -ne $Result) {
-    $Result
+    if ($Null -ne $Result) {
+        $Result
+    }
+
+    Write-Debug -Message '[EntryPoint] Exiting with code 0'
+    exit ([System.Int32]$Script:ExitCode)
 }
+catch {
+    $ResolvedExitCode = Resolve-ExitCode -ErrorRecord $PSItem
 
-Write-Debug -Message '[EntryPoint] Exiting with code 0'
-exit ([System.Int32]$Script:ExitCode)
+    if ($Null -ne $ResolvedExitCode) {
+        $Script:ExitCode = [System.Int32]$ResolvedExitCode
+
+        if ($Script:TrapEnabled -eq $True) {
+            Write-Error -ErrorRecord $PSItem -ErrorAction Continue
+        }
+
+        exit ([System.Int32]$Script:ExitCode)
+    }
+
+    throw
+}
 
 #endregion

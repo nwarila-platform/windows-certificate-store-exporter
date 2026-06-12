@@ -1,0 +1,179 @@
+#Requires -Version 5.1
+
+function New-CertificateStoreExporterResult {
+    <#
+    .SYNOPSIS
+        Creates the exporter success result object.
+
+    .DESCRIPTION
+        Creates the contract result object emitted only by successful exports.
+        Certificate identity fields are computed as SHA-256 over each
+        certificate's DER RawData bytes.
+
+    .PARAMETER Path
+        Destination bundle path.
+
+    .PARAMETER Status
+        Successful write status: Written, Unchanged, or WhatIf.
+
+    .PARAMETER Certificate
+        Certificates included in bundle order.
+
+    .PARAMETER BundleSha256
+        SHA-256 hash of the candidate or written bundle body.
+
+    .PARAMETER Examined
+        Number of certificates examined before filtering.
+
+    .PARAMETER ExcludedExpired
+        Count excluded because they were expired.
+
+    .PARAMETER ExcludedNotYetValid
+        Count excluded because they were not yet valid.
+
+    .PARAMETER ExcludedDisallowed
+        Count excluded because they appeared in Disallowed.
+
+    .PARAMETER ExcludedDuplicate
+        Count excluded because another certificate had the same identity.
+
+    .PARAMETER StoreLocation
+        Logical certificate store location.
+
+    .PARAMETER StoreName
+        Logical certificate store names used for the export.
+
+    .PARAMETER ManifestPath
+        Optional manifest sidecar path.
+
+    .PARAMETER GeneratedAtUtc
+        UTC generation timestamp for the object only.
+
+    .EXAMPLE
+        New-CertificateStoreExporterResult -Path .\bundle.pem -Status WhatIf -BundleSha256 $Hash
+
+    .OUTPUTS
+        [System.Management.Automation.PSCustomObject]
+    #>
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $Path,
+
+        [Parameter(Mandatory = $True)]
+        [ValidateSet('Written', 'Unchanged', 'WhatIf')]
+        [System.String]
+        $Status,
+
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
+        $Certificate = @(),
+
+        [Parameter(Mandatory = $True)]
+        [ValidatePattern('^[A-Fa-f0-9]{64}$')]
+        [System.String]
+        $BundleSha256,
+
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $Examined = 0,
+
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $ExcludedExpired = 0,
+
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $ExcludedNotYetValid = 0,
+
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $ExcludedDisallowed = 0,
+
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $ExcludedDuplicate = 0,
+
+        [Parameter()]
+        [ValidateSet('LocalMachine', 'CurrentUser')]
+        [System.String]
+        $StoreLocation = 'LocalMachine',
+
+        [Parameter()]
+        [ValidateSet('Root', 'CA')]
+        [System.String[]]
+        $StoreName = @('Root', 'CA'),
+
+        [Parameter()]
+        [AllowNull()]
+        [System.String]
+        $ManifestPath = $Null,
+
+        [Parameter()]
+        [System.DateTime]
+        $GeneratedAtUtc = [System.DateTime]::UtcNow
+    )
+
+    begin {
+        Write-Debug -Message '[New-CertificateStoreExporterResult] Entering Begin'
+
+        # Initalize Variable(s)
+        [PSCustomObject]$Private:Excluded = $Null
+        [PSCustomObject]$Private:Result = $Null
+        [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null
+
+        Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting Begin'
+    }
+
+    process {
+        $Excluded = $Null
+        $Result = $Null
+        $Thumbprints = $Null
+        Write-Debug -Message '[New-CertificateStoreExporterResult] Entering Process'
+
+        $Thumbprints = [System.Collections.Generic.List[System.String]]::new()
+        $Certificate | ForEach-Object -Process {
+            $Thumbprints.Add((Get-CertificateRawDataSha256 -Certificate $PSItem))
+        }
+
+        $Excluded = [PSCustomObject]@{
+            Expired     = [System.Int32]$ExcludedExpired
+            NotYetValid = [System.Int32]$ExcludedNotYetValid
+            Disallowed  = [System.Int32]$ExcludedDisallowed
+            Duplicate   = [System.Int32]$ExcludedDuplicate
+        }
+
+        $Result = [PSCustomObject]@{
+            Path             = [System.String]$Path
+            Status           = [System.String]$Status
+            CertificateCount = [System.Int32]$Thumbprints.Count
+            Thumbprints      = [System.String[]]$Thumbprints.ToArray()
+            BundleSha256     = ([System.String]$BundleSha256).ToUpperInvariant()
+            Examined         = [System.Int32]$Examined
+            Excluded         = $Excluded
+            StoreLocation    = [System.String]$StoreLocation
+            StoreNames       = [System.String[]]$StoreName
+            ManifestPath     = $ManifestPath
+            GeneratedAtUtc   = $GeneratedAtUtc.ToUniversalTime()
+        }
+
+        $Result.PSTypeNames.Insert(0, 'CertificateStoreExporter.Result')
+        $Result
+
+        Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting Process'
+    }
+
+    end {
+        Write-Debug -Message '[New-CertificateStoreExporterResult] Entering End'
+        Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting End'
+    }
+}

@@ -45,6 +45,9 @@ function Select-ExportableCertificate {
 
     begin {
         Write-Debug -Message '[Select-ExportableCertificate] Entering Begin'
+
+        # Initalize Variable(s)
+
         Write-Debug -Message '[Select-ExportableCertificate] Exiting Begin'
     }
 

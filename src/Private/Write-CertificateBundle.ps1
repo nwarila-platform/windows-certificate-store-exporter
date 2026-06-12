@@ -53,10 +53,15 @@ function Write-CertificateBundle {
 
     begin {
         Write-Debug -Message '[Write-CertificateBundle] Entering Begin'
+
+        # Initalize Variable(s)
+        [System.Boolean]$Private:WouldWrite = $False
+
         Write-Debug -Message '[Write-CertificateBundle] Exiting Begin'
     }
 
     process {
+        $WouldWrite = $False
         Write-Debug -Message '[Write-CertificateBundle] Entering Process'
 
         $WouldWrite = [System.Boolean]$PSCmdlet.ShouldProcess(
