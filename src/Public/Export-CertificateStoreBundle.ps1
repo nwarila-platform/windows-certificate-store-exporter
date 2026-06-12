@@ -75,6 +75,8 @@ function Export-CertificateStoreBundle {
         ]]$Private:Certificates = $Null
         [System.Collections.Generic.List[System.String]]$Private:PemBlocks = $Null
         [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:SelectedCertificates = @()
+        [System.String]$Private:BundleSha256 = [System.String]::Empty
+        [System.String]$Private:ManifestPath = $Null
         [System.String]$Private:Status = [System.String]::Empty
         [System.Object]$Private:StoreCertificates = $Null
         [System.Object]$Private:WriteResult = $Null
@@ -86,6 +88,8 @@ function Export-CertificateStoreBundle {
         $Certificates = $Null
         $PemBlocks = $Null
         $SelectedCertificates = @()
+        $BundleSha256 = [System.String]::Empty
+        $ManifestPath = $Null
         $Status = [System.String]::Empty
         $StoreCertificates = $Null
         $WriteResult = $Null
@@ -128,19 +132,19 @@ function Export-CertificateStoreBundle {
             -MinimumCertificateCount $MinimumCertificateCount `
             -WriteManifest:$WriteManifest.IsPresent
 
-        $Status = 'Written'
-        if ($WriteResult.WouldWrite -eq $False) {
-            $Status = 'WhatIf'
-        }
+        $Status = [System.String]$WriteResult.Status
+        $BundleSha256 = [System.String]$WriteResult.BundleSha256
+        $ManifestPath = $WriteResult.ManifestPath
 
         New-CertificateStoreExporterResult `
             -Path $Path `
             -Status $Status `
             -Certificate $SelectedCertificates `
-            -BundleSha256 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855' `
+            -BundleSha256 $BundleSha256 `
             -Examined $Certificates.Count `
             -StoreLocation $StoreLocation `
-            -StoreName $StoreName
+            -StoreName $StoreName `
+            -ManifestPath $ManifestPath
 
         Write-Debug -Message '[Export-CertificateStoreBundle] Exiting Process'
     }

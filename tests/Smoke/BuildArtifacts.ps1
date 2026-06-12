@@ -56,6 +56,8 @@ $Arguments.Add('-Path')
 $Arguments.Add($BundlePath)
 $Arguments.Add('-StoreName')
 $Arguments.Add('Root')
+$Arguments.Add('-MinimumCertificateCount')
+$Arguments.Add('0')
 $Arguments.Add('-WhatIf')
 
 $ReleaseOutput = & $PowerShellCommand.Source @Arguments 2>&1
