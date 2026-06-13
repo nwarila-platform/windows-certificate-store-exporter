@@ -26,12 +26,12 @@ function Select-ExportableCertificate {
         [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#select-exportablecertificate',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
     param (

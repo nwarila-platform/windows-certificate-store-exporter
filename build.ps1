@@ -31,12 +31,12 @@ $FunctionsFile = Join-Path -Path $BuildRoot -ChildPath ('{0}.Functions.ps1' -f $
 
 function Get-LatestAvailableModule {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Management.Automation.PSModuleInfo])]
     param (
@@ -53,12 +53,12 @@ function Get-LatestAvailableModule {
 
 function Test-Syntax {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Void])]
     param (
@@ -109,12 +109,12 @@ function Test-Syntax {
 
 function Get-EntryPointContent {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([PSCustomObject])]
     param ()
@@ -158,19 +158,15 @@ function Get-EntryPointContent {
 
 function Add-FunctionFileContent {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Void])]
     param (
-        [Parameter(Mandatory = $True)]
-        [System.Text.StringBuilder]
-        $StringBuilder,
-
         [Parameter(Mandatory = $True)]
         [ValidateNotNullOrEmpty()]
         [System.String]
@@ -179,7 +175,11 @@ function Add-FunctionFileContent {
         [Parameter(Mandatory = $True)]
         [ValidateNotNullOrEmpty()]
         [System.String]
-        $RegionName
+        $RegionName,
+
+        [Parameter(Mandatory = $True)]
+        [System.Text.StringBuilder]
+        $StringBuilder
     )
 
     $private:FunctionFiles = @(
@@ -210,12 +210,12 @@ function Add-FunctionFileContent {
 
 function Invoke-SmokeTest {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Void])]
     param ()
@@ -242,12 +242,12 @@ function Invoke-SmokeTest {
 
 function Invoke-Build {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Void])]
     param ()
@@ -317,12 +317,12 @@ function Invoke-Build {
 
 function Invoke-Analyze {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Void])]
     param ()
@@ -371,12 +371,12 @@ function Invoke-Analyze {
 
 function Invoke-Test {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Void])]
     param ()
@@ -412,12 +412,12 @@ function Invoke-Test {
 
 function Invoke-Clean {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Void])]
     param ()

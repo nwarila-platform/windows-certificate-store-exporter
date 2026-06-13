@@ -56,49 +56,29 @@ function New-CertificateStoreExporterResult {
         [System.Management.Automation.PSCustomObject]
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#new-certificatestoreexporterresult',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([PSCustomObject])]
     param (
-        [Parameter(Mandatory = $True)]
-        [ValidateNotNullOrEmpty()]
-        [System.String]
-        $Path,
-
-        [Parameter(Mandatory = $True)]
-        [ValidateSet('Written', 'Unchanged', 'WhatIf')]
-        [System.String]
-        $Status,
-
-        [Parameter()]
-        [AllowEmptyCollection()]
-        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
-        $Certificate = @(),
-
         [Parameter(Mandatory = $True)]
         [ValidatePattern('^[A-Fa-f0-9]{64}$')]
         [System.String]
         $BundleSha256,
 
         [Parameter()]
+        [AllowEmptyCollection()]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
+        $Certificate = @(),
+
+        [Parameter()]
         [ValidateRange(0, [System.Int32]::MaxValue)]
         [System.Int32]
         $Examined = 0,
-
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $ExcludedExpired = 0,
-
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $ExcludedNotYetValid = 0,
 
         [Parameter()]
         [ValidateRange(0, [System.Int32]::MaxValue)]
@@ -111,6 +91,35 @@ function New-CertificateStoreExporterResult {
         $ExcludedDuplicate = 0,
 
         [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $ExcludedExpired = 0,
+
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $ExcludedNotYetValid = 0,
+
+        [Parameter()]
+        [System.DateTime]
+        $GeneratedAtUtc = [System.DateTime]::UtcNow,
+
+        [Parameter()]
+        [AllowNull()]
+        [System.String]
+        $ManifestPath = $Null,
+
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $Path,
+
+        [Parameter(Mandatory = $True)]
+        [ValidateSet('Written', 'Unchanged', 'WhatIf')]
+        [System.String]
+        $Status,
+
+        [Parameter()]
         [ValidateSet('LocalMachine', 'CurrentUser')]
         [System.String]
         $StoreLocation = 'LocalMachine',
@@ -118,16 +127,7 @@ function New-CertificateStoreExporterResult {
         [Parameter()]
         [ValidateSet('Root', 'CA')]
         [System.String[]]
-        $StoreName = @('Root', 'CA'),
-
-        [Parameter()]
-        [AllowNull()]
-        [System.String]
-        $ManifestPath = $Null,
-
-        [Parameter()]
-        [System.DateTime]
-        $GeneratedAtUtc = [System.DateTime]::UtcNow
+        $StoreName = @('Root', 'CA')
     )
 
     # Initalize Variable(s)
