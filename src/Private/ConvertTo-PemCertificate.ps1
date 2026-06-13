@@ -23,7 +23,14 @@ function ConvertTo-PemCertificate {
     .OUTPUTS
         [System.String]
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#convertto-pemcertificate',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String])]
     param (
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]

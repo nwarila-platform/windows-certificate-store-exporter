@@ -31,7 +31,14 @@ function New-ErrorRecord {
     .OUTPUTS
         [System.Management.Automation.ErrorRecord]
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#new-errorrecord',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Management.Automation.ErrorRecord])]
     param (
         [Parameter(Mandatory = $True)]

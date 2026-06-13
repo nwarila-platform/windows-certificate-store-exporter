@@ -72,6 +72,10 @@
             Enable = $true
         }
 
+        'Measure-ExplicitCmdletBinding'      = @{
+            Enable = $true
+        }
+
         'Measure-NoRemoveVariableCleanup'    = @{
             Enable = $true
         }

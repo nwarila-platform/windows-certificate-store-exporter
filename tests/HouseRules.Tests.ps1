@@ -23,6 +23,8 @@ function Get-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-PrivateVariableDeclaration'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-PrivateVariableDeclaration' })
         $Results.RuleName | Should -Contain 'Measure-PrivateVariableDeclaration'
     }
 
@@ -41,6 +43,8 @@ function Get-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-PrivateVariableDeclaration'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-PrivateVariableDeclaration' })
         $Results | Should -HaveCount 0
     }
 
@@ -60,6 +64,8 @@ function Get-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-NoNewVariableDeclaration'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-NoNewVariableDeclaration' })
         $Results.RuleName | Should -Contain 'Measure-NoNewVariableDeclaration'
     }
 
@@ -86,6 +92,8 @@ function ConvertTo-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-PipelineVariableLifecycle'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-PipelineVariableLifecycle' })
         $Results.RuleName | Should -Contain 'Measure-PipelineVariableLifecycle'
         $Results.Message | Should -Match 'without declaring it in Begin'
     }
@@ -115,6 +123,8 @@ function ConvertTo-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-PipelineVariableLifecycle'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-PipelineVariableLifecycle' })
         $Results.RuleName | Should -Contain 'Measure-PipelineVariableLifecycle'
         $Results.Message | Should -Match 'does not reset it at the top of Process'
     }
@@ -145,6 +155,8 @@ function ConvertTo-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-PipelineVariableLifecycle'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-PipelineVariableLifecycle' })
         $Results | Should -HaveCount 0
     }
 
@@ -168,6 +180,8 @@ function Get-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-FlatNonPipelineFunction'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-FlatNonPipelineFunction' })
         $Results.RuleName | Should -Contain 'Measure-FlatNonPipelineFunction'
         $Results.Message | Should -Match 'no pipeline input'
     }
@@ -187,6 +201,8 @@ function Get-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-FlatNonPipelineFunction'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-FlatNonPipelineFunction' })
         $Results | Should -HaveCount 0
     }
 
@@ -215,6 +231,8 @@ function ConvertTo-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-FlatNonPipelineFunction'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-FlatNonPipelineFunction' })
         $Results | Should -HaveCount 0
     }
 
@@ -241,6 +259,133 @@ function Get-Thing {
             -CustomRulePath $script:AnalyzerRulePath `
             -IncludeRule 'Measure-NoRemoveVariableCleanup'
 
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-NoRemoveVariableCleanup' })
         $Results.RuleName | Should -Contain 'Measure-NoRemoveVariableCleanup'
+    }
+}
+
+Describe 'SG-4 house analyzer rules' {
+    BeforeAll {
+        $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+        if (-not (Get-Module -Name PSScriptAnalyzer)) {
+            Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+        }
+
+        $script:NewExplicitBindingFixture = {
+            param (
+                [Parameter()]
+                [AllowNull()]
+                [System.String]
+                $MissingOption = $Null,
+
+                [Parameter()]
+                [System.Boolean]
+                $IncludeOutputType = $True
+            )
+
+            $Options = @(
+                @{ Name = 'SupportsShouldProcess'; Value = '$False' },
+                @{ Name = 'ConfirmImpact'; Value = "'None'" },
+                @{ Name = 'PositionalBinding'; Value = '$False' },
+                @{ Name = 'DefaultParameterSetName'; Value = "'default'" },
+                @{ Name = 'HelpUri'; Value = "'https://github.com/example/repo/blob/main/docs/reference/functions.md#get-thing'" },
+                @{ Name = 'SupportsPaging'; Value = '$False' }
+            ) | Where-Object -FilterScript {
+                $PSItem.Name -ine $MissingOption
+            }
+
+            $OptionLines = [System.Collections.Generic.List[System.String]]::new()
+            for ($Index = 0; $Index -lt $Options.Count; $Index++) {
+                $Line = '        {0} = {1}' -f $Options[$Index].Name, $Options[$Index].Value
+                if ($Index -lt ($Options.Count - 1)) {
+                    $Line = '{0},' -f $Line
+                }
+
+                [void]$OptionLines.Add($Line)
+            }
+
+            $OutputTypeLine = [System.String]::Empty
+            if ($IncludeOutputType -eq $True) {
+                $OutputTypeLine = '    [OutputType([System.String])]'
+            }
+
+            @"
+function Get-Thing {
+    [CmdletBinding(
+$($OptionLines.ToArray() -join "`n")
+    )]
+$OutputTypeLine
+    param ()
+    [System.String]'thing'
+}
+"@
+        }.GetNewClosure()
+    }
+
+    It 'accepts the complete explicit CmdletBinding and OutputType surface' {
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition (& $script:NewExplicitBindingFixture) `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-ExplicitCmdletBinding'
+
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitCmdletBinding' })
+        $Results | Should -HaveCount 0
+    }
+
+    It 'flags every missing explicit CmdletBinding option' {
+        $RequiredOptions = [System.String[]]@(
+            'SupportsShouldProcess',
+            'ConfirmImpact',
+            'PositionalBinding',
+            'DefaultParameterSetName',
+            'HelpUri',
+            'SupportsPaging'
+        )
+
+        foreach ($RequiredOption in $RequiredOptions) {
+            $Results = Invoke-ScriptAnalyzer `
+                -ScriptDefinition (& $script:NewExplicitBindingFixture -MissingOption $RequiredOption) `
+                -CustomRulePath $script:AnalyzerRulePath `
+                -IncludeRule 'Measure-ExplicitCmdletBinding'
+
+
+                $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitCmdletBinding' })
+            $Results.RuleName | Should -Contain 'Measure-ExplicitCmdletBinding'
+            $Results.Message | Should -Match $RequiredOption
+        }
+    }
+
+    It 'flags missing OutputType even when CmdletBinding is complete' {
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition (& $script:NewExplicitBindingFixture -IncludeOutputType $False) `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-ExplicitCmdletBinding'
+
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitCmdletBinding' })
+        $Results.RuleName | Should -Contain 'Measure-ExplicitCmdletBinding'
+        $Results.Message | Should -Match 'OutputType'
+    }
+
+    It 'flags functions without CmdletBinding' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [OutputType([System.String])]
+    param ()
+    [System.String]'thing'
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-ExplicitCmdletBinding'
+
+
+            $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitCmdletBinding' })
+        $Results.RuleName | Should -Contain 'Measure-ExplicitCmdletBinding'
+        $Results.Message | Should -Match 'CmdletBinding'
     }
 }

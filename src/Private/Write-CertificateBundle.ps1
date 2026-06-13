@@ -29,7 +29,14 @@ function Write-CertificateBundle {
     .OUTPUTS
         [System.Management.Automation.PSCustomObject]
     #>
-    [CmdletBinding(SupportsShouldProcess = $True)]
+    [CmdletBinding(
+        SupportsShouldProcess = $True,
+        ConfirmImpact = 'Medium',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#write-certificatebundle',
+        SupportsPaging = $False
+    )]
     [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory = $True)]

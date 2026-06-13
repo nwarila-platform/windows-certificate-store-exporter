@@ -35,7 +35,14 @@ function Export-CertificateStoreBundle {
     .OUTPUTS
         CertificateStoreExporter.Result
     #>
-    [CmdletBinding(SupportsShouldProcess = $True)]
+    [CmdletBinding(
+        SupportsShouldProcess = $True,
+        ConfirmImpact = 'Medium',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#export-certificatestorebundle',
+        SupportsPaging = $False
+    )]
     [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory = $True)]

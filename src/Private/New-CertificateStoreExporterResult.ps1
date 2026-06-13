@@ -55,7 +55,14 @@ function New-CertificateStoreExporterResult {
     .OUTPUTS
         [System.Management.Automation.PSCustomObject]
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#new-certificatestoreexporterresult',
+        SupportsPaging = $False
+    )]
     [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory = $True)]

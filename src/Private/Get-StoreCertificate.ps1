@@ -24,7 +24,14 @@ function Get-StoreCertificate {
     .OUTPUTS
         [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#get-storecertificate',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
     param (
         [Parameter()]
@@ -76,7 +83,7 @@ function Get-StoreCertificate {
     $OpenFlags = [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly -bor [System.Security.Cryptography.X509Certificates.OpenFlags]::OpenExistingOnly
 
     try {
-        $Store = & $StoreFactory $StoreName $TypedStoreLocation
+        $Store = & $StoreFactory -Name $StoreName -Location $TypedStoreLocation
         $Store.Open($OpenFlags)
         $CertificateCollection = $Store.Certificates
         $StoreCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(

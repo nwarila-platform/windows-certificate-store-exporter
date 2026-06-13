@@ -19,7 +19,14 @@ function Resolve-ExitCode {
     .OUTPUTS
         [System.Int32]
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#resolve-exitcode',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Int32])]
     param (
         [Parameter(Mandatory = $True)]

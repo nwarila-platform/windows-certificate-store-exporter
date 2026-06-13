@@ -15,7 +15,14 @@ function Test-CertificateStoreExporterWindows {
     .OUTPUTS
         [System.Boolean]
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#test-certificatestoreexporterwindows',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Boolean])]
     param ()
 
