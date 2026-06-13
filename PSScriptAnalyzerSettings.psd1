@@ -68,6 +68,10 @@
             Enable = $true
         }
 
+        'Measure-FlatNonPipelineFunction'    = @{
+            Enable = $true
+        }
+
         'Measure-NoRemoveVariableCleanup'    = @{
             Enable = $true
         }

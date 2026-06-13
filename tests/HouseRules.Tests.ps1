@@ -148,6 +148,76 @@ function ConvertTo-Thing {
         $Results | Should -HaveCount 0
     }
 
+    It 'flags named blocks on flat non-pipeline functions' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param ()
+    begin {
+        [System.String]$Private:Value = [System.String]::Empty
+    }
+    process {
+        $Value = 'thing'
+        $Value
+    }
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-FlatNonPipelineFunction'
+
+        $Results.RuleName | Should -Contain 'Measure-FlatNonPipelineFunction'
+        $Results.Message | Should -Match 'no pipeline input'
+    }
+
+    It 'accepts implicit End block flat functions' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param ()
+    [System.String]$Private:Value = 'thing'
+    $Value
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-FlatNonPipelineFunction'
+
+        $Results | Should -HaveCount 0
+    }
+
+    It 'accepts named blocks when a function declares pipeline input' {
+        $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipelineByPropertyName = $True)]
+        [System.String]
+        $Name
+    )
+    begin {
+        [System.String]$Private:Value = [System.String]::Empty
+    }
+    process {
+        $Value = [System.String]::Empty
+        $Value = $Name.ToUpperInvariant()
+        $Value
+    }
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-FlatNonPipelineFunction'
+
+        $Results | Should -HaveCount 0
+    }
+
     It 'flags Remove-Variable cleanup in End blocks' {
         $ScriptDefinition = @'
 function Get-Thing {

@@ -22,7 +22,7 @@ function Get-CertificateRawDataSha256 {
     [CmdletBinding()]
     [OutputType([System.String])]
     param (
-        [Parameter(Mandatory = $True)]
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
         [ValidateNotNull()]
         [System.Security.Cryptography.X509Certificates.X509Certificate2]
         $Certificate

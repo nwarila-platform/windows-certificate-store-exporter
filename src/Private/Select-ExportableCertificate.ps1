@@ -43,85 +43,61 @@ function Select-ExportableCertificate {
         $IncludeExpired
     )
 
-    begin {
-        Write-Debug -Message '[Select-ExportableCertificate] Entering Begin'
+    # Initalize Variable(s)
+    [System.String]$Private:CertificateHash = [System.String]::Empty
+    [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
+    [System.Boolean]$Private:IsCurrent = $False
+    [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
+    [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
+    [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
+    [System.Collections.Generic.SortedDictionary[
+    System.String,
+    System.Security.Cryptography.X509Certificates.X509Certificate2
+    ]]$Private:SelectedByHash = $Null
 
-        # Initalize Variable(s)
-        [System.String]$Private:CertificateHash = [System.String]::Empty
-        [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
-        [System.Boolean]$Private:IsCurrent = $False
-        [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
-        [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
-        [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
-        [System.Collections.Generic.SortedDictionary[
-        System.String,
-        System.Security.Cryptography.X509Certificates.X509Certificate2
-        ]]$Private:SelectedByHash = $Null
-
-        Write-Debug -Message '[Select-ExportableCertificate] Exiting Begin'
-    }
-
-    process {
-        $CertificateHash = [System.String]::Empty
-        $DisallowedSet = $Null
-        $IsCurrent = $False
-        $NotAfterUtc = [System.DateTime]::MinValue
-        $NotBeforeUtc = [System.DateTime]::MinValue
-        $NowUtc = [System.DateTime]::MinValue
-        $SelectedByHash = $Null
-        Write-Debug -Message '[Select-ExportableCertificate] Entering Process'
-
-        $NowUtc = [System.DateTime]::UtcNow
-        $DisallowedSet = [System.Collections.Generic.HashSet[System.String]]::new(
-            [System.StringComparer]::OrdinalIgnoreCase
-        )
-        $DisallowedThumbprint | ForEach-Object -Process {
-            if ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
-                [void]$DisallowedSet.Add($PSItem)
-            }
+    $NowUtc = [System.DateTime]::UtcNow
+    $DisallowedSet = [System.Collections.Generic.HashSet[System.String]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase
+    )
+    $DisallowedThumbprint | ForEach-Object -Process {
+        if ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
+            [void]$DisallowedSet.Add($PSItem)
         }
-        $SelectedByHash = [System.Collections.Generic.SortedDictionary[
-        System.String,
-        System.Security.Cryptography.X509Certificates.X509Certificate2
-        ]]::new([System.StringComparer]::Ordinal)
+    }
+    $SelectedByHash = [System.Collections.Generic.SortedDictionary[
+    System.String,
+    System.Security.Cryptography.X509Certificates.X509Certificate2
+    ]]::new([System.StringComparer]::Ordinal)
 
-        foreach ($CandidateCertificate in $Certificate) {
-            if ($Null -eq $CandidateCertificate) {
-                continue
-            }
-
-            $IsCurrent = $True
-            if ($IncludeExpired.IsPresent -eq $False) {
-                $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
-                $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
-                $IsCurrent = [System.Boolean]($NotBeforeUtc -le $NowUtc -and $NotAfterUtc -ge $NowUtc)
-            }
-
-            if ($IsCurrent -eq $False) {
-                continue
-            }
-
-            $CertificateHash = Get-CertificateRawDataSha256 -Certificate $CandidateCertificate
-            if ($DisallowedSet.Contains($CertificateHash) -eq $True) {
-                continue
-            }
-
-            if ($SelectedByHash.ContainsKey($CertificateHash) -eq $False) {
-                $SelectedByHash.Add($CertificateHash, $CandidateCertificate)
-            }
+    foreach ($CandidateCertificate in $Certificate) {
+        if ($Null -eq $CandidateCertificate) {
+            continue
         }
 
-        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
-            $SelectedByHash.GetEnumerator() | ForEach-Object -Process {
-                $PSItem.Value
-            }
-        )
+        $IsCurrent = $True
+        if ($IncludeExpired.IsPresent -eq $False) {
+            $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
+            $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
+            $IsCurrent = [System.Boolean]($NotBeforeUtc -le $NowUtc -and $NotAfterUtc -ge $NowUtc)
+        }
 
-        Write-Debug -Message '[Select-ExportableCertificate] Exiting Process'
+        if ($IsCurrent -eq $False) {
+            continue
+        }
+
+        $CertificateHash = Get-CertificateRawDataSha256 -Certificate $CandidateCertificate
+        if ($DisallowedSet.Contains($CertificateHash) -eq $True) {
+            continue
+        }
+
+        if ($SelectedByHash.ContainsKey($CertificateHash) -eq $False) {
+            $SelectedByHash.Add($CertificateHash, $CandidateCertificate)
+        }
     }
 
-    end {
-        Write-Debug -Message '[Select-ExportableCertificate] Entering End'
-        Write-Debug -Message '[Select-ExportableCertificate] Exiting End'
-    }
+    [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
+        $SelectedByHash.GetEnumerator() | ForEach-Object -Process {
+            $PSItem.Value
+        }
+    )
 }

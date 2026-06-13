@@ -52,250 +52,211 @@ function Write-CertificateBundle {
         $WriteManifest
     )
 
-    begin {
-        Write-Debug -Message '[Write-CertificateBundle] Entering Begin'
+    # Initalize Variable(s)
+    [System.String]$Private:BundleBackupPath = [System.String]::Empty
+    [System.String]$Private:BundleSha256 = [System.String]::Empty
+    [System.Byte[]]$Private:BundleBytes = [System.Byte[]]@()
+    [System.String]$Private:BundleTempPath = [System.String]::Empty
+    [System.String]$Private:BundleText = [System.String]::Empty
+    [System.Boolean]$Private:BundleUnchanged = $False
+    [System.String]$Private:DirectoryPath = [System.String]::Empty
+    [System.Text.UTF8Encoding]$Private:Encoding = $Null
+    [System.Byte[]]$Private:ExistingBytes = [System.Byte[]]@()
+    [System.String]$Private:ExistingSha256 = [System.String]::Empty
+    [System.String]$Private:FailureMessage = [System.String]::Empty
+    [System.String]$Private:FullPath = [System.String]::Empty
+    [System.String]$Private:ManifestPath = $Null
+    [System.Byte[]]$Private:ManifestBytes = [System.Byte[]]@()
+    [System.String]$Private:ManifestFullPath = [System.String]::Empty
+    [System.String]$Private:ManifestBackupPath = [System.String]::Empty
+    [System.String]$Private:ManifestTempPath = [System.String]::Empty
+    [System.String]$Private:ManifestText = [System.String]::Empty
+    [System.Boolean]$Private:ManifestUnchanged = $False
+    [System.String]$Private:OperationTarget = [System.String]::Empty
+    [System.String]$Private:PathLeaf = [System.String]::Empty
+    [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
+    [System.String]$Private:Status = [System.String]::Empty
 
-        # Initalize Variable(s)
-        [System.String]$Private:BundleBackupPath = [System.String]::Empty
-        [System.String]$Private:BundleSha256 = [System.String]::Empty
-        [System.Byte[]]$Private:BundleBytes = [System.Byte[]]@()
-        [System.String]$Private:BundleTempPath = [System.String]::Empty
-        [System.String]$Private:BundleText = [System.String]::Empty
-        [System.Boolean]$Private:BundleUnchanged = $False
-        [System.String]$Private:DirectoryPath = [System.String]::Empty
-        [System.Text.UTF8Encoding]$Private:Encoding = $Null
-        [System.Byte[]]$Private:ExistingBytes = [System.Byte[]]@()
-        [System.String]$Private:ExistingSha256 = [System.String]::Empty
-        [System.String]$Private:FailureMessage = [System.String]::Empty
-        [System.String]$Private:FullPath = [System.String]::Empty
-        [System.String]$Private:ManifestPath = $Null
-        [System.Byte[]]$Private:ManifestBytes = [System.Byte[]]@()
-        [System.String]$Private:ManifestFullPath = [System.String]::Empty
-        [System.String]$Private:ManifestBackupPath = [System.String]::Empty
-        [System.String]$Private:ManifestTempPath = [System.String]::Empty
-        [System.String]$Private:ManifestText = [System.String]::Empty
-        [System.Boolean]$Private:ManifestUnchanged = $False
-        [System.String]$Private:OperationTarget = [System.String]::Empty
-        [System.String]$Private:PathLeaf = [System.String]::Empty
-        [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
-        [System.String]$Private:Status = [System.String]::Empty
+    if ($PemBlock.Count -lt $MinimumCertificateCount) {
+        $FailureMessage = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.' -f $PemBlock.Count, $MinimumCertificateCount
 
-        Write-Debug -Message '[Write-CertificateBundle] Exiting Begin'
+        New-ErrorRecord `
+            -Message $FailureMessage `
+            -ErrorId $Script:CertificateStoreExporterErrorIdBelowMinimumCertificateCount `
+            -Category ([System.Management.Automation.ErrorCategory]::InvalidData) `
+            -TargetObject $Path `
+            -IsFatal
     }
 
-    process {
-        $BundleBackupPath = [System.String]::Empty
-        $BundleSha256 = [System.String]::Empty
-        $BundleBytes = [System.Byte[]]@()
-        $BundleTempPath = [System.String]::Empty
-        $BundleText = [System.String]::Empty
-        $BundleUnchanged = $False
-        $DirectoryPath = [System.String]::Empty
-        $Encoding = $Null
-        $ExistingBytes = [System.Byte[]]@()
-        $ExistingSha256 = [System.String]::Empty
-        $FailureMessage = [System.String]::Empty
-        $FullPath = [System.String]::Empty
-        $ManifestPath = $Null
-        $ManifestBytes = [System.Byte[]]@()
-        $ManifestFullPath = [System.String]::Empty
-        $ManifestBackupPath = [System.String]::Empty
-        $ManifestTempPath = [System.String]::Empty
-        $ManifestText = [System.String]::Empty
-        $ManifestUnchanged = $False
-        $OperationTarget = [System.String]::Empty
-        $PathLeaf = [System.String]::Empty
-        $Sha256 = $Null
-        $Status = [System.String]::Empty
-        Write-Debug -Message '[Write-CertificateBundle] Entering Process'
+    $Encoding = [System.Text.UTF8Encoding]::new($False)
+    $FullPath = [System.IO.Path]::GetFullPath($Path)
+    $DirectoryPath = [System.IO.Path]::GetDirectoryName($FullPath)
+    $PathLeaf = [System.IO.Path]::GetFileName($FullPath)
+    $BundleText = ([System.String[]]$PemBlock -join "`n") -replace "`r`n?", "`n"
 
-        if ($PemBlock.Count -lt $MinimumCertificateCount) {
-            $FailureMessage = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.' -f $PemBlock.Count, $MinimumCertificateCount
-
+    foreach ($Character in $BundleText.ToCharArray()) {
+        if ([System.Int32]$Character -gt 0x7F) {
             New-ErrorRecord `
-                -Message $FailureMessage `
-                -ErrorId $Script:CertificateStoreExporterErrorIdBelowMinimumCertificateCount `
+                -Message 'Certificate bundle content must be ASCII.' `
+                -ErrorId $Script:CertificateStoreExporterErrorIdWriteFailure `
                 -Category ([System.Management.Automation.ErrorCategory]::InvalidData) `
                 -TargetObject $Path `
                 -IsFatal
         }
+    }
 
-        $Encoding = [System.Text.UTF8Encoding]::new($False)
-        $FullPath = [System.IO.Path]::GetFullPath($Path)
-        $DirectoryPath = [System.IO.Path]::GetDirectoryName($FullPath)
-        $PathLeaf = [System.IO.Path]::GetFileName($FullPath)
-        $BundleText = ([System.String[]]$PemBlock -join "`n") -replace "`r`n?", "`n"
+    $BundleBytes = $Encoding.GetBytes($BundleText)
+    $Sha256 = [System.Security.Cryptography.SHA256]::Create()
 
-        foreach ($Character in $BundleText.ToCharArray()) {
-            if ([System.Int32]$Character -gt 0x7F) {
-                New-ErrorRecord `
-                    -Message 'Certificate bundle content must be ASCII.' `
-                    -ErrorId $Script:CertificateStoreExporterErrorIdWriteFailure `
-                    -Category ([System.Management.Automation.ErrorCategory]::InvalidData) `
-                    -TargetObject $Path `
-                    -IsFatal
-            }
+    try {
+        $BundleSha256 = [System.BitConverter]::ToString(
+            $Sha256.ComputeHash($BundleBytes)
+        ).Replace('-', '')
+
+        if ([System.IO.File]::Exists($FullPath) -eq $True) {
+            $ExistingBytes = [System.IO.File]::ReadAllBytes($FullPath)
+            $ExistingSha256 = [System.BitConverter]::ToString(
+                $Sha256.ComputeHash($ExistingBytes)
+            ).Replace('-', '')
+            $BundleUnchanged = [System.Boolean](
+                $ExistingBytes.Count -eq $BundleBytes.Count -and
+                $ExistingSha256 -eq $BundleSha256
+            )
         }
 
-        $BundleBytes = $Encoding.GetBytes($BundleText)
-        $Sha256 = [System.Security.Cryptography.SHA256]::Create()
+        if ($WriteManifest.IsPresent -eq $True) {
+            $ManifestPath = '{0}.sha256' -f $Path
+            $ManifestFullPath = '{0}.sha256' -f $FullPath
+            $ManifestText = '{0}  {1}{2}' -f $BundleSha256, $PathLeaf, "`n"
+            $ManifestBytes = $Encoding.GetBytes($ManifestText)
 
-        try {
-            $BundleSha256 = [System.BitConverter]::ToString(
-                $Sha256.ComputeHash($BundleBytes)
-            ).Replace('-', '')
-
-            if ([System.IO.File]::Exists($FullPath) -eq $True) {
-                $ExistingBytes = [System.IO.File]::ReadAllBytes($FullPath)
+            if ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
+                $ExistingBytes = [System.IO.File]::ReadAllBytes($ManifestFullPath)
                 $ExistingSha256 = [System.BitConverter]::ToString(
                     $Sha256.ComputeHash($ExistingBytes)
                 ).Replace('-', '')
-                $BundleUnchanged = [System.Boolean](
-                    $ExistingBytes.Count -eq $BundleBytes.Count -and
-                    $ExistingSha256 -eq $BundleSha256
+                $ManifestUnchanged = [System.Boolean](
+                    $ExistingBytes.Count -eq $ManifestBytes.Count -and
+                    $ExistingSha256 -eq (
+                        [System.BitConverter]::ToString(
+                            $Sha256.ComputeHash($ManifestBytes)
+                        ).Replace('-', '')
+                    )
                 )
             }
+        }
+        else {
+            $ManifestUnchanged = $True
+        }
 
+        if ($BundleUnchanged -eq $True -and $ManifestUnchanged -eq $True) {
+            $Status = 'Unchanged'
+        }
+        else {
+            $OperationTarget = $FullPath
             if ($WriteManifest.IsPresent -eq $True) {
-                $ManifestPath = '{0}.sha256' -f $Path
-                $ManifestFullPath = '{0}.sha256' -f $FullPath
-                $ManifestText = '{0}  {1}{2}' -f $BundleSha256, $PathLeaf, "`n"
-                $ManifestBytes = $Encoding.GetBytes($ManifestText)
+                $OperationTarget = '{0} and {1}' -f $FullPath, $ManifestFullPath
+            }
 
-                if ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
-                    $ExistingBytes = [System.IO.File]::ReadAllBytes($ManifestFullPath)
-                    $ExistingSha256 = [System.BitConverter]::ToString(
-                        $Sha256.ComputeHash($ExistingBytes)
-                    ).Replace('-', '')
-                    $ManifestUnchanged = [System.Boolean](
-                        $ExistingBytes.Count -eq $ManifestBytes.Count -and
-                        $ExistingSha256 -eq (
-                            [System.BitConverter]::ToString(
-                                $Sha256.ComputeHash($ManifestBytes)
-                            ).Replace('-', '')
-                        )
-                    )
-                }
+            if (
+                [System.Boolean]$PSCmdlet.ShouldProcess(
+                    $OperationTarget,
+                    'Write certificate bundle'
+                ) -eq $False
+            ) {
+                $Status = 'WhatIf'
             }
             else {
-                $ManifestUnchanged = $True
-            }
+                try {
+                    if ($BundleUnchanged -eq $False) {
+                        $BundleTempPath = Join-Path `
+                            -Path $DirectoryPath `
+                            -ChildPath ('.{0}.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
+                        [System.IO.File]::WriteAllText($BundleTempPath, $BundleText, $Encoding)
 
-            if ($BundleUnchanged -eq $True -and $ManifestUnchanged -eq $True) {
-                $Status = 'Unchanged'
-            }
-            else {
-                $OperationTarget = $FullPath
-                if ($WriteManifest.IsPresent -eq $True) {
-                    $OperationTarget = '{0} and {1}' -f $FullPath, $ManifestFullPath
-                }
-
-                if (
-                    [System.Boolean]$PSCmdlet.ShouldProcess(
-                        $OperationTarget,
-                        'Write certificate bundle'
-                    ) -eq $False
-                ) {
-                    $Status = 'WhatIf'
-                }
-                else {
-                    try {
-                        if ($BundleUnchanged -eq $False) {
-                            $BundleTempPath = Join-Path `
+                        if ([System.IO.File]::Exists($FullPath) -eq $True) {
+                            $BundleBackupPath = Join-Path `
                                 -Path $DirectoryPath `
-                                -ChildPath ('.{0}.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
-                            [System.IO.File]::WriteAllText($BundleTempPath, $BundleText, $Encoding)
-
-                            if ([System.IO.File]::Exists($FullPath) -eq $True) {
-                                $BundleBackupPath = Join-Path `
-                                    -Path $DirectoryPath `
-                                    -ChildPath ('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
-                                [System.IO.File]::Replace($BundleTempPath, $FullPath, $BundleBackupPath)
-                                [System.IO.File]::Delete($BundleBackupPath)
-                            }
-                            else {
-                                [System.IO.File]::Move($BundleTempPath, $FullPath)
-                            }
-                        }
-
-                        if ($WriteManifest.IsPresent -eq $True -and $ManifestUnchanged -eq $False) {
-                            $ManifestTempPath = Join-Path `
-                                -Path $DirectoryPath `
-                                -ChildPath ('.{0}.sha256.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
-                            [System.IO.File]::WriteAllText($ManifestTempPath, $ManifestText, $Encoding)
-
-                            if ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
-                                $ManifestBackupPath = Join-Path `
-                                    -Path $DirectoryPath `
-                                    -ChildPath ('.{0}.sha256.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
-                                [System.IO.File]::Replace($ManifestTempPath, $ManifestFullPath, $ManifestBackupPath)
-                                [System.IO.File]::Delete($ManifestBackupPath)
-                            }
-                            else {
-                                [System.IO.File]::Move($ManifestTempPath, $ManifestFullPath)
-                            }
-                        }
-
-                        $Status = 'Written'
-                    }
-                    catch {
-                        if (
-                            [System.String]::IsNullOrEmpty($BundleTempPath) -eq $False -and
-                            [System.IO.File]::Exists($BundleTempPath) -eq $True
-                        ) {
-                            [System.IO.File]::Delete($BundleTempPath)
-                        }
-
-                        if (
-                            [System.String]::IsNullOrEmpty($BundleBackupPath) -eq $False -and
-                            [System.IO.File]::Exists($BundleBackupPath) -eq $True
-                        ) {
+                                -ChildPath ('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
+                            [System.IO.File]::Replace($BundleTempPath, $FullPath, $BundleBackupPath)
                             [System.IO.File]::Delete($BundleBackupPath)
                         }
-
-                        if (
-                            [System.String]::IsNullOrEmpty($ManifestTempPath) -eq $False -and
-                            [System.IO.File]::Exists($ManifestTempPath) -eq $True
-                        ) {
-                            [System.IO.File]::Delete($ManifestTempPath)
+                        else {
+                            [System.IO.File]::Move($BundleTempPath, $FullPath)
                         }
+                    }
 
-                        if (
-                            [System.String]::IsNullOrEmpty($ManifestBackupPath) -eq $False -and
-                            [System.IO.File]::Exists($ManifestBackupPath) -eq $True
-                        ) {
+                    if ($WriteManifest.IsPresent -eq $True -and $ManifestUnchanged -eq $False) {
+                        $ManifestTempPath = Join-Path `
+                            -Path $DirectoryPath `
+                            -ChildPath ('.{0}.sha256.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
+                        [System.IO.File]::WriteAllText($ManifestTempPath, $ManifestText, $Encoding)
+
+                        if ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
+                            $ManifestBackupPath = Join-Path `
+                                -Path $DirectoryPath `
+                                -ChildPath ('.{0}.sha256.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
+                            [System.IO.File]::Replace($ManifestTempPath, $ManifestFullPath, $ManifestBackupPath)
                             [System.IO.File]::Delete($ManifestBackupPath)
                         }
-
-                        New-ErrorRecord `
-                            -Message ('Failed to write certificate bundle: {0}' -f $PSItem.Exception.Message) `
-                            -ErrorId $Script:CertificateStoreExporterErrorIdWriteFailure `
-                            -Category ([System.Management.Automation.ErrorCategory]::WriteError) `
-                            -TargetObject $Path `
-                            -IsFatal
+                        else {
+                            [System.IO.File]::Move($ManifestTempPath, $ManifestFullPath)
+                        }
                     }
+
+                    $Status = 'Written'
+                }
+                catch {
+                    if (
+                        [System.String]::IsNullOrEmpty($BundleTempPath) -eq $False -and
+                        [System.IO.File]::Exists($BundleTempPath) -eq $True
+                    ) {
+                        [System.IO.File]::Delete($BundleTempPath)
+                    }
+
+                    if (
+                        [System.String]::IsNullOrEmpty($BundleBackupPath) -eq $False -and
+                        [System.IO.File]::Exists($BundleBackupPath) -eq $True
+                    ) {
+                        [System.IO.File]::Delete($BundleBackupPath)
+                    }
+
+                    if (
+                        [System.String]::IsNullOrEmpty($ManifestTempPath) -eq $False -and
+                        [System.IO.File]::Exists($ManifestTempPath) -eq $True
+                    ) {
+                        [System.IO.File]::Delete($ManifestTempPath)
+                    }
+
+                    if (
+                        [System.String]::IsNullOrEmpty($ManifestBackupPath) -eq $False -and
+                        [System.IO.File]::Exists($ManifestBackupPath) -eq $True
+                    ) {
+                        [System.IO.File]::Delete($ManifestBackupPath)
+                    }
+
+                    New-ErrorRecord `
+                        -Message ('Failed to write certificate bundle: {0}' -f $PSItem.Exception.Message) `
+                        -ErrorId $Script:CertificateStoreExporterErrorIdWriteFailure `
+                        -Category ([System.Management.Automation.ErrorCategory]::WriteError) `
+                        -TargetObject $Path `
+                        -IsFatal
                 }
             }
         }
-        finally {
-            if ($Null -ne $Sha256) {
-                $Sha256.Dispose()
-            }
+    }
+    finally {
+        if ($Null -ne $Sha256) {
+            $Sha256.Dispose()
         }
-
-        [PSCustomObject]@{
-            Path             = [System.String]$Path
-            Status           = [System.String]$Status
-            BundleSha256     = [System.String]$BundleSha256
-            CertificateCount = [System.Int32]$PemBlock.Count
-            ManifestPath     = $ManifestPath
-        }
-
-        Write-Debug -Message '[Write-CertificateBundle] Exiting Process'
     }
 
-    end {
-        Write-Debug -Message '[Write-CertificateBundle] Entering End'
-        Write-Debug -Message '[Write-CertificateBundle] Exiting End'
+    [PSCustomObject]@{
+        Path             = [System.String]$Path
+        Status           = [System.String]$Status
+        BundleSha256     = [System.String]$BundleSha256
+        CertificateCount = [System.Int32]$PemBlock.Count
+        ManifestPath     = $ManifestPath
     }
+
 }

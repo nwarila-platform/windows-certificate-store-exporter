@@ -123,57 +123,37 @@ function New-CertificateStoreExporterResult {
         $GeneratedAtUtc = [System.DateTime]::UtcNow
     )
 
-    begin {
-        Write-Debug -Message '[New-CertificateStoreExporterResult] Entering Begin'
+    # Initalize Variable(s)
+    [PSCustomObject]$Private:Excluded = $Null
+    [PSCustomObject]$Private:Result = $Null
+    [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null
 
-        # Initalize Variable(s)
-        [PSCustomObject]$Private:Excluded = $Null
-        [PSCustomObject]$Private:Result = $Null
-        [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null
-
-        Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting Begin'
+    $Thumbprints = [System.Collections.Generic.List[System.String]]::new()
+    $Certificate | ForEach-Object -Process {
+        $Thumbprints.Add((Get-CertificateRawDataSha256 -Certificate $PSItem))
     }
 
-    process {
-        $Excluded = $Null
-        $Result = $Null
-        $Thumbprints = $Null
-        Write-Debug -Message '[New-CertificateStoreExporterResult] Entering Process'
-
-        $Thumbprints = [System.Collections.Generic.List[System.String]]::new()
-        $Certificate | ForEach-Object -Process {
-            $Thumbprints.Add((Get-CertificateRawDataSha256 -Certificate $PSItem))
-        }
-
-        $Excluded = [PSCustomObject]@{
-            Expired     = [System.Int32]$ExcludedExpired
-            NotYetValid = [System.Int32]$ExcludedNotYetValid
-            Disallowed  = [System.Int32]$ExcludedDisallowed
-            Duplicate   = [System.Int32]$ExcludedDuplicate
-        }
-
-        $Result = [PSCustomObject]@{
-            Path             = [System.String]$Path
-            Status           = [System.String]$Status
-            CertificateCount = [System.Int32]$Thumbprints.Count
-            Thumbprints      = [System.String[]]$Thumbprints.ToArray()
-            BundleSha256     = ([System.String]$BundleSha256).ToUpperInvariant()
-            Examined         = [System.Int32]$Examined
-            Excluded         = $Excluded
-            StoreLocation    = [System.String]$StoreLocation
-            StoreNames       = [System.String[]]$StoreName
-            ManifestPath     = $ManifestPath
-            GeneratedAtUtc   = $GeneratedAtUtc.ToUniversalTime()
-        }
-
-        $Result.PSTypeNames.Insert(0, 'CertificateStoreExporter.Result')
-        $Result
-
-        Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting Process'
+    $Excluded = [PSCustomObject]@{
+        Expired     = [System.Int32]$ExcludedExpired
+        NotYetValid = [System.Int32]$ExcludedNotYetValid
+        Disallowed  = [System.Int32]$ExcludedDisallowed
+        Duplicate   = [System.Int32]$ExcludedDuplicate
     }
 
-    end {
-        Write-Debug -Message '[New-CertificateStoreExporterResult] Entering End'
-        Write-Debug -Message '[New-CertificateStoreExporterResult] Exiting End'
+    $Result = [PSCustomObject]@{
+        Path             = [System.String]$Path
+        Status           = [System.String]$Status
+        CertificateCount = [System.Int32]$Thumbprints.Count
+        Thumbprints      = [System.String[]]$Thumbprints.ToArray()
+        BundleSha256     = ([System.String]$BundleSha256).ToUpperInvariant()
+        Examined         = [System.Int32]$Examined
+        Excluded         = $Excluded
+        StoreLocation    = [System.String]$StoreLocation
+        StoreNames       = [System.String[]]$StoreName
+        ManifestPath     = $ManifestPath
+        GeneratedAtUtc   = $GeneratedAtUtc.ToUniversalTime()
     }
+
+    $Result.PSTypeNames.Insert(0, 'CertificateStoreExporter.Result')
+    $Result
 }

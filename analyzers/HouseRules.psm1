@@ -608,6 +608,36 @@ function Test-HouseRulePipelineParameter {
     }
 }
 
+function Test-HouseRuleNamedBlock {
+    [CmdletBinding()]
+    [OutputType([System.Boolean])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.FunctionDefinitionAst]
+        $FunctionAst
+    )
+
+    process {
+        if ($Null -ne $FunctionAst.Body.DynamicParamBlock) {
+            return [System.Boolean]$True
+        }
+
+        if ($Null -ne $FunctionAst.Body.BeginBlock) {
+            return [System.Boolean]$True
+        }
+
+        if ($Null -ne $FunctionAst.Body.ProcessBlock) {
+            return [System.Boolean]$True
+        }
+
+        if ($Null -ne $FunctionAst.Body.EndBlock -and $FunctionAst.Body.EndBlock.Unnamed -eq $False) {
+            return [System.Boolean]$True
+        }
+
+        [System.Boolean]$False
+    }
+}
+
 function Get-HouseRuleProcessResetVariableName {
     [CmdletBinding()]
     [OutputType([System.String[]])]
@@ -809,6 +839,40 @@ function Measure-PipelineVariableLifecycle {
                         $DeclaredName
                     )
             }
+        }
+    }
+}
+
+function Measure-FlatNonPipelineFunction {
+    <#
+    .SYNOPSIS
+        Flags named blocks on functions that do not accept pipeline input.
+    #>
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.ScriptBlockAst]
+        $ScriptBlockAst
+    )
+
+    process {
+        foreach ($FunctionAst in Get-HouseRuleFunctionAst -ScriptBlockAst $ScriptBlockAst) {
+            if ((Test-HouseRulePipelineParameter -FunctionAst $FunctionAst) -eq $True) {
+                continue
+            }
+
+            if ((Test-HouseRuleNamedBlock -FunctionAst $FunctionAst) -eq $False) {
+                continue
+            }
+
+            ConvertTo-HouseRuleDiagnosticRecord `
+                -RuleName 'Measure-FlatNonPipelineFunction' `
+                -Extent $FunctionAst.Extent `
+                -Message (
+                    "Function '{0}' has no pipeline input, so it must be flat; remove the named blocks and let code run in the implicit End block (SG-2c)." -f
+                    $FunctionAst.Name
+                )
         }
     }
 }
