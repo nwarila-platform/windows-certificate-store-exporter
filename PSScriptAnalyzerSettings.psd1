@@ -76,6 +76,10 @@
             Enable = $true
         }
 
+        'Measure-CanonicalAttributeOrder'    = @{
+            Enable = $true
+        }
+
         'Measure-NoRemoveVariableCleanup'    = @{
             Enable = $true
         }
