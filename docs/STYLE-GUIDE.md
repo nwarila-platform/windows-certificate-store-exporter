@@ -73,12 +73,12 @@ worse by this rule.
 ```powershell
 function ConvertTo-Thing {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#convertto-thing',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.String])]
     param (
@@ -110,12 +110,12 @@ an empty `end { }` is exactly the ceremony SG-2 prohibits.)
 ```powershell
 function Get-Thing {
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#get-thing',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Object[]])]
     param ()
