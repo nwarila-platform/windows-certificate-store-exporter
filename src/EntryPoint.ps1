@@ -104,8 +104,7 @@ try {
 
     Write-Debug -Message '[EntryPoint] Exiting with code 0'
     exit ([System.Int32]$Script:ExitCode)
-}
-catch {
+} catch {
     $ResolvedExitCode = Resolve-ExitCode -ErrorRecord $PSItem
 
     if ($Null -ne $ResolvedExitCode) {

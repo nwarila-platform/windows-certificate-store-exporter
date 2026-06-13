@@ -51,8 +51,7 @@ Describe 'New-CertificateStoreExporterResult' {
             $Result.StoreNames | Should -Be @('Root', 'CA')
             $Result.ManifestPath | Should -Be $ManifestPath
             $Result.GeneratedAtUtc | Should -Be $GeneratedAtUtc
-        }
-        finally {
+        } finally {
             $SecondCertificate.Dispose()
             $FirstCertificate.Dispose()
         }
@@ -76,8 +75,7 @@ Describe 'New-CertificateStoreExporterResult' {
                     -Path 'bundle.pem' `
                     -Status Failed `
                     -BundleSha256 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-            }
-            catch {
+            } catch {
             }
         )
 

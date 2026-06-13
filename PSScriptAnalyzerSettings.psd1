@@ -31,7 +31,7 @@
 
         PSPlaceCloseBrace          = @{
             Enable             = $true
-            NewLineAfter       = $true
+            NewLineAfter       = $false
             IgnoreOneLineBlock = $true
             NoEmptyLineBefore  = $false
         }

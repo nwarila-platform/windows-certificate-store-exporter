@@ -36,8 +36,7 @@ Describe 'Select-ExportableCertificate' {
 
             $Result | Should -HaveCount 1
             $Result[0] | Should -Be $Valid
-        }
-        finally {
+        } finally {
             $NotYetValid.Dispose()
             $Expired.Dispose()
             $Valid.Dispose()
@@ -57,8 +56,7 @@ Describe 'Select-ExportableCertificate' {
 
             $Result | Should -HaveCount 2
             Get-TestCertificateSha256 -Certificate $Result | Should -Be $ExpectedHashes
-        }
-        finally {
+        } finally {
             $NotYetValid.Dispose()
             $Expired.Dispose()
         }
@@ -77,8 +75,7 @@ Describe 'Select-ExportableCertificate' {
 
             $Result | Should -HaveCount 1
             $Result[0] | Should -Be $Valid
-        }
-        finally {
+        } finally {
             $Disallowed.Dispose()
             $Valid.Dispose()
         }
@@ -94,8 +91,7 @@ Describe 'Select-ExportableCertificate' {
             $Result | Should -HaveCount 1
             (Get-CertificateRawDataSha256 -Certificate $Result[0]) |
                 Should -Be (Get-CertificateRawDataSha256 -Certificate $Original)
-        }
-        finally {
+        } finally {
             $Duplicate.Dispose()
             $Original.Dispose()
         }
@@ -109,8 +105,7 @@ Describe 'Select-ExportableCertificate' {
 
             $Result | Should -HaveCount 1
             $Result[0] | Should -Be $Certificate
-        }
-        finally {
+        } finally {
             $Certificate.Dispose()
         }
     }
@@ -131,8 +126,7 @@ Describe 'Select-ExportableCertificate' {
             $Result = Select-ExportableCertificate -Certificate $Input
 
             Get-TestCertificateSha256 -Certificate $Result | Should -Be $ExpectedHashes
-        }
-        finally {
+        } finally {
             $Third.Dispose()
             $Second.Dispose()
             $First.Dispose()

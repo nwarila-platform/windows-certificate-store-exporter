@@ -18,8 +18,7 @@ Describe 'Write-CertificateBundle' {
 
             try {
                 [System.BitConverter]::ToString($Sha256.ComputeHash($Bytes)).Replace('-', '')
-            }
-            finally {
+            } finally {
                 $Sha256.Dispose()
             }
         }

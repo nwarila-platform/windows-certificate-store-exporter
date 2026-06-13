@@ -144,8 +144,7 @@ function New-TestCertificate {
             }
 
             $Certificate
-        }
-        finally {
+        } finally {
             if ($Null -ne $CreatedCertificate) {
                 $CreatedCertificate.Dispose()
             }

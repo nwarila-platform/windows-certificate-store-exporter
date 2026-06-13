@@ -26,8 +26,7 @@ Describe 'New-TestCertificate' {
 
                 $Certificate.GetKeyAlgorithm() | Should -Be '1.2.840.113549.1.1.1'
                 $PublicKey.KeySize | Should -Be 2048
-            }
-            finally {
+            } finally {
                 if ($Null -ne $PublicKey) {
                     $PublicKey.Dispose()
                 }
@@ -47,8 +46,7 @@ Describe 'New-TestCertificate' {
             $NotYetValid.NotBefore.Year | Should -Be 2099
             $Valid.NotBefore.Year | Should -Be 2000
             $Valid.NotAfter.Year | Should -Be 2099
-        }
-        finally {
+        } finally {
             $Expired.Dispose()
             $NotYetValid.Dispose()
             $Valid.Dispose()
@@ -67,8 +65,7 @@ Describe 'New-TestCertificate' {
             )
 
             $BasicConstraints | Should -HaveCount 0
-        }
-        finally {
+        } finally {
             $Certificate.Dispose()
         }
     }
@@ -81,8 +78,7 @@ Describe 'New-TestCertificate' {
             [System.Object]::ReferenceEquals($Duplicate, $Original) | Should -BeFalse
             Get-CertificateRawDataSha256 -Certificate $Duplicate |
                 Should -Be (Get-CertificateRawDataSha256 -Certificate $Original)
-        }
-        finally {
+        } finally {
             $Duplicate.Dispose()
             $Original.Dispose()
         }
@@ -93,8 +89,7 @@ Describe 'New-TestCertificate' {
 
         try {
             $Certificate.FixtureStoreName | Should -Be 'Disallowed'
-        }
-        finally {
+        } finally {
             $Certificate.Dispose()
         }
     }

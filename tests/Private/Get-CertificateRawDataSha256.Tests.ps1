@@ -21,8 +21,7 @@ Describe 'Get-CertificateRawDataSha256' {
             $Result | Should -Match '^[A-F0-9]{64}$'
             $Result | Should -Not -Be $Certificate.Thumbprint
             $Certificate.Thumbprint | Should -Match '^[A-F0-9]{40}$'
-        }
-        finally {
+        } finally {
             $Sha256.Dispose()
             $Certificate.Dispose()
         }
