@@ -331,8 +331,10 @@ function Invoke-Analyze {
         Invoke-Build
     }
 
+    $private:AnalyzerRuleFile = Join-Path -Path $ProjectRoot -ChildPath 'analyzers\HouseRules.psm1'
     $private:SyntaxTargets = @(
         Join-Path -Path $ProjectRoot -ChildPath 'build.ps1'
+        $AnalyzerRuleFile
         $OutputFile
         $FunctionsFile
     )
@@ -351,6 +353,7 @@ function Invoke-Analyze {
     $private:Results = @(
         Invoke-ScriptAnalyzer -Path $OutputFile -Settings $SettingsFile
         Invoke-ScriptAnalyzer -Path $FunctionsFile -Settings $SettingsFile
+        Invoke-ScriptAnalyzer -Path $AnalyzerRuleFile -Settings $SettingsFile
         Invoke-ScriptAnalyzer -Path (Join-Path -Path $ProjectRoot -ChildPath 'build.ps1') -Settings $SettingsFile
     )
 
