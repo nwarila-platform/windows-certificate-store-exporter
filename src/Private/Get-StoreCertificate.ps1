@@ -66,7 +66,7 @@ function Get-StoreCertificate {
     if ((Test-CertificateStoreExporterWindows) -eq $False) {
         New-ErrorRecord `
             -Message 'Windows certificate stores are only available on Windows.' `
-            -ErrorId $Script:CertificateStoreExporterErrorIdNotWindows `
+            -ErrorId ([ExporterExitCode]::NotWindows) `
             -Category ([System.Management.Automation.ErrorCategory]::InvalidOperation) `
             -TargetObject ('{0}\{1}' -f $StoreLocation, $StoreName) `
             -IsFatal
@@ -90,7 +90,7 @@ function Get-StoreCertificate {
 
         New-ErrorRecord `
             -Message $FailureMessage `
-            -ErrorId $Script:CertificateStoreExporterErrorIdStoreReadFailure `
+            -ErrorId ([ExporterExitCode]::StoreReadFailure) `
             -Category ([System.Management.Automation.ErrorCategory]::ReadError) `
             -TargetObject ('{0}\{1}' -f $StoreLocation, $StoreName) `
             -IsFatal

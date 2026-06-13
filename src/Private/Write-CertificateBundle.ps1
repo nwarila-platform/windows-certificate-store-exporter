@@ -82,7 +82,7 @@ function Write-CertificateBundle {
 
         New-ErrorRecord `
             -Message $FailureMessage `
-            -ErrorId $Script:CertificateStoreExporterErrorIdBelowMinimumCertificateCount `
+            -ErrorId ([ExporterExitCode]::BelowMinimumCertificateCount) `
             -Category ([System.Management.Automation.ErrorCategory]::InvalidData) `
             -TargetObject $Path `
             -IsFatal
@@ -98,7 +98,7 @@ function Write-CertificateBundle {
         if ([System.Int32]$Character -gt 0x7F) {
             New-ErrorRecord `
                 -Message 'Certificate bundle content must be ASCII.' `
-                -ErrorId $Script:CertificateStoreExporterErrorIdWriteFailure `
+                -ErrorId ([ExporterExitCode]::WriteFailure) `
                 -Category ([System.Management.Automation.ErrorCategory]::InvalidData) `
                 -TargetObject $Path `
                 -IsFatal
@@ -237,7 +237,7 @@ function Write-CertificateBundle {
 
                     New-ErrorRecord `
                         -Message ('Failed to write certificate bundle: {0}' -f $PSItem.Exception.Message) `
-                        -ErrorId $Script:CertificateStoreExporterErrorIdWriteFailure `
+                        -ErrorId ([ExporterExitCode]::WriteFailure) `
                         -Category ([System.Management.Automation.ErrorCategory]::WriteError) `
                         -TargetObject $Path `
                         -IsFatal

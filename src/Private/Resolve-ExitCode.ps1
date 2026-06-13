@@ -29,20 +29,22 @@ function Resolve-ExitCode {
     )
 
     # Initalize Variable(s)
-    [hashtable]$Private:ExitCodeByErrorId = $Null
+    [ExporterExitCode]$Private:ExitCode = [ExporterExitCode]::Unhandled
     [System.String]$Private:FullyQualifiedErrorId = [System.String]::Empty
     [System.String]$Private:ShortErrorId = [System.String]::Empty
-
-    $ExitCodeByErrorId = @{}
-    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdBelowMinimumCertificateCount] = 2
-    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdNotWindows] = 3
-    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdStoreReadFailure] = 4
-    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdWriteFailure] = 5
 
     $FullyQualifiedErrorId = [System.String]$ErrorRecord.FullyQualifiedErrorId
     $ShortErrorId = [System.String]($FullyQualifiedErrorId -split ',', 2)[0]
 
-    if ($ExitCodeByErrorId.ContainsKey($ShortErrorId)) {
-        [System.Int32]$ExitCodeByErrorId[$ShortErrorId]
+    if ([System.Enum]::IsDefined([ExporterExitCode], $ShortErrorId) -eq $False) {
+        return
     }
+
+    $ExitCode = [ExporterExitCode]$ShortErrorId
+
+    if ($ExitCode -in @([ExporterExitCode]::Success, [ExporterExitCode]::Unhandled)) {
+        return
+    }
+
+    [System.Int32]$ExitCode
 }
