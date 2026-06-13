@@ -2,7 +2,8 @@
 
 Describe 'SG-1 house analyzer rules' {
     BeforeAll {
-        $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+        $AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+        $script:AnalyzerRulePath = $AnalyzerRulePath
         if (-not (Get-Module -Name PSScriptAnalyzer)) {
             Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
         }
@@ -387,5 +388,255 @@ function Get-Thing {
             $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitCmdletBinding' })
         $Results.RuleName | Should -Contain 'Measure-ExplicitCmdletBinding'
         $Results.Message | Should -Match 'CmdletBinding'
+    }
+}
+
+Describe 'SG-5 house analyzer rules' {
+    BeforeAll {
+        $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+        if (-not (Get-Module -Name PSScriptAnalyzer)) {
+            Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+        }
+    }
+
+    It 'flags misordered CmdletBinding options' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#get-thing',
+        PositionalBinding = $False,
+        SupportsPaging = $False
+    )]
+    [OutputType([System.String])]
+    param ()
+    [System.String]'thing'
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-CanonicalAttributeOrder'
+
+        $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
+
+        $Results.RuleName | Should -Contain 'Measure-CanonicalAttributeOrder'
+        $Results.Message | Should -Match 'SG-5a'
+    }
+
+    It 'flags misordered Parameter attribute arguments' {
+        $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#convertto-thing',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [Parameter(ValueFromPipeline = $True, Mandatory = $True)]
+        [System.String]
+        $InputObject
+    )
+    process {
+        $InputObject
+    }
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-CanonicalAttributeOrder'
+
+        $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
+
+        $Results.RuleName | Should -Contain 'Measure-CanonicalAttributeOrder'
+        $Results.Message | Should -Match 'SG-5b'
+    }
+
+    It 'flags validation attributes after the type literal' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#get-thing',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.String]
+        [ValidateNotNullOrEmpty()]
+        $Name
+    )
+    $Name
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-CanonicalAttributeOrder'
+
+        $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
+
+        $Results.RuleName | Should -Contain 'Measure-CanonicalAttributeOrder'
+        $Results.Message -join [System.Environment]::NewLine | Should -Match 'type must be last'
+    }
+
+    It 'flags wrong parameter attribute order' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#get-thing',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $True)]
+        [System.String]
+        $Name
+    )
+    $Name
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-CanonicalAttributeOrder'
+
+        $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
+
+        $Results.RuleName | Should -Contain 'Measure-CanonicalAttributeOrder'
+        $Results.Message | Should -Match 'SG-5c'
+    }
+
+    It 'flags unsorted parameter names' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#get-thing',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [Parameter()]
+        [System.String]
+        $Zoo,
+
+        [Parameter()]
+        [System.String]
+        $Alpha
+    )
+    $Alpha
+    $Zoo
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-CanonicalAttributeOrder'
+
+        $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
+
+        $Results.RuleName | Should -Contain 'Measure-CanonicalAttributeOrder'
+        $Results.Message | Should -Match 'SG-5d'
+    }
+
+    It 'does not flag unsorted parameter names when explicit Position trips the guard' {
+        $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#get-thing',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [Parameter(Position = 1)]
+        [System.String]
+        $Zoo,
+
+        [Parameter()]
+        [System.String]
+        $Alpha
+    )
+    $Alpha
+    $Zoo
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-CanonicalAttributeOrder'
+
+        $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
+
+        $Results | Should -HaveCount 0
+    }
+
+    It 'accepts the canonical declaration idiom' {
+        $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#convertto-thing',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $Alpha,
+
+        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [Alias('n')]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $Name
+    )
+    process {
+        $Name
+    }
+}
+'@
+
+        $Results = Invoke-ScriptAnalyzer `
+            -ScriptDefinition $ScriptDefinition `
+            -CustomRulePath $script:AnalyzerRulePath `
+            -IncludeRule 'Measure-CanonicalAttributeOrder'
+
+        $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
+
+        $Results | Should -HaveCount 0
     }
 }

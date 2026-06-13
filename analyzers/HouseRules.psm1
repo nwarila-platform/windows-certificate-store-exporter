@@ -779,6 +779,262 @@ function Get-HouseRuleFunctionAttribute {
 
 }
 
+function Get-HouseRuleAttributeName {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.AttributeAst]
+        $AttributeAst
+    )
+
+    [System.String](
+        (
+            ([System.String]$AttributeAst.TypeName.FullName) -replace
+            '^(System\.Management\.Automation\.)?',
+            ''
+        ) -replace 'Attribute$',
+        ''
+    )
+
+}
+
+function Get-HouseRuleParameterAttributeOrderKey {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.AttributeBaseAst]
+        $AttributeAst
+    )
+
+    if ($AttributeAst -is [System.Management.Automation.Language.TypeConstraintAst]) {
+        return [System.String]'3|'
+    }
+
+    if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
+        return [System.String]'2|'
+    }
+
+    $Private:AttributeName = Get-HouseRuleAttributeName -AttributeAst $AttributeAst
+
+    if ($AttributeName -ieq 'Parameter') {
+        return [System.String]'0|Parameter'
+    }
+
+    if ($AttributeName -ieq 'Alias') {
+        return [System.String]'1|Alias'
+    }
+
+    [System.String]('2|{0}' -f $AttributeName)
+
+}
+
+function Test-HouseRuleAlphabeticalOrder {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.Boolean])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [AllowEmptyCollection()]
+        [System.String[]]
+        $Value
+    )
+
+    for ($Index = 1; $Index -lt $Value.Count; $Index++) {
+        if ([System.StringComparer]::OrdinalIgnoreCase.Compare($Value[$Index - 1], $Value[$Index]) -gt 0) {
+            return [System.Boolean]$False
+        }
+    }
+
+    [System.Boolean]$True
+
+}
+
+function Test-HouseRuleNamedArgumentValueIsTrue {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.Boolean])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.NamedAttributeArgumentAst]
+        $NamedArgument
+    )
+
+    if ($Null -eq $NamedArgument.Argument) {
+        return [System.Boolean]$True
+    }
+
+    if ($NamedArgument.Argument.Extent.Text -ieq $NamedArgument.ArgumentName) {
+        return [System.Boolean]$True
+    }
+
+    try {
+        return [System.Boolean]$NamedArgument.Argument.SafeGetValue()
+    } catch {
+        return [System.Boolean]$False
+    }
+
+}
+
+function Test-HouseRuleParameterAttributeOrder {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.Boolean])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.ParameterAst]
+        $ParameterAst
+    )
+
+    # Initalize Variable(s)
+    [System.String]$Private:CurrentKey = [System.String]::Empty
+    [System.Boolean]$Private:HasPreviousKey = $False
+    [System.String]$Private:PreviousKey = [System.String]::Empty
+
+    foreach ($AttributeAst in $ParameterAst.Attributes) {
+        $CurrentKey = Get-HouseRuleParameterAttributeOrderKey -AttributeAst $AttributeAst
+
+        if (
+            $HasPreviousKey -eq $True -and
+            [System.StringComparer]::OrdinalIgnoreCase.Compare($PreviousKey, $CurrentKey) -gt 0
+        ) {
+            return [System.Boolean]$False
+        }
+
+        $HasPreviousKey = $True
+        $PreviousKey = $CurrentKey
+    }
+
+    [System.Boolean]$True
+
+}
+
+function Test-HouseRuleParameterTypeLast {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.Boolean])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.ParameterAst]
+        $ParameterAst
+    )
+
+    $Private:HasSeenType = $False
+
+    foreach ($AttributeAst in $ParameterAst.Attributes) {
+        if ($AttributeAst -is [System.Management.Automation.Language.TypeConstraintAst]) {
+            $HasSeenType = $True
+            continue
+        }
+
+        if (
+            $HasSeenType -eq $True -and
+            $AttributeAst -is [System.Management.Automation.Language.AttributeAst]
+        ) {
+            return [System.Boolean]$False
+        }
+    }
+
+    [System.Boolean]$True
+
+}
+
+function Test-HouseRuleParameterOrderGuard {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.Boolean])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.FunctionDefinitionAst]
+        $FunctionAst
+    )
+
+    foreach ($CmdletBindingAttribute in Get-HouseRuleFunctionAttribute -FunctionAst $FunctionAst -AttributeName 'CmdletBinding') {
+        foreach ($NamedArgument in $CmdletBindingAttribute.NamedArguments) {
+            if ($NamedArgument.ArgumentName -ine 'PositionalBinding') {
+                continue
+            }
+
+            if ((Test-HouseRuleNamedArgumentValueIsTrue -NamedArgument $NamedArgument) -eq $True) {
+                return [System.Boolean]$True
+            }
+        }
+    }
+
+    if ($Null -eq $FunctionAst.Body.ParamBlock) {
+        return [System.Boolean]$False
+    }
+
+    foreach ($ParameterAst in $FunctionAst.Body.ParamBlock.Parameters) {
+        foreach ($AttributeAst in $ParameterAst.Attributes) {
+            if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
+                continue
+            }
+
+            if ((Get-HouseRuleAttributeName -AttributeAst $AttributeAst) -ine 'Parameter') {
+                continue
+            }
+
+            foreach ($NamedArgument in $AttributeAst.NamedArguments) {
+                if (
+                    $NamedArgument.ArgumentName -ieq 'Position' -or
+                    $NamedArgument.ArgumentName -ieq 'ParameterSetName'
+                ) {
+                    return [System.Boolean]$True
+                }
+            }
+        }
+    }
+
+    [System.Boolean]$False
+
+}
+
 function Get-HouseRuleProcessResetVariableName {
     [CmdletBinding(
         ConfirmImpact = 'None',
@@ -830,6 +1086,118 @@ function Get-HouseRuleProcessResetVariableName {
     }
 
     [System.String[]]$Names.ToArray()
+
+}
+
+function Measure-CanonicalAttributeOrder {
+    <#
+    .SYNOPSIS
+        Flags non-canonical ordering in function declaration attributes and parameters.
+    #>
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.ScriptBlockAst]
+        $ScriptBlockAst
+    )
+
+    foreach ($FunctionAst in Get-HouseRuleFunctionAst -ScriptBlockAst $ScriptBlockAst) {
+        foreach ($CmdletBindingAttribute in Get-HouseRuleFunctionAttribute -FunctionAst $FunctionAst -AttributeName 'CmdletBinding') {
+            $Private:CmdletBindingOptionNames = [System.String[]]@(
+                $CmdletBindingAttribute.NamedArguments |
+                    ForEach-Object -Process { $PSItem.ArgumentName }
+            )
+
+            if ((Test-HouseRuleAlphabeticalOrder -Value $CmdletBindingOptionNames) -eq $False) {
+                ConvertTo-HouseRuleDiagnosticRecord `
+                    -RuleName 'Measure-CanonicalAttributeOrder' `
+                    -Extent $CmdletBindingAttribute.Extent `
+                    -Message (
+                    "Function '{0}' CmdletBinding options are not in alphabetical order (SG-5a)." -f
+                    $FunctionAst.Name
+                )
+            }
+        }
+
+        if ($Null -eq $FunctionAst.Body.ParamBlock) {
+            continue
+        }
+
+        foreach ($ParameterAst in $FunctionAst.Body.ParamBlock.Parameters) {
+            foreach ($AttributeAst in $ParameterAst.Attributes) {
+                if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
+                    continue
+                }
+
+                if ((Get-HouseRuleAttributeName -AttributeAst $AttributeAst) -ine 'Parameter') {
+                    continue
+                }
+
+                $Private:ParameterArgumentNames = [System.String[]]@(
+                    $AttributeAst.NamedArguments |
+                        ForEach-Object -Process { $PSItem.ArgumentName }
+                )
+
+                if ((Test-HouseRuleAlphabeticalOrder -Value $ParameterArgumentNames) -eq $False) {
+                    ConvertTo-HouseRuleDiagnosticRecord `
+                        -RuleName 'Measure-CanonicalAttributeOrder' `
+                        -Extent $AttributeAst.Extent `
+                        -Message (
+                        "Function '{0}' parameter '{1}' Parameter attribute arguments are not in alphabetical order (SG-5b)." -f
+                        $FunctionAst.Name,
+                        (Get-HouseRuleVariableName -VariableAst $ParameterAst.Name)
+                    )
+                }
+            }
+
+            if ((Test-HouseRuleParameterTypeLast -ParameterAst $ParameterAst) -eq $False) {
+                ConvertTo-HouseRuleDiagnosticRecord `
+                    -RuleName 'Measure-CanonicalAttributeOrder' `
+                    -Extent $ParameterAst.Extent `
+                    -Message (
+                    "Function '{0}' parameter '{1}' has an attribute after the type literal; the type must be last before the variable (SG-5c)." -f
+                    $FunctionAst.Name,
+                    (Get-HouseRuleVariableName -VariableAst $ParameterAst.Name)
+                )
+            }
+
+            if ((Test-HouseRuleParameterAttributeOrder -ParameterAst $ParameterAst) -eq $False) {
+                ConvertTo-HouseRuleDiagnosticRecord `
+                    -RuleName 'Measure-CanonicalAttributeOrder' `
+                    -Extent $ParameterAst.Extent `
+                    -Message (
+                    "Function '{0}' parameter '{1}' attributes are not in canonical Parameter/Alias/attribute/type order (SG-5c)." -f
+                    $FunctionAst.Name,
+                    (Get-HouseRuleVariableName -VariableAst $ParameterAst.Name)
+                )
+            }
+        }
+
+        if ((Test-HouseRuleParameterOrderGuard -FunctionAst $FunctionAst) -eq $True) {
+            continue
+        }
+
+        $Private:ParameterNames = [System.String[]]@(Get-HouseRuleParameterName -FunctionAst $FunctionAst)
+        if ((Test-HouseRuleAlphabeticalOrder -Value $ParameterNames) -eq $True) {
+            continue
+        }
+
+        ConvertTo-HouseRuleDiagnosticRecord `
+            -RuleName 'Measure-CanonicalAttributeOrder' `
+            -Extent $FunctionAst.Body.ParamBlock.Extent `
+            -Message (
+            "Function '{0}' parameters are not in alphabetical order by name (SG-5d)." -f
+            $FunctionAst.Name
+        )
+    }
 
 }
 

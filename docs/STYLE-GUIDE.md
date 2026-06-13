@@ -303,3 +303,51 @@ present). It enforces **presence**, not values — values are the advisor's/revi
 except `SupportsShouldProcess` which the built-in `PSUseShouldProcessForStateChangingFunctions`
 also checks against the verb. (No built-in rule requires option presence;
 `PSUseOutputTypeCorrectly` is Information-only and merely *validates* a declared type.)
+
+---
+
+## SG-5 — Canonical (alphabetical) ordering of the attribute/parameter surface **[mechanical — analyzer-enforced]**
+
+**Rule.** The declaration surface of every advanced function is ordered deterministically
+so diffs and reviews are stable. Four clauses:
+
+- **(a) `CmdletBinding` options** appear in **alphabetical** order:
+  `ConfirmImpact, DefaultParameterSetName, HelpUri, PositionalBinding, SupportsPaging, SupportsShouldProcess`.
+- **(b) `[Parameter(...)]` named arguments** appear in **alphabetical** order
+  (`Mandatory, Position?, ValueFromPipeline, ValueFromPipelineByPropertyName, …`).
+- **(c) Attributes on a parameter** appear in this canonical order:
+  `[Parameter(...)]` → `[Alias(...)]` → validation/transformation attributes
+  (`[Validate*]`, etc., **alphabetical** among themselves) → **the type literal** →
+  the variable. **The type literal MUST be last** (immediately before `$Var`).
+- **(d) The parameters themselves** appear in **alphabetical order by name**.
+
+**Behavioral safety (why this is allowed).** (a) and (b) are .NET *named attribute
+arguments* — order-independent by language definition, purely cosmetic. (c) is cosmetic
+among attributes, with **one hard behavioral constraint**: a validation attribute placed
+*after* the type validates the **pre-conversion** value and can throw a spurious
+`MetadataError`; Microsoft prescribes **attribute-before-type**, so "type last" is a
+*correctness* rule, not just style. (d) reordering parameters is **binding-safe only
+because the house mandates `PositionalBinding = $false` (SG-4) with no explicit
+`Position` and single parameter sets** — under those conditions declaration order does
+not drive binding. Accepted tradeoff: alphabetical parameters also reorder the
+`Get-Help` parameter listing and `$PSBoundParameters` enumeration (cosmetic, not
+behavioral).
+
+**Guard (the rule must respect this).** If a function ever declares an explicit
+`Position` on any parameter, or multiple parameter sets (`ParameterSetName` on
+parameters), or `PositionalBinding = $true`, then **parameter order is load-bearing** —
+clause (d) does NOT apply to that function and the rule must exempt it. (a)/(b)/(c) still
+apply. House code currently has none of these.
+
+**Why.** Alphabetical is a deterministic canonical order, so two authors produce
+byte-identical declarations and reviews see only real changes — the same auditability
+goal as the maximal-explicit surface. (Neither Microsoft nor PoshCode prescribes
+alphabetical ordering; it's a deliberate house convention, safe per the classification
+above.)
+
+**Enforced by** a custom rule **`Measure-CanonicalAttributeOrder`** (Warning). Via the
+AST: `AttributeAst.NamedArguments` must be alphabetical (a, b); within each
+`ParameterAst.Attributes`, no `[Validate*]`/transform `AttributeAst` may follow the
+`TypeConstraintAst`, and `[Parameter]`→`[Alias]`→`[Validate* alphabetical]`→type order
+holds (c); `ParamBlockAst.Parameters` names must be alphabetical **unless** the
+function trips the Guard above (d). No built-in rule covers any of this.
