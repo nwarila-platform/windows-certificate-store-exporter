@@ -31,16 +31,7 @@ function New-ErrorRecord {
     .OUTPUTS
         [System.Management.Automation.ErrorRecord]
     #>
-    [CmdletBinding(
-        ConfirmImpact = 'Medium',
-        DefaultParameterSetName = $Null,
-        HelpUri = '',
-        PositionalBinding = $True,
-        RemotingCapability = 'PowerShell',
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False,
-        SupportsTransactions = $False
-    )]
+    [CmdletBinding()]
     [OutputType([System.Management.Automation.ErrorRecord])]
     param (
         [Parameter(Mandatory = $True)]
