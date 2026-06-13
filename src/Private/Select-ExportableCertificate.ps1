@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 function Select-ExportableCertificate {
-    <#
+  <#
     .SYNOPSIS
         Selects certificates eligible for export.
 
@@ -25,86 +25,86 @@ function Select-ExportableCertificate {
     .OUTPUTS
         [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
     #>
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#select-exportablecertificate',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
-    )]
-    [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
-    param (
-        [Parameter()]
-        [AllowEmptyCollection()]
-        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
-        $Certificate = @(),
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#select-exportablecertificate',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
+  param (
+    [Parameter()]
+    [AllowEmptyCollection()]
+    [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
+    $Certificate = @(),
 
-        [Parameter()]
-        [AllowEmptyCollection()]
-        [System.String[]]
-        $DisallowedThumbprint = @(),
+    [Parameter()]
+    [AllowEmptyCollection()]
+    [System.String[]]
+    $DisallowedThumbprint = @(),
 
-        [Parameter()]
-        [System.Management.Automation.SwitchParameter]
-        $IncludeExpired
-    )
+    [Parameter()]
+    [System.Management.Automation.SwitchParameter]
+    $IncludeExpired
+  )
 
-    # Initalize Variable(s)
-    [System.String]$Private:CertificateHash = [System.String]::Empty
-    [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
-    [System.Boolean]$Private:IsCurrent = $False
-    [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
-    [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
-    [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
-    [System.Collections.Generic.SortedDictionary[
-    System.String,
-    System.Security.Cryptography.X509Certificates.X509Certificate2
-    ]]$Private:SelectedByHash = $Null
+  # Initalize Variable(s)
+  [System.String]$Private:CertificateHash = [System.String]::Empty
+  [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
+  [System.Boolean]$Private:IsCurrent = $False
+  [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
+  [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
+  [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
+  [System.Collections.Generic.SortedDictionary[
+  System.String,
+  System.Security.Cryptography.X509Certificates.X509Certificate2
+  ]]$Private:SelectedByHash = $Null
 
-    $NowUtc = [System.DateTime]::UtcNow
-    $DisallowedSet = [System.Collections.Generic.HashSet[System.String]]::new(
-        [System.StringComparer]::OrdinalIgnoreCase
-    )
-    $DisallowedThumbprint | ForEach-Object -Process {
-        if ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
-            [void]$DisallowedSet.Add($PSItem)
-        }
+  $NowUtc = [System.DateTime]::UtcNow
+  $DisallowedSet = [System.Collections.Generic.HashSet[System.String]]::new(
+    [System.StringComparer]::OrdinalIgnoreCase
+  )
+  $DisallowedThumbprint | ForEach-Object -Process {
+    if ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
+      [void]$DisallowedSet.Add($PSItem)
     }
-    $SelectedByHash = [System.Collections.Generic.SortedDictionary[
-    System.String,
-    System.Security.Cryptography.X509Certificates.X509Certificate2
-    ]]::new([System.StringComparer]::Ordinal)
+  }
+  $SelectedByHash = [System.Collections.Generic.SortedDictionary[
+  System.String,
+  System.Security.Cryptography.X509Certificates.X509Certificate2
+  ]]::new([System.StringComparer]::Ordinal)
 
-    foreach ($CandidateCertificate in $Certificate) {
-        if ($Null -eq $CandidateCertificate) {
-            continue
-        }
-
-        $IsCurrent = $True
-        if ($IncludeExpired.IsPresent -eq $False) {
-            $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
-            $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
-            $IsCurrent = [System.Boolean]($NotBeforeUtc -le $NowUtc -and $NotAfterUtc -ge $NowUtc)
-        }
-
-        if ($IsCurrent -eq $False) {
-            continue
-        }
-
-        $CertificateHash = Get-CertificateRawDataSha256 -Certificate $CandidateCertificate
-        if ($DisallowedSet.Contains($CertificateHash) -eq $True) {
-            continue
-        }
-
-        if ($SelectedByHash.ContainsKey($CertificateHash) -eq $False) {
-            $SelectedByHash.Add($CertificateHash, $CandidateCertificate)
-        }
+  foreach ($CandidateCertificate in $Certificate) {
+    if ($Null -eq $CandidateCertificate) {
+      continue
     }
 
-    [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
-        $SelectedByHash.GetEnumerator() | ForEach-Object -Process {
-            $PSItem.Value
-        }
-    )
+    $IsCurrent = $True
+    if ($IncludeExpired.IsPresent -eq $False) {
+      $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
+      $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
+      $IsCurrent = [System.Boolean]($NotBeforeUtc -le $NowUtc -and $NotAfterUtc -ge $NowUtc)
+    }
+
+    if ($IsCurrent -eq $False) {
+      continue
+    }
+
+    $CertificateHash = Get-CertificateRawDataSha256 -Certificate $CandidateCertificate
+    if ($DisallowedSet.Contains($CertificateHash) -eq $True) {
+      continue
+    }
+
+    if ($SelectedByHash.ContainsKey($CertificateHash) -eq $False) {
+      $SelectedByHash.Add($CertificateHash, $CandidateCertificate)
+    }
+  }
+
+  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
+    $SelectedByHash.GetEnumerator() | ForEach-Object -Process {
+      $PSItem.Value
+    }
+  )
 }
