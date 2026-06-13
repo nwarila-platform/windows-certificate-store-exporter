@@ -2,7 +2,11 @@
 
 [CmdletBinding(
     SupportsShouldProcess = $True,
-    PositionalBinding = $False
+    ConfirmImpact = 'Medium',
+    PositionalBinding = $False,
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/cli-contract.md',
+    SupportsPaging = $False
 )]
 param (
     [Parameter(Mandatory = $True)]

@@ -1,7 +1,14 @@
 #Requires -Version 5.1
 
 function ConvertTo-HouseRuleDiagnosticRecord {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
         [Parameter(Mandatory = $True)]
@@ -31,7 +38,14 @@ function ConvertTo-HouseRuleDiagnosticRecord {
 }
 
 function Get-HouseRuleFunctionAst {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Management.Automation.Language.FunctionDefinitionAst[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -57,7 +71,14 @@ function Get-HouseRuleFunctionAst {
 }
 
 function Test-HouseRuleAstBelongsToFunction {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $True)]
@@ -85,7 +106,14 @@ function Test-HouseRuleAstBelongsToFunction {
 }
 
 function Get-HouseRuleVariableName {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String])]
     param (
         [Parameter(Mandatory = $True)]
@@ -111,7 +139,14 @@ function Get-HouseRuleVariableName {
 }
 
 function Test-HouseRuleAutomaticVariable {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $True)]
@@ -178,7 +213,14 @@ function Test-HouseRuleAutomaticVariable {
 }
 
 function Get-HouseRuleParameterName {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -199,7 +241,14 @@ function Get-HouseRuleParameterName {
 }
 
 function Get-HouseRuleIteratorName {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -269,7 +318,14 @@ function Get-HouseRuleIteratorName {
 }
 
 function Get-HouseRuleStaticString {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String[]])]
     param (
         [Parameter()]
@@ -302,7 +358,14 @@ function Get-HouseRuleStaticString {
 }
 
 function Get-HouseRuleCommandArgument {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Management.Automation.Language.Ast[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -342,7 +405,14 @@ function Get-HouseRuleCommandArgument {
 }
 
 function Get-HouseRuleCommandArgumentString {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -363,7 +433,14 @@ function Get-HouseRuleCommandArgumentString {
 }
 
 function Test-HouseRuleCommandHasPrivateOption {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $True)]
@@ -381,7 +458,14 @@ function Test-HouseRuleCommandHasPrivateOption {
 }
 
 function Test-HouseRuleCommandUsesNonLocalScope {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $True)]
@@ -399,7 +483,14 @@ function Test-HouseRuleCommandUsesNonLocalScope {
 }
 
 function Get-HouseRuleAssignedExpressionVariable {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([PSCustomObject[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -436,7 +527,14 @@ function Get-HouseRuleAssignedExpressionVariable {
 }
 
 function Get-HouseRuleAssignedVariable {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([PSCustomObject[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -501,7 +599,14 @@ function Get-HouseRuleAssignedVariable {
 }
 
 function Get-HouseRulePrivateDeclarationName {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -556,7 +661,14 @@ function Get-HouseRulePrivateDeclarationName {
 }
 
 function Test-HouseRulePipelineParameter {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $True)]
@@ -608,7 +720,14 @@ function Test-HouseRulePipelineParameter {
 }
 
 function Test-HouseRuleNamedBlock {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $True)]
@@ -637,8 +756,56 @@ function Test-HouseRuleNamedBlock {
     }
 }
 
+function Get-HouseRuleFunctionAttribute {
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
+    [OutputType([System.Management.Automation.Language.AttributeAst[]])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.FunctionDefinitionAst]
+        $FunctionAst,
+
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $AttributeName
+    )
+
+    process {
+        if ($Null -eq $FunctionAst.Body.ParamBlock) {
+            return
+        }
+
+        $FunctionAst.Body.ParamBlock.Attributes |
+            Where-Object -FilterScript {
+                $PSItem -is [System.Management.Automation.Language.AttributeAst] -and
+                    (
+                        (
+                            ([System.String]$PSItem.TypeName.FullName) -replace
+                            '^(System\.Management\.Automation\.)?',
+                            ''
+                        ) -replace 'Attribute$',
+                        ''
+                    ) -ieq $AttributeName
+            }
+    }
+}
+
 function Get-HouseRuleProcessResetVariableName {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -685,12 +852,115 @@ function Get-HouseRuleProcessResetVariableName {
     }
 }
 
+function Measure-ExplicitCmdletBinding {
+    <#
+    .SYNOPSIS
+        Flags functions missing the house explicit CmdletBinding surface.
+    #>
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    param (
+        [Parameter(Mandatory = $True)]
+        [System.Management.Automation.Language.ScriptBlockAst]
+        $ScriptBlockAst
+    )
+
+    process {
+        # Initalize Variable(s)
+        [System.Management.Automation.Language.AttributeAst]$Private:CmdletBindingAttribute = $Null
+        [System.Management.Automation.Language.AttributeAst[]]$Private:CmdletBindingAttributes = @()
+        [System.Boolean]$Private:HasOutputType = $False
+        [System.String[]]$Private:RequiredOptionNames = @(
+            'SupportsShouldProcess',
+            'ConfirmImpact',
+            'PositionalBinding',
+            'DefaultParameterSetName',
+            'HelpUri',
+            'SupportsPaging'
+        )
+        [System.Collections.Generic.HashSet[System.String]]$Private:SeenOptionNames = $Null
+
+        foreach ($FunctionAst in Get-HouseRuleFunctionAst -ScriptBlockAst $ScriptBlockAst) {
+            $CmdletBindingAttributes = [System.Management.Automation.Language.AttributeAst[]]@(
+                Get-HouseRuleFunctionAttribute -FunctionAst $FunctionAst -AttributeName 'CmdletBinding'
+            )
+            $CmdletBindingAttribute = $Null
+            if ($CmdletBindingAttributes.Count -gt 0) {
+                $CmdletBindingAttribute = $CmdletBindingAttributes[0]
+            }
+
+            if ($Null -eq $CmdletBindingAttribute) {
+                ConvertTo-HouseRuleDiagnosticRecord `
+                    -RuleName 'Measure-ExplicitCmdletBinding' `
+                    -Extent $FunctionAst.Extent `
+                    -Message (
+                        "Function '{0}' is missing the explicit CmdletBinding attribute required by SG-4." -f
+                        $FunctionAst.Name
+                    )
+            } else {
+                $SeenOptionNames = [System.Collections.Generic.HashSet[System.String]]::new(
+                    [System.StringComparer]::OrdinalIgnoreCase
+                )
+                foreach ($NamedArgument in $CmdletBindingAttribute.NamedArguments) {
+                    [void]$SeenOptionNames.Add($NamedArgument.ArgumentName)
+                }
+
+                foreach ($RequiredOptionName in $RequiredOptionNames) {
+                    if ($SeenOptionNames.Contains($RequiredOptionName) -eq $True) {
+                        continue
+                    }
+
+                    ConvertTo-HouseRuleDiagnosticRecord `
+                        -RuleName 'Measure-ExplicitCmdletBinding' `
+                        -Extent $CmdletBindingAttribute.Extent `
+                        -Message (
+                            "Function '{0}' CmdletBinding is missing explicit option '{1}' required by SG-4." -f
+                            $FunctionAst.Name,
+                            $RequiredOptionName
+                        )
+                }
+            }
+
+            $HasOutputType = [System.Boolean](
+                @(
+                    Get-HouseRuleFunctionAttribute -FunctionAst $FunctionAst -AttributeName 'OutputType'
+                ).Count -gt 0
+            )
+            if ($HasOutputType -eq $True) {
+                continue
+            }
+
+            ConvertTo-HouseRuleDiagnosticRecord `
+                -RuleName 'Measure-ExplicitCmdletBinding' `
+                -Extent $FunctionAst.Extent `
+                -Message (
+                    "Function '{0}' is missing the OutputType attribute required by SG-4." -f
+                    $FunctionAst.Name
+                )
+        }
+    }
+}
+
 function Measure-PrivateVariableDeclaration {
     <#
     .SYNOPSIS
         Flags function-local assignments that are not Private-scoped.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -748,7 +1018,14 @@ function Measure-PipelineVariableLifecycle {
     .SYNOPSIS
         Flags pipeline function locals not declared in Begin or cleared at Process start.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -847,7 +1124,14 @@ function Measure-FlatNonPipelineFunction {
     .SYNOPSIS
         Flags named blocks on functions that do not accept pipeline input.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -881,7 +1165,14 @@ function Measure-NoRemoveVariableCleanup {
     .SYNOPSIS
         Flags Remove-Variable cleanup in function End blocks.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param (
         [Parameter(Mandatory = $True)]
@@ -927,7 +1218,14 @@ function Measure-NoNewVariableDeclaration {
     .SYNOPSIS
         Flags New-Variable local declarations inside functions.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param (
         [Parameter(Mandatory = $True)]

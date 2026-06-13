@@ -87,11 +87,22 @@ and reviewable.
 
 Chosen option: **Option 1.**
 
-- **The standard.** Every advanced function sets **all** `[CmdletBinding()]` options
-  explicitly with real values: `ConfirmImpact` always stated (including `None` for
-  read-only functions), `DefaultParameterSetName` normalized to `'default'`,
-  `SupportsShouldProcess`/`SupportsPaging`/`PositionalBinding`/`RemotingCapability`/
-  `SupportsTransactions`/`HelpUri` all present and owned. `[OutputType]` is declared.
+- **The standard.** Every advanced function sets the **six documented advanced-function
+  `[CmdletBinding()]` options** explicitly with real values, plus `[OutputType]`:
+  `SupportsShouldProcess`, `ConfirmImpact`, `PositionalBinding`,
+  `DefaultParameterSetName`, `HelpUri`, `SupportsPaging` — values per SG-4. (Amended
+  2026-06-12: the original "all eight" was wrong. `SupportsTransactions` is "not
+  supported in advanced functions" per Microsoft, and `RemotingCapability` is absent
+  from the advanced-function `CmdletBinding` syntax block — both are compiled-cmdlet-only
+  attributes. The house does **not** set them on functions: doing so is undocumented dead
+  metadata, the same placeholder bloat we removed from `New-ErrorRecord`.) Settled values:
+  `PositionalBinding = $false` (named-only — most auditable); `SupportsShouldProcess`
+  maximized to every state-changing function (with a real `ShouldProcess` call) and
+  `$false` on pure readers; `ConfirmImpact` risk-based on state-changers / `None` on
+  readers; `SupportsPaging = $false` unless the function genuinely pages;
+  `DefaultParameterSetName = 'default'` (verified benign on single-set functions);
+  `HelpUri` a per-function deep-link to that function's reference anchor; `[OutputType]`
+  the real output type.
 - **The advisor.** A read-only **PowerShell function design advisor** skill (in
   `…/GitHub/skills/`) produces, per unit, an adversarial advisory report answering in
   order: (1) **construct** — advanced function / class / enum / static method

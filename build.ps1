@@ -30,7 +30,14 @@ $OutputFile = Join-Path -Path $BuildRoot -ChildPath ('{0}.ps1' -f $ProjectName)
 $FunctionsFile = Join-Path -Path $BuildRoot -ChildPath ('{0}.Functions.ps1' -f $ProjectName)
 
 function Get-LatestAvailableModule {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Management.Automation.PSModuleInfo])]
     param (
         [Parameter(Mandatory = $True)]
@@ -45,7 +52,14 @@ function Get-LatestAvailableModule {
 }
 
 function Test-Syntax {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Void])]
     param (
         [Parameter(Mandatory = $True)]
@@ -94,7 +108,14 @@ function Test-Syntax {
 }
 
 function Get-EntryPointContent {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([PSCustomObject])]
     param ()
 
@@ -136,7 +157,14 @@ function Get-EntryPointContent {
 }
 
 function Add-FunctionFileContent {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Void])]
     param (
         [Parameter(Mandatory = $True)]
@@ -181,7 +209,14 @@ function Add-FunctionFileContent {
 }
 
 function Invoke-SmokeTest {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Void])]
     param ()
 
@@ -206,7 +241,14 @@ function Invoke-SmokeTest {
 }
 
 function Invoke-Build {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Void])]
     param ()
 
@@ -274,7 +316,14 @@ function Invoke-Build {
 }
 
 function Invoke-Analyze {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Void])]
     param ()
 
@@ -318,7 +367,14 @@ function Invoke-Analyze {
 }
 
 function Invoke-Test {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Void])]
     param ()
 
@@ -352,7 +408,14 @@ function Invoke-Test {
 }
 
 function Invoke-Clean {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Void])]
     param ()
 

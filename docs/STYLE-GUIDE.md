@@ -242,3 +242,50 @@ PSUseConsistentIndentation = @{ Enable = $true; Kind = 'space'; IndentationSize 
 edge bugs around branch placement (half-cuddled `else`, no inter-statement newline
 insertion — issues #508, #794), so any auto-reformat must be re-linted and the
 `else`/`catch`/`finally` sites eyeballed.
+
+---
+
+## SG-4 — Maximal-explicit `[CmdletBinding()]` surface (ADR-template/0002)
+
+**Rule.** Every advanced function declares the **six documented advanced-function
+`CmdletBinding` options explicitly**, plus `[OutputType]` — nothing left implicit, so a
+reviewer reads every binding decision on the page. Auditability over brevity (a
+deliberate, recorded divergence from the minimalist "omit defaults" idiom).
+
+The six (and **only** these — `SupportsTransactions` and `RemotingCapability` are
+compiled-cmdlet-only attributes, **not** documented for advanced functions, and are
+**not** set; doing so is undocumented dead metadata):
+
+| Option | House value | Nature |
+| --- | --- | --- |
+| `PositionalBinding` | **`$false`** — named-only; callers must name every argument | mechanical constant; *breaking* for positional call sites (convert them) |
+| `SupportsShouldProcess` | **`$true`** on every function with a real side effect; it must EITHER call `$PSCmdlet.ShouldProcess(...)` directly OR **delegate** to a single downstream `ShouldProcess` call site (an orchestrator exposes `-WhatIf`/`-Confirm` and lets the preference flow down to one writer — never calling `ShouldProcess` itself, to avoid double prompts). **`$false`** on pure readers | **[judgment]** — maximize to the greatest *logical* extent; also part-governed by the built-in `PSUseShouldProcessForStateChangingFunctions` verb rule |
+| `ConfirmImpact` | risk-based `Low`/`Medium`/`High` on state-changers; **`None`** on readers (honest — it is inert without `SupportsShouldProcess`) | **[judgment]** — follows `SupportsShouldProcess` |
+| `SupportsPaging` | **`$false`** unless the function genuinely emits a large pageable set and honors `$PSCmdlet.PagingParameters` | **[judgment]**, almost always `$false` |
+| `DefaultParameterSetName` | **`'default'`** (verified benign on single-set functions — no error/warning) | mechanical constant |
+| `HelpUri` | a **per-function deep-link** to that function's reference anchor (`<repo>/docs/reference/<page>#<function-anchor>`) | mechanical; requires the anchor to exist (authored per function) |
+| `[OutputType]` | the function's real output type | mechanical |
+
+**Why.** Trust-sensitive automation should make every binding decision visible and
+owned, not inferred from a default. `PositionalBinding = $false` forces named arguments
+(no positional guessing at call sites). Maximal `SupportsShouldProcess` gives every
+state-changing operation `-WhatIf`/`-Confirm` for free — but only where it's *logical*:
+a function that changes nothing must not declare it (the auto-injected `-WhatIf`/`-Confirm`
+would silently do nothing — a UX hazard).
+
+**Cautions (from the research):**
+- `PositionalBinding = $false` is **behavioral**, not cosmetic — it rejects positional
+  calls. Fix any positional call sites in the retrofit.
+- `SupportsShouldProcess = $true` **requires** an actual `$PSCmdlet.ShouldProcess(...)`
+  in the body; setting it without calling it adds dead `-WhatIf`/`-Confirm`.
+- `ConfirmImpact`/`SupportsShouldProcess` **values are judgment** (the
+  `powershell-function-design-advisor` skill recommends them; review ratifies). The rule
+  below enforces only that the options are **present**.
+
+**Enforced by** a custom rule **`Measure-ExplicitCmdletBinding`** (Warning): walks each
+`FunctionDefinitionAst`, finds the `[CmdletBinding]` `AttributeAst`, and flags it unless
+all six options are present in `AttributeAst.NamedArguments` (and `[OutputType]` is
+present). It enforces **presence**, not values — values are the advisor's/review's job,
+except `SupportsShouldProcess` which the built-in `PSUseShouldProcessForStateChangingFunctions`
+also checks against the verb. (No built-in rule requires option presence;
+`PSUseOutputTypeCorrectly` is Information-only and merely *validates* a declared type.)
