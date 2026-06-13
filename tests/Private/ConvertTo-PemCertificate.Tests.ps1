@@ -78,12 +78,10 @@ Describe 'ConvertTo-PemCertificate' {
             try {
                 [System.Convert]::ToBase64String($RoundTrip.RawData) |
                     Should -Be ([System.Convert]::ToBase64String($Certificate.RawData))
-            }
-            finally {
+            } finally {
                 $RoundTrip.Dispose()
             }
-        }
-        finally {
+        } finally {
             $Certificate.Dispose()
         }
     }
@@ -101,8 +99,7 @@ Describe 'ConvertTo-PemCertificate' {
             $Result | Should -Match '\\xC3\\xA9'
             ([System.String[]]($Result -split "`n"))[0] | Should -Be '# Subject: CN=Jos\xC3\xA9'
             ([System.String[]]($Result -split "`n"))[1] | Should -Be '# Issuer: CN=Jos\xC3\xA9'
-        }
-        finally {
+        } finally {
             $Certificate.Dispose()
         }
     }

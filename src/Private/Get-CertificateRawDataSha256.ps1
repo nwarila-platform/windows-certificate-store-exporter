@@ -48,8 +48,7 @@ function Get-CertificateRawDataSha256 {
         try {
             $HashBytes = $Sha256.ComputeHash($Certificate.RawData)
             [System.BitConverter]::ToString($HashBytes).Replace('-', '')
-        }
-        finally {
+        } finally {
             if ($Null -ne $Sha256) {
                 $Sha256.Dispose()
             }

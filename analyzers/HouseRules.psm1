@@ -596,8 +596,7 @@ function Test-HouseRulePipelineParameter {
                         if ($NamedArgument.Argument.SafeGetValue() -eq $True) {
                             return [System.Boolean]$True
                         }
-                    }
-                    catch {
+                    } catch {
                         continue
                     }
                 }

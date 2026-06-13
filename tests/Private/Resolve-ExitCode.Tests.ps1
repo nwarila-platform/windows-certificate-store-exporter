@@ -40,8 +40,7 @@ Describe 'Resolve-ExitCode' {
                 -Message 'Store read failed.' `
                 -ErrorId ([ExporterExitCode]::StoreReadFailure) `
                 -IsFatal
-        }
-        catch {
+        } catch {
             $ThrownRecord = $PSItem
         }
 

@@ -144,15 +144,13 @@ function Write-CertificateBundle {
                     )
                 )
             }
-        }
-        else {
+        } else {
             $ManifestUnchanged = $True
         }
 
         if ($BundleUnchanged -eq $True -and $ManifestUnchanged -eq $True) {
             $Status = 'Unchanged'
-        }
-        else {
+        } else {
             $OperationTarget = $FullPath
             if ($WriteManifest.IsPresent -eq $True) {
                 $OperationTarget = '{0} and {1}' -f $FullPath, $ManifestFullPath
@@ -165,8 +163,7 @@ function Write-CertificateBundle {
                 ) -eq $False
             ) {
                 $Status = 'WhatIf'
-            }
-            else {
+            } else {
                 try {
                     if ($BundleUnchanged -eq $False) {
                         $BundleTempPath = Join-Path `
@@ -180,8 +177,7 @@ function Write-CertificateBundle {
                                 -ChildPath ('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
                             [System.IO.File]::Replace($BundleTempPath, $FullPath, $BundleBackupPath)
                             [System.IO.File]::Delete($BundleBackupPath)
-                        }
-                        else {
+                        } else {
                             [System.IO.File]::Move($BundleTempPath, $FullPath)
                         }
                     }
@@ -198,15 +194,13 @@ function Write-CertificateBundle {
                                 -ChildPath ('.{0}.sha256.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
                             [System.IO.File]::Replace($ManifestTempPath, $ManifestFullPath, $ManifestBackupPath)
                             [System.IO.File]::Delete($ManifestBackupPath)
-                        }
-                        else {
+                        } else {
                             [System.IO.File]::Move($ManifestTempPath, $ManifestFullPath)
                         }
                     }
 
                     $Status = 'Written'
-                }
-                catch {
+                } catch {
                     if (
                         [System.String]::IsNullOrEmpty($BundleTempPath) -eq $False -and
                         [System.IO.File]::Exists($BundleTempPath) -eq $True
@@ -244,8 +238,7 @@ function Write-CertificateBundle {
                 }
             }
         }
-    }
-    finally {
+    } finally {
         if ($Null -ne $Sha256) {
             $Sha256.Dispose()
         }

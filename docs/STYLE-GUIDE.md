@@ -194,3 +194,51 @@ at a glance — `begin/process/end` present *means* "this streams", absent *mean
 > owned value (`ConfirmImpact` always stated, `DefaultParameterSetName = 'default'`,
 > …) plus `[OutputType]`. Its per-option criteria land as their own SG rules, one at
 > a time; until each lands, the examples above intentionally show the bare form.
+
+---
+
+## SG-3 — One True Brace Style (OTBS) **[mechanical — analyzer-enforced]**
+
+**Rule.** All braceable statements use **One True Brace Style**:
+
+- the **opening brace** sits at the **end of the construct's line** (`function X {`,
+  `if (…) {`, `foreach (…) {`, `try {`, `process {`);
+- the **closing brace** sits at the **start of its own line**;
+- `else` / `elseif` / `catch` / `finally` are **cuddled** to the preceding closing
+  brace — `} else {`, `} elseif (…) {`, `} catch {`, `} finally {` — never on a line
+  of their own.
+
+One-line blocks are **allowed** (e.g. `$x = if ($c) { 'a' } else { 'b' }`,
+`foreach ($i in $set) { $list.Add($i) }`); they are exempt from brace placement.
+Braces themselves are not optional — PowerShell's grammar already requires them for
+`if`/`while`/`foreach`/etc. (`if ($x) Do-Thing` is a syntax error), so there is no
+"always-braces" choice to make.
+
+**Why.** OTBS is the PowerShell community-idiomatic default (PoshCode
+PowerShellPracticeAndStyle recommends it by name): script-block callers
+(`ForEach-Object { … }`, `Where-Object { … }`, DSC) force same-line opening braces, so
+OTBS is the only brace style consistent across every construct the language has.
+Cuddled branch keywords keep an `if/else` or `try/catch` reading as one unit instead of
+visually splitting it. (This is an **alignment** with community guidance, not a house
+divergence.)
+
+**The one easy-to-get-wrong setting.** Cuddling is enforced by `PSPlaceCloseBrace`
+**only when `NewLineAfter = $false`**. At the rule's *default* `$true`, the analyzer
+forces a newline after every closing brace and actively **breaks** cuddling (producing
+the Stroustrup form). There is no dedicated "cuddled-else" property; `NewLineAfter =
+$false` is the lever (its `GetViolationsForUncuddledBranches` path flags uncuddled
+`else`/`elseif`/`catch`/`finally`). Ref: PSScriptAnalyzer issue #754 (Closed/Fixed).
+
+**Enforced by** the built-in formatting rules (Warning), configured in
+`PSScriptAnalyzerSettings.psd1` — no custom rule needed:
+
+```powershell
+PSPlaceOpenBrace  = @{ Enable = $true; OnSameLine = $true; NewLineAfter = $true; IgnoreOneLineBlock = $true }
+PSPlaceCloseBrace = @{ Enable = $true; NewLineAfter = $false; IgnoreOneLineBlock = $true; NoEmptyLineBefore = $false }
+PSUseConsistentIndentation = @{ Enable = $true; Kind = 'space'; IndentationSize = 4 }
+```
+
+`Invoke-Formatter` can drive a bulk reformat from the same settings, but it has known
+edge bugs around branch placement (half-cuddled `else`, no inter-statement newline
+insertion — issues #508, #794), so any auto-reformat must be re-linted and the
+`else`/`catch`/`finally` sites eyeballed.

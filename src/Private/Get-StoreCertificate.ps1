@@ -84,8 +84,7 @@ function Get-StoreCertificate {
                 $PSItem
             }
         )
-    }
-    catch {
+    } catch {
         $FailureMessage = 'Failed to read Windows certificate store {0}\{1}: {2}' -f $StoreLocation, $StoreName, $PSItem.Exception.Message
 
         New-ErrorRecord `
@@ -94,8 +93,7 @@ function Get-StoreCertificate {
             -Category ([System.Management.Automation.ErrorCategory]::ReadError) `
             -TargetObject ('{0}\{1}' -f $StoreLocation, $StoreName) `
             -IsFatal
-    }
-    finally {
+    } finally {
         if ($Null -ne $Store) {
             $Store.Dispose()
         }
