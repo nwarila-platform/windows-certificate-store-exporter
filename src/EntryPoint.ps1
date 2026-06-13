@@ -1,14 +1,33 @@
 #Requires -Version 5.1
 
 [CmdletBinding(
-    SupportsShouldProcess = $True,
     ConfirmImpact = 'Medium',
-    PositionalBinding = $False,
     DefaultParameterSetName = 'default',
     HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/cli-contract.md',
-    SupportsPaging = $False
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $True
 )]
 param (
+    [Parameter()]
+    [ValidatePattern('^\d{3}$')]
+    [System.String]
+    $DebugLevel = '000',
+
+    [Parameter()]
+    [System.Management.Automation.SwitchParameter]
+    $IncludeExpired,
+
+    [Parameter()]
+    [ValidatePattern('^\d{7}$')]
+    [System.String]
+    $LogLevel = '1111111',
+
+    [Parameter()]
+    [ValidateRange(0, [System.Int32]::MaxValue)]
+    [System.Int32]
+    $MinimumCertificateCount = 1,
+
     [Parameter(Mandatory = $True)]
     [ValidateNotNullOrEmpty()]
     [System.String]
@@ -26,30 +45,11 @@ param (
 
     [Parameter()]
     [System.Management.Automation.SwitchParameter]
-    $IncludeExpired,
-
-    [Parameter()]
-    [ValidateRange(0, [System.Int32]::MaxValue)]
-    [System.Int32]
-    $MinimumCertificateCount = 1,
+    $Trap,
 
     [Parameter()]
     [System.Management.Automation.SwitchParameter]
-    $WriteManifest,
-
-    [Parameter()]
-    [ValidatePattern('^\d{7}$')]
-    [System.String]
-    $LogLevel = '1111111',
-
-    [Parameter()]
-    [ValidatePattern('^\d{3}$')]
-    [System.String]
-    $DebugLevel = '000',
-
-    [Parameter()]
-    [System.Management.Automation.SwitchParameter]
-    $Trap
+    $WriteManifest
 )
 
 # This file is not a function. build.ps1 folds this body after the merged

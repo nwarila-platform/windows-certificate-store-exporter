@@ -36,15 +36,24 @@ function Export-CertificateStoreBundle {
         CertificateStoreExporter.Result
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $True,
         ConfirmImpact = 'Medium',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#export-certificatestorebundle',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $True
     )]
     [OutputType([PSCustomObject])]
     param (
+        [Parameter()]
+        [System.Management.Automation.SwitchParameter]
+        $IncludeExpired,
+
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $MinimumCertificateCount = 1,
+
         [Parameter(Mandatory = $True)]
         [ValidateNotNullOrEmpty()]
         [System.String]
@@ -59,15 +68,6 @@ function Export-CertificateStoreBundle {
         [ValidateSet('Root', 'CA')]
         [System.String[]]
         $StoreName = @('Root', 'CA'),
-
-        [Parameter()]
-        [System.Management.Automation.SwitchParameter]
-        $IncludeExpired,
-
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $MinimumCertificateCount = 1,
 
         [Parameter()]
         [System.Management.Automation.SwitchParameter]

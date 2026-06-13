@@ -32,36 +32,36 @@ function New-ErrorRecord {
         [System.Management.Automation.ErrorRecord]
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#new-errorrecord',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Management.Automation.ErrorRecord])]
     param (
-        [Parameter(Mandatory = $True)]
-        [ValidateNotNullOrEmpty()]
-        [System.String]
-        $Message,
+        [Parameter()]
+        [System.Management.Automation.ErrorCategory]
+        $Category = [System.Management.Automation.ErrorCategory]::InvalidOperation,
 
         [Parameter(Mandatory = $True)]
         [ExporterExitCode]
         $ErrorId,
 
         [Parameter()]
-        [System.Management.Automation.ErrorCategory]
-        $Category = [System.Management.Automation.ErrorCategory]::InvalidOperation,
+        [System.Management.Automation.SwitchParameter]
+        $IsFatal,
+
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $Message,
 
         [Parameter()]
         [AllowNull()]
         [System.Object]
-        $TargetObject = $Null,
-
-        [Parameter()]
-        [System.Management.Automation.SwitchParameter]
-        $IsFatal
+        $TargetObject = $Null
     )
 
     # Initalize Variable(s)

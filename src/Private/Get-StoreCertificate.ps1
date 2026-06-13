@@ -25,25 +25,15 @@ function Get-StoreCertificate {
         [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $False,
         ConfirmImpact = 'None',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#get-storecertificate',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
     )]
     [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
     param (
-        [Parameter()]
-        [ValidateSet('LocalMachine', 'CurrentUser')]
-        [System.String]
-        $StoreLocation = 'LocalMachine',
-
-        [Parameter()]
-        [ValidateSet('Root', 'CA', 'Disallowed')]
-        [System.String]
-        $StoreName = 'Root',
-
         [Parameter(DontShow = $True)]
         [ValidateNotNull()]
         [System.Management.Automation.ScriptBlock]
@@ -59,7 +49,17 @@ function Get-StoreCertificate {
             )
 
             [System.Security.Cryptography.X509Certificates.X509Store]::new($Name, $Location)
-        }
+        },
+
+        [Parameter()]
+        [ValidateSet('LocalMachine', 'CurrentUser')]
+        [System.String]
+        $StoreLocation = 'LocalMachine',
+
+        [Parameter()]
+        [ValidateSet('Root', 'CA', 'Disallowed')]
+        [System.String]
+        $StoreName = 'Root'
     )
 
     # Initalize Variable(s)

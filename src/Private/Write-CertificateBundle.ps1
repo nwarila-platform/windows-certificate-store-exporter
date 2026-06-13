@@ -30,15 +30,20 @@ function Write-CertificateBundle {
         [System.Management.Automation.PSCustomObject]
     #>
     [CmdletBinding(
-        SupportsShouldProcess = $True,
         ConfirmImpact = 'Medium',
-        PositionalBinding = $False,
         DefaultParameterSetName = 'default',
         HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#write-certificatebundle',
-        SupportsPaging = $False
+        PositionalBinding = $False,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $True
     )]
     [OutputType([PSCustomObject])]
     param (
+        [Parameter()]
+        [ValidateRange(0, [System.Int32]::MaxValue)]
+        [System.Int32]
+        $MinimumCertificateCount = 1,
+
         [Parameter(Mandatory = $True)]
         [ValidateNotNullOrEmpty()]
         [System.String]
@@ -48,11 +53,6 @@ function Write-CertificateBundle {
         [AllowEmptyCollection()]
         [System.String[]]
         $PemBlock = @(),
-
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $MinimumCertificateCount = 1,
 
         [Parameter()]
         [System.Management.Automation.SwitchParameter]
