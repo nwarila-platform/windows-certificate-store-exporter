@@ -7,85 +7,85 @@
     The settings file is intentionally self-clean under these same rules.
 #>
 @{
-    Severity            = @('Error', 'Warning')
+  Severity            = @('Error', 'Warning')
 
-    CustomRulePath      = @(
-        './analyzers/HouseRules.psm1'
-    )
+  CustomRulePath      = @(
+    './analyzers/HouseRules.psm1'
+  )
 
-    IncludeDefaultRules = $true
+  IncludeDefaultRules = $true
 
-    IncludeRules        = @('*')
+  IncludeRules        = @('*')
 
-    ExcludeRules        = @(
-        'PSUseShouldProcessForStateChangingFunctions'
-    )
+  ExcludeRules        = @(
+    'PSUseShouldProcessForStateChangingFunctions'
+  )
 
-    Rules               = @{
-        PSPlaceOpenBrace           = @{
-            Enable             = $true
-            OnSameLine         = $true
-            NewLineAfter       = $true
-            IgnoreOneLineBlock = $true
-        }
-
-        PSPlaceCloseBrace          = @{
-            Enable             = $true
-            NewLineAfter       = $false
-            IgnoreOneLineBlock = $true
-            NoEmptyLineBefore  = $false
-        }
-
-        PSUseConsistentIndentation = @{
-            Enable          = $true
-            Kind            = 'space'
-            IndentationSize = 4
-        }
-
-        PSUseConsistentWhitespace  = @{
-            Enable          = $true
-            CheckInnerBrace = $true
-            CheckOpenBrace  = $true
-            CheckOpenParen  = $true
-            CheckOperator   = $false
-            CheckSeparator  = $true
-        }
-
-        PSAlignAssignmentStatement = @{
-            Enable         = $true
-            CheckHashtable = $true
-        }
-
-        PSUseCorrectCasing         = @{
-            Enable = $true
-        }
-
-        'Measure-PrivateVariableDeclaration' = @{
-            Enable = $true
-        }
-
-        'Measure-PipelineVariableLifecycle'  = @{
-            Enable = $true
-        }
-
-        'Measure-FlatNonPipelineFunction'    = @{
-            Enable = $true
-        }
-
-        'Measure-ExplicitCmdletBinding'      = @{
-            Enable = $true
-        }
-
-        'Measure-CanonicalAttributeOrder'    = @{
-            Enable = $true
-        }
-
-        'Measure-NoRemoveVariableCleanup'    = @{
-            Enable = $true
-        }
-
-        'Measure-NoNewVariableDeclaration'   = @{
-            Enable = $true
-        }
+  Rules               = @{
+    PSPlaceOpenBrace                     = @{
+      Enable             = $true
+      OnSameLine         = $true
+      NewLineAfter       = $true
+      IgnoreOneLineBlock = $true
     }
+
+    PSPlaceCloseBrace                    = @{
+      Enable             = $true
+      NewLineAfter       = $false
+      IgnoreOneLineBlock = $true
+      NoEmptyLineBefore  = $false
+    }
+
+    PSUseConsistentIndentation           = @{
+      Enable          = $true
+      Kind            = 'space'
+      IndentationSize = 2
+    }
+
+    PSUseConsistentWhitespace            = @{
+      Enable          = $true
+      CheckInnerBrace = $true
+      CheckOpenBrace  = $true
+      CheckOpenParen  = $true
+      CheckOperator   = $false
+      CheckSeparator  = $true
+    }
+
+    PSAlignAssignmentStatement           = @{
+      Enable         = $true
+      CheckHashtable = $true
+    }
+
+    PSUseCorrectCasing                   = @{
+      Enable = $true
+    }
+
+    'Measure-PrivateVariableDeclaration' = @{
+      Enable = $true
+    }
+
+    'Measure-PipelineVariableLifecycle'  = @{
+      Enable = $true
+    }
+
+    'Measure-FlatNonPipelineFunction'    = @{
+      Enable = $true
+    }
+
+    'Measure-ExplicitCmdletBinding'      = @{
+      Enable = $true
+    }
+
+    'Measure-CanonicalAttributeOrder'    = @{
+      Enable = $true
+    }
+
+    'Measure-NoRemoveVariableCleanup'    = @{
+      Enable = $true
+    }
+
+    'Measure-NoNewVariableDeclaration'   = @{
+      Enable = $true
+    }
+  }
 }

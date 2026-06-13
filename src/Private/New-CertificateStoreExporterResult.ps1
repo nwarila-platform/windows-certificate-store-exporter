@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 function New-CertificateStoreExporterResult {
-    <#
+  <#
     .SYNOPSIS
         Creates the exporter success result object.
 
@@ -55,112 +55,112 @@ function New-CertificateStoreExporterResult {
     .OUTPUTS
         [System.Management.Automation.PSCustomObject]
     #>
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#new-certificatestoreexporterresult',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
-    )]
-    [OutputType([PSCustomObject])]
-    param (
-        [Parameter(Mandatory = $True)]
-        [ValidatePattern('^[A-Fa-f0-9]{64}$')]
-        [System.String]
-        $BundleSha256,
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#new-certificatestoreexporterresult',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([PSCustomObject])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [ValidatePattern('^[A-Fa-f0-9]{64}$')]
+    [System.String]
+    $BundleSha256,
 
-        [Parameter()]
-        [AllowEmptyCollection()]
-        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
-        $Certificate = @(),
+    [Parameter()]
+    [AllowEmptyCollection()]
+    [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
+    $Certificate = @(),
 
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $Examined = 0,
+    [Parameter()]
+    [ValidateRange(0, [System.Int32]::MaxValue)]
+    [System.Int32]
+    $Examined = 0,
 
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $ExcludedDisallowed = 0,
+    [Parameter()]
+    [ValidateRange(0, [System.Int32]::MaxValue)]
+    [System.Int32]
+    $ExcludedDisallowed = 0,
 
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $ExcludedDuplicate = 0,
+    [Parameter()]
+    [ValidateRange(0, [System.Int32]::MaxValue)]
+    [System.Int32]
+    $ExcludedDuplicate = 0,
 
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $ExcludedExpired = 0,
+    [Parameter()]
+    [ValidateRange(0, [System.Int32]::MaxValue)]
+    [System.Int32]
+    $ExcludedExpired = 0,
 
-        [Parameter()]
-        [ValidateRange(0, [System.Int32]::MaxValue)]
-        [System.Int32]
-        $ExcludedNotYetValid = 0,
+    [Parameter()]
+    [ValidateRange(0, [System.Int32]::MaxValue)]
+    [System.Int32]
+    $ExcludedNotYetValid = 0,
 
-        [Parameter()]
-        [System.DateTime]
-        $GeneratedAtUtc = [System.DateTime]::UtcNow,
+    [Parameter()]
+    [System.DateTime]
+    $GeneratedAtUtc = [System.DateTime]::UtcNow,
 
-        [Parameter()]
-        [AllowNull()]
-        [System.String]
-        $ManifestPath = $Null,
+    [Parameter()]
+    [AllowNull()]
+    [System.String]
+    $ManifestPath = $Null,
 
-        [Parameter(Mandatory = $True)]
-        [ValidateNotNullOrEmpty()]
-        [System.String]
-        $Path,
+    [Parameter(Mandatory = $True)]
+    [ValidateNotNullOrEmpty()]
+    [System.String]
+    $Path,
 
-        [Parameter(Mandatory = $True)]
-        [ValidateSet('Written', 'Unchanged', 'WhatIf')]
-        [System.String]
-        $Status,
+    [Parameter(Mandatory = $True)]
+    [ValidateSet('Written', 'Unchanged', 'WhatIf')]
+    [System.String]
+    $Status,
 
-        [Parameter()]
-        [ValidateSet('LocalMachine', 'CurrentUser')]
-        [System.String]
-        $StoreLocation = 'LocalMachine',
+    [Parameter()]
+    [ValidateSet('LocalMachine', 'CurrentUser')]
+    [System.String]
+    $StoreLocation = 'LocalMachine',
 
-        [Parameter()]
-        [ValidateSet('Root', 'CA')]
-        [System.String[]]
-        $StoreName = @('Root', 'CA')
-    )
+    [Parameter()]
+    [ValidateSet('Root', 'CA')]
+    [System.String[]]
+    $StoreName = @('Root', 'CA')
+  )
 
-    # Initalize Variable(s)
-    [PSCustomObject]$Private:Excluded = $Null
-    [PSCustomObject]$Private:Result = $Null
-    [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null
+  # Initalize Variable(s)
+  [PSCustomObject]$Private:Excluded = $Null
+  [PSCustomObject]$Private:Result = $Null
+  [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null
 
-    $Thumbprints = [System.Collections.Generic.List[System.String]]::new()
-    $Certificate | ForEach-Object -Process {
-        $Thumbprints.Add((Get-CertificateRawDataSha256 -Certificate $PSItem))
-    }
+  $Thumbprints = [System.Collections.Generic.List[System.String]]::new()
+  $Certificate | ForEach-Object -Process {
+    $Thumbprints.Add((Get-CertificateRawDataSha256 -Certificate $PSItem))
+  }
 
-    $Excluded = [PSCustomObject]@{
-        Expired     = [System.Int32]$ExcludedExpired
-        NotYetValid = [System.Int32]$ExcludedNotYetValid
-        Disallowed  = [System.Int32]$ExcludedDisallowed
-        Duplicate   = [System.Int32]$ExcludedDuplicate
-    }
+  $Excluded = [PSCustomObject]@{
+    Expired     = [System.Int32]$ExcludedExpired
+    NotYetValid = [System.Int32]$ExcludedNotYetValid
+    Disallowed  = [System.Int32]$ExcludedDisallowed
+    Duplicate   = [System.Int32]$ExcludedDuplicate
+  }
 
-    $Result = [PSCustomObject]@{
-        Path             = [System.String]$Path
-        Status           = [System.String]$Status
-        CertificateCount = [System.Int32]$Thumbprints.Count
-        Thumbprints      = [System.String[]]$Thumbprints.ToArray()
-        BundleSha256     = ([System.String]$BundleSha256).ToUpperInvariant()
-        Examined         = [System.Int32]$Examined
-        Excluded         = $Excluded
-        StoreLocation    = [System.String]$StoreLocation
-        StoreNames       = [System.String[]]$StoreName
-        ManifestPath     = $ManifestPath
-        GeneratedAtUtc   = $GeneratedAtUtc.ToUniversalTime()
-    }
+  $Result = [PSCustomObject]@{
+    Path             = [System.String]$Path
+    Status           = [System.String]$Status
+    CertificateCount = [System.Int32]$Thumbprints.Count
+    Thumbprints      = [System.String[]]$Thumbprints.ToArray()
+    BundleSha256     = ([System.String]$BundleSha256).ToUpperInvariant()
+    Examined         = [System.Int32]$Examined
+    Excluded         = $Excluded
+    StoreLocation    = [System.String]$StoreLocation
+    StoreNames       = [System.String[]]$StoreName
+    ManifestPath     = $ManifestPath
+    GeneratedAtUtc   = $GeneratedAtUtc.ToUniversalTime()
+  }
 
-    $Result.PSTypeNames.Insert(0, 'CertificateStoreExporter.Result')
-    $Result
+  $Result.PSTypeNames.Insert(0, 'CertificateStoreExporter.Result')
+  $Result
 }

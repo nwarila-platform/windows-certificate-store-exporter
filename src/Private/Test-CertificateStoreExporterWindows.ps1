@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 
 function Test-CertificateStoreExporterWindows {
-    <#
+  <#
     .SYNOPSIS
         Tests whether the exporter is running on Windows.
 
@@ -15,18 +15,18 @@ function Test-CertificateStoreExporterWindows {
     .OUTPUTS
         [System.Boolean]
     #>
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#test-certificatestoreexporterwindows',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
-    )]
-    [OutputType([System.Boolean])]
-    param ()
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/reference/functions.md#test-certificatestoreexporterwindows',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Boolean])]
+  param ()
 
-    [System.Boolean](
-        [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
-    )
+  [System.Boolean](
+    [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+  )
 }

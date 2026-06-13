@@ -72,33 +72,33 @@ worse by this rule.
 
 ```powershell
 function ConvertTo-Thing {
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#convertto-thing',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
-    )]
-    [OutputType([System.String])]
-    param (
-        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
-        [System.String]
-        $InputValue
-    )
-    begin {
-        Write-Debug -Message '[ConvertTo-Thing] Entering Begin'
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#convertto-thing',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.String])]
+  param (
+    [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+    [System.String]
+    $InputValue
+  )
+  begin {
+    Write-Debug -Message '[ConvertTo-Thing] Entering Begin'
 
-        # Initialize Variable(s)
-        [System.String]$Private:Result = [System.String]::Empty
+    # Initialize Variable(s)
+    [System.String]$Private:Result = [System.String]::Empty
 
-        Write-Debug -Message '[ConvertTo-Thing] Exiting Begin'
-    }
-    process {
-        $Result = [System.String]::Empty
-        $Result = $InputValue.ToUpperInvariant()
-        $Result
-    }
+    Write-Debug -Message '[ConvertTo-Thing] Exiting Begin'
+  }
+  process {
+    $Result = [System.String]::Empty
+    $Result = $InputValue.ToUpperInvariant()
+    $Result
+  }
 }
 ```
 
@@ -109,19 +109,19 @@ an empty `end { }` is exactly the ceremony SG-2 prohibits.)
 
 ```powershell
 function Get-Thing {
-    [CmdletBinding(
-        ConfirmImpact = 'None',
-        DefaultParameterSetName = 'default',
-        HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#get-thing',
-        PositionalBinding = $False,
-        SupportsPaging = $False,
-        SupportsShouldProcess = $False
-    )]
-    [OutputType([System.Object[]])]
-    param ()
-    [System.Collections.Generic.List[object]]$Private:Items = [System.Collections.Generic.List[object]]::new()
-    foreach ($Name in 'a', 'b') { $Private:Items.Add($Name) }
-    , $Private:Items.ToArray()
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#get-thing',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Object[]])]
+  param ()
+  [System.Collections.Generic.List[object]]$Private:Items = [System.Collections.Generic.List[object]]::new()
+  foreach ($Name in 'a', 'b') { $Private:Items.Add($Name) }
+  , $Private:Items.ToArray()
 }
 ```
 
@@ -249,7 +249,7 @@ $false` is the lever (its `GetViolationsForUncuddledBranches` path flags uncuddl
 ```powershell
 PSPlaceOpenBrace  = @{ Enable = $true; OnSameLine = $true; NewLineAfter = $true; IgnoreOneLineBlock = $true }
 PSPlaceCloseBrace = @{ Enable = $true; NewLineAfter = $false; IgnoreOneLineBlock = $true; NoEmptyLineBefore = $false }
-PSUseConsistentIndentation = @{ Enable = $true; Kind = 'space'; IndentationSize = 4 }
+PSUseConsistentIndentation = @{ Enable = $true; Kind = 'space'; IndentationSize = 2 }
 ```
 
 `Invoke-Formatter` can drive a bulk reformat from the same settings, but it has known
