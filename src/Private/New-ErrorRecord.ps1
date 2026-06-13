@@ -64,40 +64,21 @@ function New-ErrorRecord {
         $IsFatal
     )
 
-    begin {
-        Write-Debug -Message '[New-ErrorRecord] Entering Begin'
+    # Initalize Variable(s)
+    [System.Management.Automation.ErrorRecord]$Private:ErrorRecord = $Null
+    [System.InvalidOperationException]$Private:Exception = $Null
 
-        # Initalize Variable(s)
-        [System.Management.Automation.ErrorRecord]$Private:ErrorRecord = $Null
-        [System.InvalidOperationException]$Private:Exception = $Null
+    $Exception = [System.InvalidOperationException]::new($Message)
+    $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
+        $Exception,
+        $ErrorId,
+        $Category,
+        $TargetObject
+    )
 
-        Write-Debug -Message '[New-ErrorRecord] Exiting Begin'
+    if ($IsFatal.IsPresent -eq $True) {
+        $PSCmdlet.ThrowTerminatingError($ErrorRecord)
     }
 
-    process {
-        $ErrorRecord = $Null
-        $Exception = $Null
-        Write-Debug -Message '[New-ErrorRecord] Entering Process'
-
-        $Exception = [System.InvalidOperationException]::new($Message)
-        $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
-            $Exception,
-            $ErrorId,
-            $Category,
-            $TargetObject
-        )
-
-        if ($IsFatal.IsPresent -eq $True) {
-            $PSCmdlet.ThrowTerminatingError($ErrorRecord)
-        }
-
-        $ErrorRecord
-
-        Write-Debug -Message '[New-ErrorRecord] Exiting Process'
-    }
-
-    end {
-        Write-Debug -Message '[New-ErrorRecord] Entering End'
-        Write-Debug -Message '[New-ErrorRecord] Exiting End'
-    }
+    $ErrorRecord
 }

@@ -19,23 +19,7 @@ function Test-CertificateStoreExporterWindows {
     [OutputType([System.Boolean])]
     param ()
 
-    begin {
-        Write-Debug -Message '[Test-CertificateStoreExporterWindows] Entering Begin'
-        Write-Debug -Message '[Test-CertificateStoreExporterWindows] Exiting Begin'
-    }
-
-    process {
-        Write-Debug -Message '[Test-CertificateStoreExporterWindows] Entering Process'
-
-        [System.Boolean](
-            [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
-        )
-
-        Write-Debug -Message '[Test-CertificateStoreExporterWindows] Exiting Process'
-    }
-
-    end {
-        Write-Debug -Message '[Test-CertificateStoreExporterWindows] Entering End'
-        Write-Debug -Message '[Test-CertificateStoreExporterWindows] Exiting End'
-    }
+    [System.Boolean](
+        [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    )
 }

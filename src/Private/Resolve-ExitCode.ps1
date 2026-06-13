@@ -28,41 +28,21 @@ function Resolve-ExitCode {
         $ErrorRecord
     )
 
-    begin {
-        Write-Debug -Message '[Resolve-ExitCode] Entering Begin'
+    # Initalize Variable(s)
+    [hashtable]$Private:ExitCodeByErrorId = $Null
+    [System.String]$Private:FullyQualifiedErrorId = [System.String]::Empty
+    [System.String]$Private:ShortErrorId = [System.String]::Empty
 
-        # Initalize Variable(s)
-        [hashtable]$Private:ExitCodeByErrorId = $Null
-        [System.String]$Private:FullyQualifiedErrorId = [System.String]::Empty
-        [System.String]$Private:ShortErrorId = [System.String]::Empty
+    $ExitCodeByErrorId = @{}
+    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdBelowMinimumCertificateCount] = 2
+    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdNotWindows] = 3
+    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdStoreReadFailure] = 4
+    $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdWriteFailure] = 5
 
-        Write-Debug -Message '[Resolve-ExitCode] Exiting Begin'
-    }
+    $FullyQualifiedErrorId = [System.String]$ErrorRecord.FullyQualifiedErrorId
+    $ShortErrorId = [System.String]($FullyQualifiedErrorId -split ',', 2)[0]
 
-    process {
-        $ExitCodeByErrorId = $Null
-        $FullyQualifiedErrorId = [System.String]::Empty
-        $ShortErrorId = [System.String]::Empty
-        Write-Debug -Message '[Resolve-ExitCode] Entering Process'
-
-        $ExitCodeByErrorId = @{}
-        $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdBelowMinimumCertificateCount] = 2
-        $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdNotWindows] = 3
-        $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdStoreReadFailure] = 4
-        $ExitCodeByErrorId[$Script:CertificateStoreExporterErrorIdWriteFailure] = 5
-
-        $FullyQualifiedErrorId = [System.String]$ErrorRecord.FullyQualifiedErrorId
-        $ShortErrorId = [System.String]($FullyQualifiedErrorId -split ',', 2)[0]
-
-        if ($ExitCodeByErrorId.ContainsKey($ShortErrorId)) {
-            [System.Int32]$ExitCodeByErrorId[$ShortErrorId]
-        }
-
-        Write-Debug -Message '[Resolve-ExitCode] Exiting Process'
-    }
-
-    end {
-        Write-Debug -Message '[Resolve-ExitCode] Entering End'
-        Write-Debug -Message '[Resolve-ExitCode] Exiting End'
+    if ($ExitCodeByErrorId.ContainsKey($ShortErrorId)) {
+        [System.Int32]$ExitCodeByErrorId[$ShortErrorId]
     }
 }
