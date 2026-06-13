@@ -5,30 +5,22 @@ Describe 'New-ErrorRecord' {
         . (Join-Path -Path $PSScriptRoot -ChildPath '..\..\build\Export-CertificateStoreBundle.Functions.ps1')
     }
 
-    It 'defines read-only exporter error id constants' {
-        $ExpectedValues = @{
-            CertificateStoreExporterErrorIdBelowMinimumCertificateCount = 'BelowMinimumCertificateCount'
-            CertificateStoreExporterErrorIdNotWindows                   = 'NotWindows'
-            CertificateStoreExporterErrorIdStoreReadFailure             = 'StoreReadFailure'
-            CertificateStoreExporterErrorIdWriteFailure                 = 'WriteFailure'
-        }
-
-        $ExpectedValues.GetEnumerator() | ForEach-Object -Process {
-            $Variable = Get-Variable -Name $PSItem.Key -Scope Script
-
-            $Variable.Value | Should -Be $PSItem.Value
-            ($Variable.Options -band [System.Management.Automation.ScopedItemOptions]::ReadOnly) |
-                Should -Be ([System.Management.Automation.ScopedItemOptions]::ReadOnly)
-        }
+    It 'defines exporter exit-code enum values' {
+        [System.Int32][ExporterExitCode]::Success | Should -Be 0
+        [System.Int32][ExporterExitCode]::Unhandled | Should -Be 1
+        [System.Int32][ExporterExitCode]::BelowMinimumCertificateCount | Should -Be 2
+        [System.Int32][ExporterExitCode]::NotWindows | Should -Be 3
+        [System.Int32][ExporterExitCode]::StoreReadFailure | Should -Be 4
+        [System.Int32][ExporterExitCode]::WriteFailure | Should -Be 5
     }
 
     It 'returns an error record with a known short id' {
         $Result = New-ErrorRecord `
             -Message 'Windows certificate stores require Windows.' `
-            -ErrorId $Script:CertificateStoreExporterErrorIdNotWindows
+            -ErrorId ([ExporterExitCode]::NotWindows)
 
         $Result | Should -BeOfType ([System.Management.Automation.ErrorRecord])
-        $Result.FullyQualifiedErrorId | Should -Be $Script:CertificateStoreExporterErrorIdNotWindows
+        $Result.FullyQualifiedErrorId | Should -Be 'NotWindows'
     }
 
     It 'rejects unknown error ids' {
@@ -43,7 +35,7 @@ Describe 'New-ErrorRecord' {
         {
             New-ErrorRecord `
                 -Message 'Fatal Windows failure.' `
-                -ErrorId $Script:CertificateStoreExporterErrorIdNotWindows `
+                -ErrorId ([ExporterExitCode]::NotWindows) `
                 -IsFatal
         } | Should -Throw -ErrorId 'NotWindows,New-ErrorRecord'
     }

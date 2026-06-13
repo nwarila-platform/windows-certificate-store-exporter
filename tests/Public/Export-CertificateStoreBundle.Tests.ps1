@@ -98,7 +98,7 @@ function Export-CertificateStoreBundle {
             }
 
             default {
-                New-ErrorRecord -Message 'Synthetic mapped entrypoint failure.' -ErrorId '$Scenario' -IsFatal
+                New-ErrorRecord -Message 'Synthetic mapped entrypoint failure.' -ErrorId ([ExporterExitCode]::$Scenario) -IsFatal
             }
         }
     }
@@ -305,7 +305,7 @@ function Export-CertificateStoreBundle {
         Mock -CommandName Get-StoreCertificate -MockWith {
             New-ErrorRecord `
                 -Message 'Synthetic store failure.' `
-                -ErrorId StoreReadFailure `
+                -ErrorId ([ExporterExitCode]::StoreReadFailure) `
                 -IsFatal
         }
         $Path = Join-Path -Path $TestRoot -ChildPath 'store-failure.pem'

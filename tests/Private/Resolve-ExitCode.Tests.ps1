@@ -8,19 +8,19 @@ Describe 'Resolve-ExitCode' {
     It 'maps known short error ids to process exit codes' {
         $Cases = @(
             @{
-                ErrorId  = $Script:CertificateStoreExporterErrorIdBelowMinimumCertificateCount
+                ErrorId  = [ExporterExitCode]::BelowMinimumCertificateCount
                 ExitCode = 2
             }
             @{
-                ErrorId  = $Script:CertificateStoreExporterErrorIdNotWindows
+                ErrorId  = [ExporterExitCode]::NotWindows
                 ExitCode = 3
             }
             @{
-                ErrorId  = $Script:CertificateStoreExporterErrorIdStoreReadFailure
+                ErrorId  = [ExporterExitCode]::StoreReadFailure
                 ExitCode = 4
             }
             @{
-                ErrorId  = $Script:CertificateStoreExporterErrorIdWriteFailure
+                ErrorId  = [ExporterExitCode]::WriteFailure
                 ExitCode = 5
             }
         )
@@ -38,7 +38,7 @@ Describe 'Resolve-ExitCode' {
         try {
             New-ErrorRecord `
                 -Message 'Store read failed.' `
-                -ErrorId $Script:CertificateStoreExporterErrorIdStoreReadFailure `
+                -ErrorId ([ExporterExitCode]::StoreReadFailure) `
                 -IsFatal
         }
         catch {
@@ -58,5 +58,23 @@ Describe 'Resolve-ExitCode' {
         )
 
         @(Resolve-ExitCode -ErrorRecord $UnknownRecord) | Should -HaveCount 0
+    }
+
+    It 'does not resolve process-state enum names from caught errors' {
+        $SuccessRecord = [System.Management.Automation.ErrorRecord]::new(
+            [System.InvalidOperationException]::new('Unexpected success failure.'),
+            'Success',
+            [System.Management.Automation.ErrorCategory]::InvalidOperation,
+            $Null
+        )
+        $UnhandledRecord = [System.Management.Automation.ErrorRecord]::new(
+            [System.InvalidOperationException]::new('Unexpected unhandled failure.'),
+            'Unhandled',
+            [System.Management.Automation.ErrorCategory]::InvalidOperation,
+            $Null
+        )
+
+        @(Resolve-ExitCode -ErrorRecord $SuccessRecord) | Should -HaveCount 0
+        @(Resolve-ExitCode -ErrorRecord $UnhandledRecord) | Should -HaveCount 0
     }
 }

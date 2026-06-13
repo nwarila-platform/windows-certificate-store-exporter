@@ -26,7 +26,7 @@ function New-ErrorRecord {
         Throws the record as a terminating error instead of returning it.
 
     .EXAMPLE
-        New-ErrorRecord -Message 'Example failure.' -ErrorId ExampleFailure
+        New-ErrorRecord -Message 'Example failure.' -ErrorId WriteFailure
 
     .OUTPUTS
         [System.Management.Automation.ErrorRecord]
@@ -40,14 +40,7 @@ function New-ErrorRecord {
         $Message,
 
         [Parameter(Mandatory = $True)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateSet(
-            'NotWindows',
-            'StoreReadFailure',
-            'BelowMinimumCertificateCount',
-            'WriteFailure'
-        )]
-        [System.String]
+        [ExporterExitCode]
         $ErrorId,
 
         [Parameter()]
@@ -71,7 +64,7 @@ function New-ErrorRecord {
     $Exception = [System.InvalidOperationException]::new($Message)
     $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
         $Exception,
-        $ErrorId,
+        $ErrorId.ToString(),
         $Category,
         $TargetObject
     )
