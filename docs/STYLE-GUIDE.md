@@ -72,7 +72,14 @@ worse by this rule.
 
 ```powershell
 function ConvertTo-Thing {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#convertto-thing',
+        SupportsPaging = $False
+    )]
     [OutputType([System.String])]
     param (
         [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
@@ -102,7 +109,14 @@ an empty `end { }` is exactly the ceremony SG-2 prohibits.)
 
 ```powershell
 function Get-Thing {
-    [CmdletBinding()]
+    [CmdletBinding(
+        SupportsShouldProcess = $False,
+        ConfirmImpact = 'None',
+        PositionalBinding = $False,
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/<org>/<repo>/blob/main/docs/reference/functions.md#get-thing',
+        SupportsPaging = $False
+    )]
     [OutputType([System.Object[]])]
     param ()
     [System.Collections.Generic.List[object]]$Private:Items = [System.Collections.Generic.List[object]]::new()
@@ -192,8 +206,8 @@ at a glance — `begin/process/end` present *means* "this streams", absent *mean
 > **Attribute surface (pointer).** ADR-template/0002 also fixes the
 > maximal-explicit `[CmdletBinding()]` standard — every option present with a real,
 > owned value (`ConfirmImpact` always stated, `DefaultParameterSetName = 'default'`,
-> …) plus `[OutputType]`. Its per-option criteria land as their own SG rules, one at
-> a time; until each lands, the examples above intentionally show the bare form.
+> …) plus `[OutputType]`. SG-4 has landed, so the examples above intentionally show
+> the full explicit surface instead of the historical bare form.
 
 ---
 
