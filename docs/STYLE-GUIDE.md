@@ -250,12 +250,27 @@ $false` is the lever (its `GetViolationsForUncuddledBranches` path flags uncuddl
 PSPlaceOpenBrace  = @{ Enable = $true; OnSameLine = $true; NewLineAfter = $true; IgnoreOneLineBlock = $true }
 PSPlaceCloseBrace = @{ Enable = $true; NewLineAfter = $false; IgnoreOneLineBlock = $true; NoEmptyLineBefore = $false }
 PSUseConsistentIndentation = @{ Enable = $true; Kind = 'space'; IndentationSize = 2 }
+PSUseConsistentWhitespace = @{
+  Enable                                   = $true
+  CheckInnerBrace                          = $true
+  CheckOpenBrace                           = $true
+  CheckOpenParen                           = $true
+  CheckOperator                            = $true
+  CheckParameter                           = $true
+  CheckPipe                                = $true
+  CheckSeparator                           = $true
+  IgnoreAssignmentOperatorInsideHashTable = $true
+}
+PSAlignAssignmentStatement = @{ Enable = $true; CheckEnums = $false; CheckHashtable = $true }
 ```
 
 `Invoke-Formatter` can drive a bulk reformat from the same settings, but it has known
 edge bugs around branch placement (half-cuddled `else`, no inter-statement newline
 insertion — issues #508, #794), so any auto-reformat must be re-linted and the
-`else`/`catch`/`finally` sites eyeballed.
+`else`/`catch`/`finally` sites eyeballed. Operator, pipe, and parameter spacing are
+also formatter-enforced; the hashtable assignment carve-out is deliberate so aligned
+hashtables continue to satisfy `PSAlignAssignmentStatement`. Enum member alignment is
+disabled because `CheckOperator` owns assignment-operator spacing outside hashtables.
 
 ---
 
