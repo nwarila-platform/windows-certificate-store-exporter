@@ -116,14 +116,14 @@ Describe 'Select-ExportableCertificate' {
     $Third = New-TestCertificate -Scenario Valid -Subject 'CN=Selection Sort Third'
 
     try {
-      $Input = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
+      $InputCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
         $Third,
         $First,
         $Second
       )
-      $ExpectedHashes = Get-TestCertificateSha256 -Certificate $Input | Sort-Object
+      $ExpectedHashes = Get-TestCertificateSha256 -Certificate $InputCertificates | Sort-Object
 
-      $Result = Select-ExportableCertificate -Certificate $Input
+      $Result = Select-ExportableCertificate -Certificate $InputCertificates
 
       Get-TestCertificateSha256 -Certificate $Result | Should -Be $ExpectedHashes
     } finally {

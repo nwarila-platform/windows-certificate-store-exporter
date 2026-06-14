@@ -52,7 +52,7 @@ $Arguments.Add('-File')
 $Arguments.Add($ReleaseFile)
 $Arguments.Add('-?')
 
-$ReleaseOutput = & $PowerShellCommand.Source @Arguments 2>&1
+$Null = & $PowerShellCommand.Source @Arguments 2>&1
 
 if ($LASTEXITCODE -ne 0) {
   throw ('Release script help smoke failed with exit code {0}.' -f $LASTEXITCODE)
