@@ -56,6 +56,21 @@ Chosen: option 1.
   alongside the bundle, under the same atomic + ShouldProcess rules as the bundle
   (ADR-repo/0004).
 
+### Deferred: Authenticode Signing
+
+The SHA-256 sidecar provides release artifact integrity, not publisher
+authenticity. Authenticode signing is deferred until the project has a
+code-signing certificate.
+
+When the certificate exists, wire signing into `.github/workflows/release.yaml`:
+
+- Run `Set-AuthenticodeSignature` against the released
+  `Export-CertificateStoreBundle.ps1` before publishing assets.
+- Source the certificate from Azure Trusted Signing or from a base64 PFX stored
+  in a GitHub secret.
+- Use an RFC-3161 timestamp authority so signatures remain verifiable after the
+  certificate expires.
+
 ### Consequences
 
 - **Positive:** verification tooling reads the hash and trusted set directly from
