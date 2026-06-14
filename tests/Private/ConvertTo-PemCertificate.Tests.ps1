@@ -5,7 +5,7 @@ Describe 'ConvertTo-PemCertificate' {
     . (Join-Path -Path $PSScriptRoot -ChildPath '..\..\build\Export-CertificateStoreBundle.Functions.ps1')
     . (Join-Path -Path $PSScriptRoot -ChildPath '..\Helpers\New-TestCertificate.ps1')
 
-    function Get-TestAsciiBytes {
+    function Get-TestAsciiByte {
       param (
         [Parameter(Mandatory = $True)]
         [System.String]
@@ -35,7 +35,7 @@ Describe 'ConvertTo-PemCertificate' {
 
     try {
       $Result = ConvertTo-PemCertificate -Certificate $Certificate -StoreName Root
-      $Bytes = Get-TestAsciiBytes -Text $Result
+      $Bytes = Get-TestAsciiByte -Text $Result
       $Lines = [System.String[]]($Result -split "`n")
       $ExpectedSha256 = Get-CertificateRawDataSha256 -Certificate $Certificate
       $ExpectedNotBefore = $Certificate.NotBefore.ToUniversalTime().ToString(
@@ -92,7 +92,7 @@ Describe 'ConvertTo-PemCertificate' {
 
     try {
       $Result = ConvertTo-PemCertificate -Certificate $Certificate -StoreName CA
-      $Bytes = Get-TestAsciiBytes -Text $Result
+      $Bytes = Get-TestAsciiByte -Text $Result
 
       ($Bytes | Where-Object -FilterScript { $PSItem -gt 0x7F }) | Should -HaveCount 0
       $Result.Contains([System.String][System.Char]0x00E9) | Should -BeFalse

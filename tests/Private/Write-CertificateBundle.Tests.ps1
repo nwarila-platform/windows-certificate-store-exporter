@@ -23,7 +23,7 @@ Describe 'Write-CertificateBundle' {
       }
     }
 
-    function Assert-TestBundleBytes {
+    function Assert-TestBundleByte {
       param (
         [Parameter(Mandatory = $True)]
         [System.Byte[]]
@@ -64,7 +64,7 @@ Describe 'Write-CertificateBundle' {
     $Result.BundleSha256 | Should -Be (Get-TestSha256Hex -Bytes $Bytes)
     $Result.ManifestPath | Should -BeNullOrEmpty
     [System.Text.Encoding]::ASCII.GetString($Bytes) | Should -Be $ExpectedText
-    Assert-TestBundleBytes -Bytes $Bytes
+    Assert-TestBundleByte -Bytes $Bytes
     Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
   }
 
@@ -199,7 +199,7 @@ Describe 'Write-CertificateBundle' {
     $Result.Status | Should -Be 'Written'
     $Result.ManifestPath | Should -Be $ManifestPath
     [System.IO.File]::ReadAllText($ManifestPath) | Should -Be $ExpectedManifest
-    Assert-TestBundleBytes -Bytes ([System.IO.File]::ReadAllBytes($ManifestPath))
+    Assert-TestBundleByte -Bytes ([System.IO.File]::ReadAllBytes($ManifestPath))
 
     $SecondResult = Write-CertificateBundle `
       -Path $Path `
