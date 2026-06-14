@@ -110,3 +110,134 @@ jobs:
             build/testResults.xml
             build/coverage.xml
           if-no-files-found: ignore
+
+  benchmark:
+    name: raw PSGallery benchmark (non-gating)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install PSScriptAnalyzer (Windows PowerShell)
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force -ErrorAction Stop
+
+      - name: Build benchmark artifact
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task Build
+
+      - name: Report raw PSGallery findings
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Format-MarkdownCell {
+            param (
+              [AllowNull()]
+              [System.Object]
+              $Value
+            )
+
+            if ($null -eq $Value) {
+              return ''
+            }
+
+            $Text = [System.String]$Value
+            $Text = $Text -replace '\r?\n', '<br>'
+            $Text = $Text.Replace('|', '\|')
+            return $Text
+          }
+
+          function Get-FunctionLocation {
+            param (
+              [Parameter(Mandatory = $true)]
+              [System.Object]
+              $Diagnostic,
+
+              [Parameter(Mandatory = $true)]
+              [System.Management.Automation.Language.FunctionDefinitionAst[]]
+              $FunctionAst
+            )
+
+            $Line = [System.Int32]$Diagnostic.Line
+            $Function = $FunctionAst |
+              Where-Object { $_.Extent.StartLineNumber -le $Line -and $_.Extent.EndLineNumber -ge $Line } |
+              Sort-Object -Property @{ Expression = { $_.Extent.StartLineNumber }; Descending = $true } |
+              Select-Object -First 1
+
+            if ($null -ne $Function) {
+              return ('{0}:{1}' -f $Function.Name, $Line)
+            }
+
+            return ('line {0}' -f $Line)
+          }
+
+          $SummaryLines = [System.Collections.Generic.List[System.String]]::new()
+
+          try {
+            $BenchmarkPath = '.\build\Export-CertificateStoreBundle.Functions.ps1'
+            $DocUrl = '{0}/{1}/blob/{2}/docs/explanation/psgallery-benchmark.md' -f $env:GITHUB_SERVER_URL, $env:GITHUB_REPOSITORY, $env:GITHUB_SHA
+
+            $SummaryLines.Add('## Raw PSGallery benchmark')
+            $SummaryLines.Add(('Raw PSGallery PSScriptAnalyzer findings against `build/Export-CertificateStoreBundle.Functions.ps1`, using the default ruleset; the house intentionally excludes `PSUseShouldProcessForStateChangingFunctions` for factory functions ([justification]({0})).' -f $DocUrl))
+            $SummaryLines.Add('')
+
+            Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+            $Tokens = $null
+            $ParseErrors = $null
+            $Ast = [System.Management.Automation.Language.Parser]::ParseFile($BenchmarkPath, [ref]$Tokens, [ref]$ParseErrors)
+            $Functions = @(
+              $Ast.FindAll(
+                {
+                  param ($Node)
+                  $Node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+                },
+                $true
+              )
+            )
+            $Results = @(Invoke-ScriptAnalyzer -Path $BenchmarkPath -ErrorAction Stop)
+
+            if ($Results.Count -eq 0) {
+              $SummaryLines.Add('No raw PSGallery findings.')
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $SummaryLines -ErrorAction Stop
+              exit 0
+            }
+
+            $SummaryLines.Add('| RuleName | Function/line | Message |')
+            $SummaryLines.Add('| --- | --- | --- |')
+
+            $Results |
+              Sort-Object -Property RuleName, Line |
+              ForEach-Object -Process {
+                $RuleCell = Format-MarkdownCell -Value $PSItem.RuleName
+                $LocationCell = Format-MarkdownCell -Value (Get-FunctionLocation -Diagnostic $PSItem -FunctionAst $Functions)
+                $MessageCell = Format-MarkdownCell -Value $PSItem.Message
+                $SummaryLines.Add('| ' + (@($RuleCell, $LocationCell, $MessageCell) -join ' | ') + ' |')
+              }
+
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $SummaryLines -ErrorAction Stop
+          } catch {
+            try {
+              if ($SummaryLines.Count -eq 0) {
+                $SummaryLines.Add('## Raw PSGallery benchmark')
+              }
+
+              $SummaryLines.Add(('Benchmark could not complete: `{0}`' -f (Format-MarkdownCell -Value $_.Exception.Message)))
+
+              if (-not [System.String]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $SummaryLines -ErrorAction SilentlyContinue
+              }
+            } catch {
+            }
+          }
+
+          exit 0
