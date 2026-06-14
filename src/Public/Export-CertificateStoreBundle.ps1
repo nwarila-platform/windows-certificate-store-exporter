@@ -74,7 +74,7 @@ function Export-CertificateStoreBundle {
     $WriteManifest
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [System.String]$Private:BundleSha256 = [System.String]::Empty
   [System.Collections.Generic.List[
   System.Security.Cryptography.X509Certificates.X509Certificate2

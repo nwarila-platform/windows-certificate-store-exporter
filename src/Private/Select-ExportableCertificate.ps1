@@ -50,7 +50,7 @@ function Select-ExportableCertificate {
     $IncludeExpired
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [System.String]$Private:CertificateHash = [System.String]::Empty
   [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
   [System.Boolean]$Private:IsCurrent = $False

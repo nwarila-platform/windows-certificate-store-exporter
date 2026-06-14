@@ -47,7 +47,7 @@ function ConvertTo-PemCertificate {
   begin {
     Write-Debug -Message '[ConvertTo-PemCertificate] Entering Begin'
 
-    # Initalize Variable(s)
+    # Initialize Variable(s)
     [System.String]$Private:Base64 = [System.String]::Empty
     [System.Byte[]]$Private:CharacterBytes = [System.Byte[]]@()
     [System.Int32]$Private:CharacterCode = 0

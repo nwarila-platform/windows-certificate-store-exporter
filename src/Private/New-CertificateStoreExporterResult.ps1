@@ -130,7 +130,7 @@ function New-CertificateStoreExporterResult {
     $StoreName = @('Root', 'CA')
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [PSCustomObject]$Private:Excluded = $Null
   [PSCustomObject]$Private:Result = $Null
   [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null

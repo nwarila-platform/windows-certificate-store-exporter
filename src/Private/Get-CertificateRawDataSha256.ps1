@@ -38,7 +38,7 @@ function Get-CertificateRawDataSha256 {
   begin {
     Write-Debug -Message '[Get-CertificateRawDataSha256] Entering Begin'
 
-    # Initalize Variable(s)
+    # Initialize Variable(s)
     [System.Byte[]]$Private:HashBytes = [System.Byte[]]@()
     [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
 

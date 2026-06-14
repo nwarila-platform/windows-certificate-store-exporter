@@ -64,7 +64,7 @@ function New-ErrorRecord {
     $TargetObject = $Null
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [System.Management.Automation.ErrorRecord]$Private:ErrorRecord = $Null
   [System.InvalidOperationException]$Private:Exception = $Null
 

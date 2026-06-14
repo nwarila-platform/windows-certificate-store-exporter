@@ -59,7 +59,7 @@ function Write-CertificateBundle {
     $WriteManifest
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [System.String]$Private:BundleBackupPath = [System.String]::Empty
   [System.String]$Private:BundleSha256 = [System.String]::Empty
   [System.Byte[]]$Private:BundleBytes = [System.Byte[]]@()
