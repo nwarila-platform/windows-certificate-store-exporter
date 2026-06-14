@@ -62,7 +62,7 @@ function Get-StoreCertificate {
     $StoreName = 'Root'
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]$Private:CertificateCollection = $Null
   [System.String]$Private:FailureMessage = [System.String]::Empty
   [System.Security.Cryptography.X509Certificates.OpenFlags]$Private:OpenFlags = [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly

@@ -35,7 +35,7 @@ function Resolve-ExitCode {
     $ErrorRecord
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [ExporterExitCode]$Private:ExitCode = [ExporterExitCode]::Unhandled
   [System.String]$Private:FullyQualifiedErrorId = [System.String]::Empty
   [System.String]$Private:ShortErrorId = [System.String]::Empty

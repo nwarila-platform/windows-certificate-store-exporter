@@ -919,7 +919,7 @@ function Test-HouseRuleParameterAttributeOrder {
     $ParameterAst
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [System.String]$Private:CurrentKey = [System.String]::Empty
   [System.Boolean]$Private:HasPreviousKey = $False
   [System.String]$Private:PreviousKey = [System.String]::Empty
@@ -1221,7 +1221,7 @@ function Measure-ExplicitCmdletBinding {
     $ScriptBlockAst
   )
 
-  # Initalize Variable(s)
+  # Initialize Variable(s)
   [System.Management.Automation.Language.AttributeAst]$Private:CmdletBindingAttribute = $Null
   [System.Management.Automation.Language.AttributeAst[]]$Private:CmdletBindingAttributes = @()
   [System.Boolean]$Private:HasOutputType = $False
