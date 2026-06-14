@@ -18,6 +18,7 @@ This repository follows the Diataxis documentation framework.
 
 ## Explanation
 
+- [PSGallery benchmark](explanation/psgallery-benchmark.md)
 - [Trust and determinism model](explanation/trust-and-determinism.md)
 - [Why this layout](explanation/why-this-layout.md)
 
