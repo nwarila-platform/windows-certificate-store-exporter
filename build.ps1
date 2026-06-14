@@ -2,10 +2,10 @@
 
 <#
 .SYNOPSIS
-    Builds, analyzes, and tests the certificate store exporter.
+    Builds, analyzes, tests, and smokes the certificate store exporter.
 
 .PARAMETER Task
-    One or more tasks to run: Build, Test, Analyze, Clean, or All.
+    One or more tasks to run: Build, Test, Analyze, Smoke, Clean, or All.
 
 .EXAMPLE
     .\build.ps1 -Task All
@@ -13,7 +13,7 @@
 [CmdletBinding()]
 param (
   [Parameter()]
-  [ValidateSet('Build', 'Test', 'Analyze', 'Clean', 'All')]
+  [ValidateSet('Build', 'Test', 'Analyze', 'Smoke', 'Clean', 'All')]
   [System.String[]]
   $Task = 'Build'
 )
@@ -385,8 +385,6 @@ function Invoke-Test {
     Invoke-Build
   }
 
-  Invoke-SmokeTest
-
   $private:PesterModule = Get-LatestAvailableModule -Name 'Pester'
   if ($Null -eq $PesterModule -or $PesterModule.Version.Major -lt 5) {
     throw 'Pester 5 or newer is required for tests and coverage.'
@@ -410,6 +408,25 @@ function Invoke-Test {
   Invoke-Pester -Configuration $PesterConfig
 }
 
+function Invoke-Smoke {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/nwarila-platform/windows-certificate-store-exporter/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Void])]
+  param ()
+
+  if (-not (Test-Path -LiteralPath $FunctionsFile)) {
+    Invoke-Build
+  }
+
+  Invoke-SmokeTest
+}
+
 function Invoke-Clean {
   [CmdletBinding(
     ConfirmImpact = 'None',
@@ -430,7 +447,7 @@ function Invoke-Clean {
 }
 
 if ('All' -in $Task) {
-  $Task = @('Clean', 'Build', 'Analyze', 'Test')
+  $Task = @('Clean', 'Build', 'Analyze', 'Test', 'Smoke')
 }
 
 $Task | ForEach-Object -Process {
