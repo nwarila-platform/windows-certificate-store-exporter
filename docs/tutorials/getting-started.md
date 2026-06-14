@@ -27,7 +27,7 @@ The build creates two ignored files under `build/`:
 Pick a destination path:
 
 ```powershell
-$BundlePath = Join-Path -Path $env:TEMP -ChildPath 'aws-ca-bundle.pem'
+$BundlePath = Join-Path -Path $env:TEMP -ChildPath 'ca-bundle.pem'
 ```
 
 Preview the write:

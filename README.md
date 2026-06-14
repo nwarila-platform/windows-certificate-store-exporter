@@ -9,7 +9,7 @@
 `windows-certificate-store-exporter` builds one Windows PowerShell 5.1 script:
 `Export-CertificateStoreBundle.ps1`. The script reads Windows certificate stores,
 subtracts `Disallowed`, filters and de-duplicates certificates, and writes a
-deterministic PEM bundle suitable for `AWS_CA_BUNDLE` or AWS CLI `ca_bundle`.
+deterministic RFC 7468 PEM bundle that TLS-verifying clients can consume.
 
 The project uses the `NWarila/powershell-template` guardrails with this repo's
 house `PSScriptAnalyzerSettings.psd1`, SG-1 custom analyzer rules, Pester v5,
@@ -28,7 +28,7 @@ Preview an export without writing files:
 
 ```powershell
 .\build\Export-CertificateStoreBundle.ps1 `
-    -Path "$env:TEMP\aws-ca-bundle.pem" `
+    -Path "$env:TEMP\ca-bundle.pem" `
     -WriteManifest `
     -WhatIf
 ```
@@ -37,7 +37,7 @@ Write the bundle:
 
 ```powershell
 $Result = .\build\Export-CertificateStoreBundle.ps1 `
-    -Path "$env:TEMP\aws-ca-bundle.pem" `
+    -Path "$env:TEMP\ca-bundle.pem" `
     -WriteManifest
 
 $Result | Format-List Path,Status,CertificateCount,BundleSha256,ManifestPath
@@ -50,7 +50,7 @@ a result object.
 ## Usage
 
 ```powershell
-.\Export-CertificateStoreBundle.ps1 -Path C:\ProgramData\NWarila\aws-ca-bundle.pem
+.\Export-CertificateStoreBundle.ps1 -Path C:\ProgramData\NWarila\ca-bundle.pem
 ```
 
 | Parameter | Values | Default | Notes |
@@ -68,22 +68,21 @@ a result object.
 The script also honors common `SupportsShouldProcess` parameters such as
 `-WhatIf` and `-Confirm`.
 
-## AWS CLI
+## Using the Bundle
 
 The exporter is produce-only. It writes the bundle and optional SHA-256 sidecar;
-it does not set environment variables and does not edit `~/.aws/config`.
+it does not set environment variables or edit consumer configuration.
 
-For the current PowerShell process:
+- AWS CLI: `$env:AWS_CA_BUNDLE = 'C:\ProgramData\NWarila\ca-bundle.pem'` or
+  `aws configure set ca_bundle C:\ProgramData\NWarila\ca-bundle.pem`
+- curl: `curl.exe --cacert C:\ProgramData\NWarila\ca-bundle.pem https://example.com`
+  or `$env:CURL_CA_BUNDLE = 'C:\ProgramData\NWarila\ca-bundle.pem'`
+- OpenSSL: `openssl s_client -connect example.com:443 -CAfile C:\ProgramData\NWarila\ca-bundle.pem`
+  or `$env:SSL_CERT_FILE = 'C:\ProgramData\NWarila\ca-bundle.pem'`
+- Python requests: `$env:REQUESTS_CA_BUNDLE = 'C:\ProgramData\NWarila\ca-bundle.pem'`
+- git: `git config --global http.sslCAInfo C:\ProgramData\NWarila\ca-bundle.pem`
 
-```powershell
-$env:AWS_CA_BUNDLE = 'C:\ProgramData\NWarila\aws-ca-bundle.pem'
-```
-
-For an AWS CLI profile:
-
-```powershell
-aws configure set ca_bundle C:\ProgramData\NWarila\aws-ca-bundle.pem
-```
+Choose the wiring supported by the client that will verify TLS with the bundle.
 
 ## Releases
 

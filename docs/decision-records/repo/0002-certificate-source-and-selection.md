@@ -6,7 +6,7 @@
 | Date           | 2026-06-12                                                   |
 | Authors        | Nick Warila (@NWarila)                                        |
 | Decision-maker | Nick Warila (sole portfolio maintainer)                      |
-| Consulted      | Windows certificate-store architecture; AWS CLI `AWS_CA_BUNDLE` semantics. |
+| Consulted      | Windows certificate-store architecture; trust-store-replacing CA-bundle consumer semantics. |
 | Informed       | Operators deploying the bundle via GPO/Ansible.              |
 | Reversibility  | Medium                                                       |
 | Review-by      | N/A (Accepted)                                               |
@@ -22,12 +22,12 @@ SHA-256 thumbprint, exclude expired/not-yet-valid certs by default (with an
 
 ## Context and Problem Statement
 
-The exporter produces a CA bundle for the AWS CLI from certificates on a Windows
-workstation, typically deployed by Group Policy. The AWS CLI consumes the bundle
-through `AWS_CA_BUNDLE` / `ca_bundle`, and that bundle **replaces** the built-in
-certifi trust store rather than appending to it — so every included certificate
-becomes a trust anchor for AWS API TLS verification, and selection scope is a
-security decision.
+The exporter produces a CA bundle from certificates on a Windows workstation,
+typically deployed by Group Policy. Trust-store-replacing consumers, e.g. the
+AWS CLI through `AWS_CA_BUNDLE` / `ca_bundle`, consume that bundle as a
+replacement for their built-in trust store rather than appending to it — so
+every included certificate becomes a trust anchor for that client's TLS
+verification, and selection scope is a security decision.
 
 Windows exposes two relevant mechanisms: the Group Policy **physical** store
 (`CERT_SYSTEM_STORE_LOCAL_MACHINE_GROUP_POLICY`), which isolates exactly the
