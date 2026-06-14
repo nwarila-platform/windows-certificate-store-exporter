@@ -34,7 +34,7 @@ when you intentionally need historical or migration cross-signing material:
 
 ```powershell
 .\Export-CertificateStoreBundle.ps1 `
-    -Path C:\ProgramData\NWarila\aws-ca-bundle.pem `
+    -Path C:\ProgramData\NWarila\ca-bundle.pem `
     -IncludeExpired
 ```
 
@@ -46,7 +46,7 @@ Use `-WriteManifest` to write a sidecar next to the bundle:
 
 ```powershell
 $Result = .\Export-CertificateStoreBundle.ps1 `
-    -Path C:\ProgramData\NWarila\aws-ca-bundle.pem `
+    -Path C:\ProgramData\NWarila\ca-bundle.pem `
     -WriteManifest
 
 Get-Content -Path $Result.ManifestPath
@@ -58,27 +58,42 @@ The sidecar is named `<bundle>.sha256` and contains:
 <64-character SHA-256>  <bundle file name>
 ```
 
-## Wire the Bundle into the AWS CLI
+## Use the Bundle with TLS Clients
 
 The exporter is produce-only. It does not persist environment variables and does
-not edit AWS CLI configuration.
+not edit consumer configuration.
 
-Set the bundle for the current PowerShell process:
+- AWS CLI:
 
 ```powershell
-$env:AWS_CA_BUNDLE = 'C:\ProgramData\NWarila\aws-ca-bundle.pem'
+$env:AWS_CA_BUNDLE = 'C:\ProgramData\NWarila\ca-bundle.pem'
+aws configure set ca_bundle C:\ProgramData\NWarila\ca-bundle.pem
 ```
 
-Or persist the path in an AWS CLI profile:
+- curl:
 
 ```powershell
-aws configure set ca_bundle C:\ProgramData\NWarila\aws-ca-bundle.pem
+$env:CURL_CA_BUNDLE = 'C:\ProgramData\NWarila\ca-bundle.pem'
+curl.exe --cacert C:\ProgramData\NWarila\ca-bundle.pem https://example.com
 ```
 
-Run an AWS command after setting one of those values:
+- OpenSSL:
 
 ```powershell
-aws sts get-caller-identity
+$env:SSL_CERT_FILE = 'C:\ProgramData\NWarila\ca-bundle.pem'
+openssl s_client -connect example.com:443 -CAfile C:\ProgramData\NWarila\ca-bundle.pem
+```
+
+- Python requests:
+
+```powershell
+$env:REQUESTS_CA_BUNDLE = 'C:\ProgramData\NWarila\ca-bundle.pem'
+```
+
+- git:
+
+```powershell
+git config --global http.sslCAInfo C:\ProgramData\NWarila\ca-bundle.pem
 ```
 
 ## Raise the Fail-Closed Floor
@@ -89,7 +104,7 @@ certificates survive filtering:
 
 ```powershell
 .\Export-CertificateStoreBundle.ps1 `
-    -Path C:\ProgramData\NWarila\aws-ca-bundle.pem `
+    -Path C:\ProgramData\NWarila\ca-bundle.pem `
     -MinimumCertificateCount 25
 ```
 

@@ -1,8 +1,9 @@
 # Trust and Determinism Model
 
-The exporter creates a trust artifact. A bad write can break AWS CLI TLS
-verification, and an over-broad bundle can trust more certificate authorities
-than intended. The design therefore favors deterministic, fail-closed behavior.
+The exporter creates a trust artifact. A bad write can break TLS verification
+for clients that consume the bundle, and an over-broad bundle can trust more
+certificate authorities than intended. The design therefore favors
+deterministic, fail-closed behavior.
 
 ## Logical Store Sourcing
 
@@ -61,11 +62,11 @@ half-written bundle.
 The safety behavior is recorded in
 [ADR-repo/0004](../decision-records/repo/0004-write-semantics-and-safety.md).
 
-## Produce-Only AWS Wiring
+## Produce-Only Consumer Wiring
 
-The exporter generates the bundle. It does not set `AWS_CA_BUNDLE`, and it does
-not edit AWS CLI configuration. Deployment tooling or the operator owns that
-wiring step so the script has a small blast radius.
+The exporter generates the bundle. It does not set client-specific environment
+variables or edit consumer configuration. Deployment tooling or the operator
+owns that wiring step so the script has a small blast radius.
 
 The result object and optional manifest are recorded in
 [ADR-repo/0005](../decision-records/repo/0005-summary-and-manifest-output.md).

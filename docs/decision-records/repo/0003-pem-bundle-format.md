@@ -22,11 +22,12 @@ the file body.
 
 ## Context and Problem Statement
 
-The AWS CLI (Python `ssl`/`urllib3` over OpenSSL) reads a CA bundle as
-concatenated PEM blocks and ignores text outside the delimiters. The bundle is
-version controlled, diffed run to run, and reviewed in pull requests, so the
-encoding must be conservative and the output reproducible. A UTF-8 BOM or
-non-deterministic ordering would break parsers or make diffs meaningless.
+TLS clients such as the AWS CLI (Python `ssl`/`urllib3` over OpenSSL), curl, and
+OpenSSL read CA bundles as concatenated PEM blocks and ignore text outside the
+delimiters. The bundle is version controlled, diffed run to run, and reviewed in
+pull requests, so the encoding must be conservative and the output reproducible.
+A UTF-8 BOM or non-deterministic ordering would break parsers or make diffs
+meaningless.
 
 ## Decision Drivers
 
@@ -52,7 +53,7 @@ Chosen: option 1.
   (a BOM breaks some PEM parsers), **LF** line endings.
 - A certifi-style comment header per certificate: Subject, Issuer, Serial,
   SHA-256 thumbprint, `NotBefore`/`NotAfter`, source store — derived from
-  certificate content and ignored by the AWS CLI at parse time.
+  certificate content and ignored by PEM parsers at parse time.
 - Certificates ordered by SHA-256 thumbprint for byte-stable output.
 - No per-run timestamp in the file body; any "generated at" value lives in the
   summary object / verbose log (ADR-repo/0005).

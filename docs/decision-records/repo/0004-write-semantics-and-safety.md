@@ -6,7 +6,7 @@
 | Date           | 2026-06-12                                                   |
 | Authors        | Nick Warila (@NWarila)                                        |
 | Decision-maker | Nick Warila (sole portfolio maintainer)                      |
-| Consulted      | AWS CLI CA-bundle resolution order; portfolio ShouldProcess convention. |
+| Consulted      | CA-bundle consumer resolution patterns; portfolio ShouldProcess convention. |
 | Informed       | Operators and config-management tooling deploying the bundle. |
 | Reversibility  | Medium                                                       |
 | Review-by      | N/A (Accepted)                                               |
@@ -18,16 +18,18 @@ directory, then replace) under `SupportsShouldProcess`; skip the write when the
 new bundle is byte-identical to the existing file (report `Unchanged`); and fail
 closed by raising a structured error record and write nothing when the
 surviving certificate count is below `-MinimumCertificateCount` (default 1). The
-script is produce-only: it does not mutate the environment or `~/.aws/config`.
+script is produce-only: it does not mutate the environment or consumer
+configuration.
 
 ## Context and Problem Statement
 
-A CA bundle is a trust artifact, possibly read by a running AWS CLI and deployed
-across a fleet by GPO, scheduled task, or Ansible. The dangerous failure mode is
-a run that over-filters or hits a read error, yields few or no certificates, and
-overwrites a previously good bundle with an empty one — breaking every dependent
-AWS CLI call. Write behavior must fail closed and must never expose a
-half-written file. This aligns with the portfolio's deny-by-default posture.
+A CA bundle is a trust artifact, possibly read by a running TLS client and
+deployed across a fleet by GPO, scheduled task, or Ansible. The dangerous
+failure mode is a run that over-filters or hits a read error, yields few or no
+certificates, and overwrites a previously good bundle with an empty one —
+breaking dependent TLS verification. Write behavior must fail closed and must
+never expose a half-written file. This aligns with the portfolio's
+deny-by-default posture.
 
 ## Decision Drivers
 
@@ -45,8 +47,8 @@ half-written file. This aligns with the portfolio's deny-by-default posture.
    one.
 3. **Default `ProgramData` destination** — a no-argument run mutates a system
    path.
-4. **Opt-in `-ConfigureAwsCli`** that persists `AWS_CA_BUNDLE` or writes
-   `ca_bundle` — larger blast radius; deferred.
+4. **Opt-in consumer configuration** that persists environment variables or
+   edits client configuration — larger blast radius; deferred.
 
 ## Decision Outcome
 
@@ -60,8 +62,8 @@ Chosen: option 1.
 - **Fail closed** — when surviving certs `< -MinimumCertificateCount`
   (default 1), throw a structured error record and write nothing, preserving any existing
   bundle. Operators may raise the floor to assert a known invariant.
-- **Produce-only** — print the `AWS_CA_BUNDLE` / `ca_bundle` wiring snippet to
-  verbose output only; do not mutate the environment or `~/.aws/config`.
+- **Produce-only** — emit no consumer-specific wiring; do not mutate the
+  environment or client configuration.
 
 ### Consequences
 
