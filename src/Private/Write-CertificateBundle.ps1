@@ -96,7 +96,7 @@ function Write-CertificateBundle {
   }
 
   $Encoding = [System.Text.UTF8Encoding]::new($False)
-  $FullPath = [System.IO.Path]::GetFullPath($Path)
+  $FullPath = $PSCmdlet.GetUnresolvedProviderPathFromPSPath($Path)
   $DirectoryPath = [System.IO.Path]::GetDirectoryName($FullPath)
   $PathLeaf = [System.IO.Path]::GetFileName($FullPath)
   $BundleText = ([System.String[]]$PemBlock -join "`n") -replace "`r`n?", "`n"

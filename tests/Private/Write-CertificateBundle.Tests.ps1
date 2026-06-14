@@ -68,6 +68,33 @@ Describe 'Write-CertificateBundle' {
     Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
   }
 
+  It 'resolves PSDrive paths before writing bundle and manifest files' {
+    $DriveName = 'BundleDrive{0}' -f ([System.Guid]::NewGuid().ToString('N').Substring(0, 8))
+    $DriveRoot = Join-Path -Path $TestRoot -ChildPath 'drive-root'
+    $Null = New-Item -Path $DriveRoot -ItemType Directory
+    $Null = New-PSDrive -Name $DriveName -PSProvider FileSystem -Root $DriveRoot
+    $Path = '{0}:\bundle.pem' -f $DriveName
+    $ExpectedPath = Join-Path -Path $DriveRoot -ChildPath 'bundle.pem'
+    $ExpectedManifestPath = '{0}.sha256' -f $ExpectedPath
+
+    try {
+      $Result = Write-CertificateBundle `
+        -Path $Path `
+        -PemBlock @($Script:FirstPemBlock) `
+        -WriteManifest
+
+      $Result.Path | Should -Be $Path
+      $Result.Status | Should -Be 'Written'
+      $Result.ManifestPath | Should -Be ('{0}.sha256' -f $Path)
+      Test-Path -LiteralPath $ExpectedPath | Should -BeTrue
+      Test-Path -LiteralPath $ExpectedManifestPath | Should -BeTrue
+      [System.IO.File]::ReadAllText($ExpectedPath) | Should -Be $Script:FirstPemBlock
+      Get-ChildItem -LiteralPath $DriveRoot -Filter '*.tmp' | Should -HaveCount 0
+    } finally {
+      Remove-PSDrive -Name $DriveName -ErrorAction SilentlyContinue
+    }
+  }
+
   It 'returns Unchanged and preserves bytes and mtime for identical content' {
     $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
     $FixedTime = [System.DateTime]::SpecifyKind(
