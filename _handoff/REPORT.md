@@ -1,28 +1,40 @@
-# STEP 17 REPORT - Resolve-ExitCode SG-6 retrofit
+# STEP 18 Report - Get-StoreCertificate canary normalization
 
 ## Scope
-- Implemented the locked SG-6 conditional-output soft-return pattern in `src/Private/Resolve-ExitCode.ps1`.
-- Added `Write-Debug -Message:'[Resolve-ExitCode] Entering'` as the first executable statement and `Write-Debug -Message:'[Resolve-ExitCode] Exiting'` as the final statement.
-- Declared `[System.Int32]$Private:Result = 0` in the initialization block.
-- Removed both bare guard `return` statements by nesting the known-id and mapped-code checks.
-- Kept the explicit `$Result` emit only inside the known non-Success/non-Unhandled branch.
+- Updated `src/Private/Get-StoreCertificate.ps1` only, plus this report.
+- Created local branch `codex-cp-getstorecert2` from the current checkout because it did not exist locally; the workspace originally opened on `main`.
 
-## Behavior
-- No `return` remains in `Resolve-ExitCode`.
-- Known exporter ErrorIds mapped to non-Success/non-Unhandled exit codes still emit their `Int32` values.
-- Unknown ids, `Success`, and `Unhandled` still emit nothing; no default path emits `$Result` or `0`.
-- No error handling was added; the function remains pure mapping over the validated error record.
+## Changes
+- Normalized `Get-StoreCertificate` debug anchors and `New-ErrorRecord` calls to colon-form parameter binding.
+- Converted `Try` / `Catch` / `Finally` to PascalCase.
+- Added R1 preservation for `StoreReadFailure` with `-Exception:$PSItem.Exception`.
+- Kept the `NotWindows` guard without an inner exception.
+- Converted the final output to the SG-6 soft-return shape: typed `$Result` handoff, then bare `$Result`, then the `Exiting` debug anchor.
+- Added intent comments for:
+  - `ReadOnly -bor OpenExistingOnly` as least-privilege read-only behavior that never creates stores.
+  - Dynamic `StoreLocation` enum lookup safety through `ValidateSet`.
+  - `$StoreFactory` as the test-only injection path for store-open failures, not a CLI surface.
+  - Disposing the store in `Finally` to always release the native store handle.
+
+## Behavior Confirmation
+- Store open flags are unchanged: `ReadOnly -bor OpenExistingOnly`.
+- Returned certificate set/order remains the store certificate collection cast to `X509Certificate2[]`.
+- Error mapping remains unchanged:
+  - `NotWindows` -> `[ExporterExitCode]::NotWindows` / exit code 3.
+  - `StoreReadFailure` -> `[ExporterExitCode]::StoreReadFailure` / exit code 4.
+- The only behavioral addition is preserving the original store-read exception as the inner exception on the structured error record.
 
 ## Verification
-- Command: `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
-- Result: exit code 0.
-- Build: OK.
-- Analyze: passed, 0 issues reported.
-- Pester: 76 passed, 0 failed, 0 skipped.
-- Coverage: 95.71% / 90% required.
-- Exit codes: all six built EntryPoint mappings still proven by tests: Success=0, Unhandled=1,
-  BelowMinimumCertificateCount=2, NotWindows=3, StoreReadFailure=4, WriteFailure=5.
-- Smoke: `BuildArtifacts.ps1` and `LiveStoreRead.ps1` both ran in the Smoke task.
+- Ran fresh process verification:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
+- Result:
+  - Build OK.
+  - Analyze passed.
+  - Pester: 76 passed, 0 failed.
+  - Coverage: 95.94% / 90%.
+  - Smoke scripts ran: `BuildArtifacts.ps1`, `LiveStoreRead.ps1`.
 
 ## False Premises / Notes
-- None found.
+- `codex-cp-getstorecert2` was not present locally at start; it was created before changes.
+- No tests were modified.
+- No push or merge was performed.

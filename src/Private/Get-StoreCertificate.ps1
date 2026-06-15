@@ -62,11 +62,12 @@ function Get-StoreCertificate {
     $StoreName = 'Root'
   )
 
-  Write-Debug -Message '[Get-StoreCertificate] Entering'
+  Write-Debug -Message:'[Get-StoreCertificate] Entering'
 
   # Initialize Variable(s)
   [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]$Private:CertificateCollection = $Null
   [System.String]$Private:FailureMessage = [System.String]::Empty
+  # Open least-privilege and never create a missing store while this exporter is only reading.
   [System.Security.Cryptography.X509Certificates.OpenFlags]$Private:OpenFlags = (
     [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly -bor
     [System.Security.Cryptography.X509Certificates.OpenFlags]::OpenExistingOnly
@@ -78,38 +79,42 @@ function Get-StoreCertificate {
 
   if ((Test-CertificateStoreExporterWindows) -eq $False) {
     New-ErrorRecord `
-      -Message 'Windows certificate stores are only available on Windows.' `
-      -ErrorId ([ExporterExitCode]::NotWindows) `
-      -Category ([System.Management.Automation.ErrorCategory]::InvalidOperation) `
-      -TargetObject ('{0}\{1}' -f $StoreLocation, $StoreName) `
-      -IsFatal
+      -Category:([System.Management.Automation.ErrorCategory]::InvalidOperation) `
+      -ErrorId:([ExporterExitCode]::NotWindows) `
+      -IsFatal:$True `
+      -Message:('Windows certificate stores are only available on Windows.') `
+      -TargetObject:('{0}\{1}' -f $StoreLocation, $StoreName)
   }
 
+  # Safe dynamic enum lookup: StoreLocation is constrained by ValidateSet before binding succeeds.
   $TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::$StoreLocation
 
-  try {
-    $Store = & $StoreFactory -Name $StoreName -Location $TypedStoreLocation
+  Try {
+    # StoreFactory exists only so tests can inject store-open failures; it is not a CLI surface.
+    $Store = & $StoreFactory -Name:$StoreName -Location:$TypedStoreLocation
     $Store.Open($OpenFlags)
     $CertificateCollection = $Store.Certificates
     $StoreCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
       $CertificateCollection
     )
-  } catch {
+  } Catch {
     $FailureMessage = 'Failed to read Windows certificate store {0}\{1}: {2}' -f $StoreLocation, $StoreName, $PSItem.Exception.Message
 
     New-ErrorRecord `
-      -Message $FailureMessage `
-      -ErrorId ([ExporterExitCode]::StoreReadFailure) `
-      -Category ([System.Management.Automation.ErrorCategory]::ReadError) `
-      -TargetObject ('{0}\{1}' -f $StoreLocation, $StoreName) `
-      -IsFatal
-  } finally {
+      -Category:([System.Management.Automation.ErrorCategory]::ReadError) `
+      -ErrorId:([ExporterExitCode]::StoreReadFailure) `
+      -Exception:$PSItem.Exception `
+      -IsFatal:$True `
+      -Message:$FailureMessage `
+      -TargetObject:('{0}\{1}' -f $StoreLocation, $StoreName)
+  } Finally {
+    # Always release the native store handle, even if opening or enumeration fails.
     if ($Null -ne $Store) {
       $Store.Dispose()
     }
   }
 
-  $Result = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$StoreCertificates
-  ([System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result)
-  Write-Debug -Message '[Get-StoreCertificate] Exiting'
+  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result = $StoreCertificates
+  $Result
+  Write-Debug -Message:'[Get-StoreCertificate] Exiting'
 }
