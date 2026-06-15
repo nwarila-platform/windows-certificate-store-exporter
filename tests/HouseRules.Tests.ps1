@@ -161,6 +161,38 @@ function ConvertTo-Thing {
     $Results | Should -HaveCount 0
   }
 
+  It 'accepts an Entering Process debug anchor before pipeline resets' {
+    $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline = $True)]
+        [System.String]
+        $InputObject
+    )
+    begin {
+        [System.String]$Private:Value = [System.String]::Empty
+    }
+    process {
+        Write-Debug -Message '[ConvertTo-Thing] Entering Process'
+        $Value = [System.String]::Empty
+        $Value = $InputObject.ToUpperInvariant()
+        $Value
+    }
+    end { }
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-PipelineVariableLifecycle'
+
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-PipelineVariableLifecycle' })
+    $Results | Should -HaveCount 0
+  }
+
   It 'flags named blocks on flat non-pipeline functions' {
     $ScriptDefinition = @'
 function Get-Thing {
@@ -263,6 +295,114 @@ function Get-Thing {
 
     $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-NoRemoveVariableCleanup' })
     $Results.RuleName | Should -Contain 'Measure-NoRemoveVariableCleanup'
+  }
+}
+
+Describe 'SG-3 house analyzer rules' {
+  BeforeAll {
+    $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+    if (-not (Get-Module -Name PSScriptAnalyzer)) {
+      Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+    }
+  }
+
+  It 'flags mis-cased named blocks' {
+    $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline = $True)]
+        [System.String]
+        $InputObject
+    )
+    begin {
+        [System.String]$Private:Value = [System.String]::Empty
+    } process {
+        $Value = $InputObject.ToUpperInvariant()
+        $Value
+    } end {
+        Write-Debug -Message '[ConvertTo-Thing] Exiting End'
+    }
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-CanonicalNamedBlock'
+
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalNamedBlock' })
+    $Results.RuleName | Should -Contain 'Measure-CanonicalNamedBlock'
+    [System.String]$MessageText = $Results.Message -join "`n"
+    $MessageText | Should -Match "must start with 'Begin {'"
+    $MessageText | Should -Match "must start with 'Process {'"
+    $MessageText | Should -Match "must start with 'End {'"
+  }
+
+  It 'flags uncuddled named block transitions' {
+    $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline = $True)]
+        [System.String]
+        $InputObject
+    )
+    Begin {
+        [System.String]$Private:Value = [System.String]::Empty
+    }
+    Process {
+        $Value = $InputObject.ToUpperInvariant()
+        $Value
+    }
+    End {
+        Write-Debug -Message '[ConvertTo-Thing] Exiting End'
+    }
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-CanonicalNamedBlock'
+
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalNamedBlock' })
+    $Results.RuleName | Should -Contain 'Measure-CanonicalNamedBlock'
+    [System.String]$MessageText = $Results.Message -join "`n"
+    $MessageText | Should -Match "must be cuddled as '} Process {'"
+    $MessageText | Should -Match "must be cuddled as '} End {'"
+  }
+
+  It 'accepts canonical named block casing and layout' {
+    $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline = $True)]
+        [System.String]
+        $InputObject
+    )
+    Begin {
+        [System.String]$Private:Value = [System.String]::Empty
+    } Process {
+        $Value = $InputObject.ToUpperInvariant()
+        $Value
+    } End {
+        Write-Debug -Message '[ConvertTo-Thing] Exiting End'
+    }
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-CanonicalNamedBlock'
+
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalNamedBlock' })
+    $Results | Should -HaveCount 0
   }
 }
 
@@ -370,6 +510,34 @@ $OutputTypeLine
     $Results.Message | Should -Match 'OutputType'
   }
 
+  It 'flags PositionalBinding values other than false' {
+    $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding(
+        ConfirmImpact = 'None',
+        DefaultParameterSetName = 'default',
+        HelpUri = 'https://github.com/example/repo/blob/main/docs/reference/functions.md#get-thing',
+        PositionalBinding = $True,
+        SupportsPaging = $False,
+        SupportsShouldProcess = $False
+    )]
+    [OutputType([System.String])]
+    param ()
+    [System.String]'thing'
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-ExplicitCmdletBinding'
+
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitCmdletBinding' })
+    $Results.RuleName | Should -Contain 'Measure-ExplicitCmdletBinding'
+    $Results.Message | Should -Match 'PositionalBinding'
+  }
+
   It 'flags functions without CmdletBinding' {
     $ScriptDefinition = @'
 function Get-Thing {
@@ -440,7 +608,7 @@ function ConvertTo-Thing {
     )]
     [OutputType([System.String])]
     param (
-        [Parameter(ValueFromPipeline = $True, Mandatory = $True)]
+        [Parameter(ValueFromPipeline = $True, Mandatory = $True, DontShow = $False, ParameterSetName = 'default', ValueFromPipelineByPropertyName = $True)]
         [System.String]
         $InputObject
     )
@@ -474,7 +642,13 @@ function Get-Thing {
     )]
     [OutputType([System.String])]
     param (
-        [Parameter(Mandatory = $True)]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $True,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [System.String]
         [ValidateNotNullOrEmpty()]
         $Name
@@ -508,7 +682,13 @@ function Get-Thing {
     [OutputType([System.String])]
     param (
         [ValidateNotNullOrEmpty()]
-        [Parameter(Mandatory = $True)]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $True,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [System.String]
         $Name
     )
@@ -540,11 +720,23 @@ function Get-Thing {
     )]
     [OutputType([System.String])]
     param (
-        [Parameter()]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $False,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [System.String]
         $Zoo,
 
-        [Parameter()]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $False,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [System.String]
         $Alpha
     )
@@ -564,7 +756,7 @@ function Get-Thing {
     $Results.Message | Should -Match 'SG-5d'
   }
 
-  It 'does not flag unsorted parameter names when explicit Position trips the guard' {
+  It 'flags Parameter Position even when the rest of the surface is explicit' {
     $ScriptDefinition = @'
 function Get-Thing {
     [CmdletBinding(
@@ -577,11 +769,24 @@ function Get-Thing {
     )]
     [OutputType([System.String])]
     param (
-        [Parameter(Position = 1)]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $False,
+            ParameterSetName = 'default',
+            Position = 1,
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [System.String]
         $Zoo,
 
-        [Parameter()]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $False,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [System.String]
         $Alpha
     )
@@ -597,7 +802,10 @@ function Get-Thing {
 
     $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalAttributeOrder' })
 
-    $Results | Should -HaveCount 0
+    $Results.RuleName | Should -Contain 'Measure-CanonicalAttributeOrder'
+    [System.String]$MessageText = $Results.Message -join "`n"
+    $MessageText | Should -Match 'Position'
+    $MessageText | Should -Match 'SG-5e'
   }
 
   It 'accepts the canonical declaration idiom' {
@@ -613,12 +821,24 @@ function ConvertTo-Thing {
     )]
     [OutputType([System.String])]
     param (
-        [Parameter(Mandatory = $True)]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $True,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [ValidateNotNullOrEmpty()]
         [System.String]
         $Alpha,
 
-        [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $True,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $True,
+            ValueFromPipelineByPropertyName = $True
+        )]
         [Alias('n')]
         [ValidateNotNullOrEmpty()]
         [System.String]

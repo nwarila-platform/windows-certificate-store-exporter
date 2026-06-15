@@ -739,6 +739,46 @@ function Test-HouseRuleNamedBlock {
 
 }
 
+function Get-HouseRuleNamedBlockAst {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Management.Automation.Language.NamedBlockAst[]])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.FunctionDefinitionAst]
+    $FunctionAst
+  )
+
+  [System.Collections.Generic.List[System.Management.Automation.Language.NamedBlockAst]]$Private:Blocks = [System.Collections.Generic.List[System.Management.Automation.Language.NamedBlockAst]]::new()
+
+  if ($Null -ne $FunctionAst.Body.DynamicParamBlock) {
+    [void]$Blocks.Add($FunctionAst.Body.DynamicParamBlock)
+  }
+
+  if ($Null -ne $FunctionAst.Body.BeginBlock) {
+    [void]$Blocks.Add($FunctionAst.Body.BeginBlock)
+  }
+
+  if ($Null -ne $FunctionAst.Body.ProcessBlock) {
+    [void]$Blocks.Add($FunctionAst.Body.ProcessBlock)
+  }
+
+  if ($Null -ne $FunctionAst.Body.EndBlock -and $FunctionAst.Body.EndBlock.Unnamed -eq $False) {
+    [void]$Blocks.Add($FunctionAst.Body.EndBlock)
+  }
+
+  [System.Management.Automation.Language.NamedBlockAst[]]@(
+    $Blocks | Sort-Object -Property { $PSItem.Extent.StartOffset }
+  )
+
+}
+
 function Get-HouseRuleFunctionAttribute {
   [CmdletBinding(
     ConfirmImpact = 'None',
@@ -903,6 +943,72 @@ function Test-HouseRuleNamedArgumentValueIsTrue {
 
 }
 
+function Get-HouseRuleNamedAttributeArgument {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Management.Automation.Language.NamedAttributeArgumentAst])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [System.String]
+    $ArgumentName,
+
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.AttributeAst]
+    $AttributeAst
+  )
+
+  foreach ($NamedArgument in $AttributeAst.NamedArguments) {
+    if ($NamedArgument.ArgumentName -ieq $ArgumentName) {
+      return [System.Management.Automation.Language.NamedAttributeArgumentAst]$NamedArgument
+    }
+  }
+
+  $Null
+
+}
+
+function Test-HouseRuleNamedArgumentValueEqual {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Boolean])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [AllowNull()]
+    [System.Object]
+    $ExpectedValue,
+
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.NamedAttributeArgumentAst]
+    $NamedArgument
+  )
+
+  # Bare attribute flags are intentionally rejected here; house style spells out the value.
+  if ($Null -eq $NamedArgument.Argument) {
+    return [System.Boolean]$False
+  }
+
+  try {
+    $Private:ActualValue = $NamedArgument.Argument.SafeGetValue()
+  } catch {
+    return [System.Boolean]$False
+  }
+
+  [System.Boolean]([System.Object]::Equals($ActualValue, $ExpectedValue))
+
+}
+
 function Test-HouseRuleParameterAttributeOrder {
   [CmdletBinding(
     ConfirmImpact = 'None',
@@ -1021,10 +1127,7 @@ function Test-HouseRuleParameterOrderGuard {
       }
 
       foreach ($NamedArgument in $AttributeAst.NamedArguments) {
-        if (
-          $NamedArgument.ArgumentName -ieq 'Position' -or
-          $NamedArgument.ArgumentName -ieq 'ParameterSetName'
-        ) {
+        if ($NamedArgument.ArgumentName -ieq 'Position') {
           return [System.Boolean]$True
         }
       }
@@ -1052,8 +1155,19 @@ function Get-HouseRuleProcessResetVariableName {
   )
 
   $Private:Names = [System.Collections.Generic.List[System.String]]::new()
+  [System.Boolean]$Private:CanSkipEnteringProcess = $True
 
   foreach ($Statement in $ProcessBlock.Statements) {
+    if (
+      $CanSkipEnteringProcess -eq $True -and
+      (Test-HouseRuleEnteringProcessDebugStatement -StatementAst $Statement) -eq $True
+    ) {
+      $CanSkipEnteringProcess = $False
+      continue
+    }
+
+    $CanSkipEnteringProcess = $False
+
     if ($Statement -is [System.Management.Automation.Language.AssignmentStatementAst]) {
       Get-HouseRuleAssignedExpressionVariable -Ast $Statement.Left |
         ForEach-Object -Process {
@@ -1086,6 +1200,49 @@ function Get-HouseRuleProcessResetVariableName {
   }
 
   [System.String[]]$Names.ToArray()
+
+}
+
+function Test-HouseRuleEnteringProcessDebugStatement {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Boolean])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.StatementAst]
+    $StatementAst
+  )
+
+  if ($StatementAst -isnot [System.Management.Automation.Language.PipelineAst]) {
+    return [System.Boolean]$False
+  }
+
+  if ($StatementAst.PipelineElements.Count -ne 1) {
+    return [System.Boolean]$False
+  }
+
+  [System.Management.Automation.Language.CommandAst]$Private:CommandAst = $StatementAst.PipelineElements[0] -as [System.Management.Automation.Language.CommandAst]
+  if ($Null -eq $CommandAst) {
+    return [System.Boolean]$False
+  }
+
+  if ($CommandAst.GetCommandName() -inotmatch '^Write-Debug$') {
+    return [System.Boolean]$False
+  }
+
+  foreach ($Message in Get-HouseRuleCommandArgumentString -CommandAst $CommandAst -ParameterName 'Message') {
+    if ($Message -imatch '\]\s+Entering Process$') {
+      return [System.Boolean]$True
+    }
+  }
+
+  [System.Boolean]$False
 
 }
 
@@ -1156,6 +1313,22 @@ function Measure-CanonicalAttributeOrder {
             (Get-HouseRuleVariableName -VariableAst $ParameterAst.Name)
           )
         }
+
+        foreach ($NamedArgument in $AttributeAst.NamedArguments) {
+          if ($NamedArgument.ArgumentName -ine 'Position') {
+            continue
+          }
+
+          ConvertTo-HouseRuleDiagnosticRecord `
+            -RuleName 'Measure-CanonicalAttributeOrder' `
+            -Extent $NamedArgument.Extent `
+            -Message (
+            "Function '{0}' parameter '{1}' must not use Parameter(Position); PositionalBinding must stay false (SG-5e)." -f
+            $FunctionAst.Name,
+            (Get-HouseRuleVariableName -VariableAst $ParameterAst.Name)
+          )
+        }
+
       }
 
       if ((Test-HouseRuleParameterTypeLast -ParameterAst $ParameterAst) -eq $False) {
@@ -1179,10 +1352,6 @@ function Measure-CanonicalAttributeOrder {
           (Get-HouseRuleVariableName -VariableAst $ParameterAst.Name)
         )
       }
-    }
-
-    if ((Test-HouseRuleParameterOrderGuard -FunctionAst $FunctionAst) -eq $True) {
-      continue
     }
 
     $Private:ParameterNames = [System.String[]]@(Get-HouseRuleParameterName -FunctionAst $FunctionAst)
@@ -1272,6 +1441,25 @@ function Measure-ExplicitCmdletBinding {
           "Function '{0}' CmdletBinding is missing explicit option '{1}' required by SG-4." -f
           $FunctionAst.Name,
           $RequiredOptionName
+        )
+      }
+
+      $Private:PositionalBindingArgument = Get-HouseRuleNamedAttributeArgument `
+        -ArgumentName 'PositionalBinding' `
+        -AttributeAst $CmdletBindingAttribute
+
+      if (
+        $Null -ne $PositionalBindingArgument -and
+        (Test-HouseRuleNamedArgumentValueEqual `
+          -ExpectedValue $False `
+          -NamedArgument $PositionalBindingArgument) -eq $False
+      ) {
+        ConvertTo-HouseRuleDiagnosticRecord `
+          -RuleName 'Measure-ExplicitCmdletBinding' `
+          -Extent $PositionalBindingArgument.Extent `
+          -Message (
+          "Function '{0}' CmdletBinding must set PositionalBinding = `$False required by SG-4." -f
+          $FunctionAst.Name
         )
       }
     }
@@ -1501,6 +1689,68 @@ function Measure-FlatNonPipelineFunction {
       "Function '{0}' has no pipeline input, so it must be flat; remove the named blocks and let code run in the implicit End block (SG-2c)." -f
       $FunctionAst.Name
     )
+  }
+
+}
+
+function Measure-CanonicalNamedBlock {
+  <#
+    .SYNOPSIS
+        Flags non-canonical named block casing and brace layout.
+    #>
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.ScriptBlockAst]
+    $ScriptBlockAst
+  )
+
+  foreach ($FunctionAst in Get-HouseRuleFunctionAst -ScriptBlockAst $ScriptBlockAst) {
+    [System.Management.Automation.Language.NamedBlockAst[]]$Private:Blocks = @(
+      Get-HouseRuleNamedBlockAst -FunctionAst $FunctionAst
+    )
+
+    foreach ($Block in $Blocks) {
+      [System.String]$Private:ExpectedHeader = '{0} {{' -f $Block.BlockKind.ToString()
+      [System.String]$Private:HeaderPattern = '^\s*{0}\s*\{{' -f [System.Text.RegularExpressions.Regex]::Escape($Block.BlockKind.ToString())
+
+      if ($Block.Extent.Text -cnotmatch $HeaderPattern) {
+        ConvertTo-HouseRuleDiagnosticRecord `
+          -RuleName 'Measure-CanonicalNamedBlock' `
+          -Extent $Block.Extent `
+          -Message (
+          "Function '{0}' named block must start with '{1}'." -f
+          $FunctionAst.Name,
+          $ExpectedHeader
+        )
+      }
+    }
+
+    for ($Index = 1; $Index -lt $Blocks.Count; $Index++) {
+      [System.Management.Automation.Language.NamedBlockAst]$Private:PreviousBlock = $Blocks[$Index - 1]
+      [System.Management.Automation.Language.NamedBlockAst]$Private:CurrentBlock = $Blocks[$Index]
+
+      if ($PreviousBlock.Extent.EndLineNumber -eq $CurrentBlock.Extent.StartLineNumber) {
+        continue
+      }
+
+      ConvertTo-HouseRuleDiagnosticRecord `
+        -RuleName 'Measure-CanonicalNamedBlock' `
+        -Extent $CurrentBlock.Extent `
+        -Message (
+        "Function '{0}' named block transition must be cuddled as '}} {1} {{'." -f
+        $FunctionAst.Name,
+        $CurrentBlock.BlockKind.ToString()
+      )
+    }
   }
 
 }

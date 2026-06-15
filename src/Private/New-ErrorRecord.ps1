@@ -16,6 +16,10 @@ function New-ErrorRecord {
     .PARAMETER ErrorId
         Stable error identifier.
 
+    .PARAMETER Exception
+        Original exception to preserve as the structured error's inner
+        exception.
+
     .PARAMETER Category
         PowerShell error category.
 
@@ -50,6 +54,11 @@ function New-ErrorRecord {
     $ErrorId,
 
     [Parameter()]
+    [AllowNull()]
+    [System.Exception]
+    $Exception = $Null,
+
+    [Parameter()]
     [System.Management.Automation.SwitchParameter]
     $IsFatal,
 
@@ -66,11 +75,16 @@ function New-ErrorRecord {
 
   # Initialize Variable(s)
   [System.Management.Automation.ErrorRecord]$Private:ErrorRecord = $Null
-  [System.InvalidOperationException]$Private:Exception = $Null
+  [System.InvalidOperationException]$Private:RecordException = $Null
 
-  $Exception = [System.InvalidOperationException]::new($Message)
+  if ($Null -eq $Exception) {
+    $RecordException = [System.InvalidOperationException]::new($Message)
+  } else {
+    $RecordException = [System.InvalidOperationException]::new($Message, $Exception)
+  }
+
   $ErrorRecord = [System.Management.Automation.ErrorRecord]::new(
-    $Exception,
+    $RecordException,
     $ErrorId.ToString(),
     $Category,
     $TargetObject

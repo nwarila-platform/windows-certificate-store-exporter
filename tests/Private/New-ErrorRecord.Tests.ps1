@@ -23,6 +23,18 @@ Describe 'New-ErrorRecord' {
     $Result.FullyQualifiedErrorId | Should -Be 'NotWindows'
   }
 
+  It 'preserves a supplied inner exception' {
+    [System.Exception]$InnerException = [System.FormatException]::new('Bad DER bytes.')
+
+    $Result = New-ErrorRecord `
+      -Message 'Failed to compute certificate identity.' `
+      -ErrorId ([ExporterExitCode]::Unhandled) `
+      -Exception $InnerException
+
+    $Result.Exception.Message | Should -Be 'Failed to compute certificate identity.'
+    $Result.Exception.InnerException | Should -Be $InnerException
+  }
+
   It 'rejects unknown error ids' {
     {
       New-ErrorRecord `

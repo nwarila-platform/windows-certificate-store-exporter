@@ -44,7 +44,7 @@ function ConvertTo-PemCertificate {
     $StoreName = 'Root'
   )
 
-  begin {
+  Begin {
     Write-Debug -Message '[ConvertTo-PemCertificate] Entering Begin'
 
     # Initialize Variable(s)
@@ -62,9 +62,9 @@ function ConvertTo-PemCertificate {
     [System.String]$Private:Subject = [System.String]::Empty
 
     Write-Debug -Message '[ConvertTo-PemCertificate] Exiting Begin'
-  }
+  } Process {
+    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
 
-  process {
     # Reset Variable(s)
     $Base64 = [System.String]::Empty
     $CharacterBytes = [System.Byte[]]@()
@@ -78,7 +78,6 @@ function ConvertTo-PemCertificate {
     $Result = [System.String]::Empty
     $Sha256 = [System.String]::Empty
     $Subject = [System.String]::Empty
-    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
 
     $EscapedSubjectBuilder = [System.Text.StringBuilder]::new()
     foreach ($Character in $Certificate.Subject.ToCharArray()) {
@@ -155,9 +154,7 @@ function ConvertTo-PemCertificate {
     ([System.String]$Result)
 
     Write-Debug -Message '[ConvertTo-PemCertificate] Exiting Process'
-  }
-
-  end {
+  } End {
     Write-Debug -Message '[ConvertTo-PemCertificate] Entering End'
     Write-Debug -Message '[ConvertTo-PemCertificate] Exiting End'
   }
