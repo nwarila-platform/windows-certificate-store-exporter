@@ -74,6 +74,8 @@ function Export-CertificateStoreBundle {
     $WriteManifest
   )
 
+  Write-Debug -Message:'[Export-CertificateStoreBundle] Entering'
+
   # Initialize Variable(s)
   [System.String]$Private:BundleSha256 = [System.String]::Empty
   [System.Collections.Generic.List[
@@ -100,6 +102,7 @@ function Export-CertificateStoreBundle {
   [System.String]$Private:SourceStore = [System.String]::Empty
   [System.String]$Private:Status = [System.String]::Empty
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:StoreCertificates = @()
+  [PSCustomObject]$Private:Result = $Null
   [System.Object]$Private:WriteResult = $Null
 
   $NowUtc = [System.DateTime]::UtcNow
@@ -110,6 +113,8 @@ function Export-CertificateStoreBundle {
   $DisallowedThumbprintSet = [System.Collections.Generic.HashSet[System.String]]::new(
     [System.StringComparer]::OrdinalIgnoreCase
   )
+  # Track the first source store for each certificate identity so PEM blocks can be labelled with
+  # the store that originally contributed the certificate.
   $FirstSourceStoreByHash = [System.Collections.Generic.Dictionary[
   System.String,
   System.String
@@ -120,8 +125,8 @@ function Export-CertificateStoreBundle {
 
   foreach ($RequestedStoreName in $StoreName) {
     $StoreCertificates = Get-StoreCertificate `
-      -StoreLocation $StoreLocation `
-      -StoreName $RequestedStoreName
+      -StoreLocation:$StoreLocation `
+      -StoreName:$RequestedStoreName
 
     foreach ($StoreCertificate in $StoreCertificates) {
       if ($Null -eq $StoreCertificate) {
@@ -129,7 +134,7 @@ function Export-CertificateStoreBundle {
       }
 
       $CandidateCertificates.Add($StoreCertificate)
-      $CertificateHash = Get-CertificateRawDataSha256 -Certificate $StoreCertificate
+      $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$StoreCertificate
 
       if ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $False) {
         $FirstSourceStoreByHash.Add($CertificateHash, $RequestedStoreName)
@@ -137,20 +142,24 @@ function Export-CertificateStoreBundle {
     }
   }
 
+  # Disallowed is a distrust list, not an export source, so read it separately and subtract matches
+  # from the requested store candidates.
   $DisallowedCertificates = Get-StoreCertificate `
-    -StoreLocation $StoreLocation `
-    -StoreName Disallowed
+    -StoreLocation:$StoreLocation `
+    -StoreName:'Disallowed'
 
   foreach ($DisallowedCertificate in $DisallowedCertificates) {
     if ($Null -eq $DisallowedCertificate) {
       continue
     }
 
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate $DisallowedCertificate
+    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$DisallowedCertificate
     $DisallowedThumbprints.Add($CertificateHash)
     [void]$DisallowedThumbprintSet.Add($CertificateHash)
   }
 
+  # Count every candidate exclusion class here because the result contract reports these Excluded
+  # totals separately from the selected certificate list.
   foreach ($CandidateCertificate in $CandidateCertificates) {
     if ($IncludeExpired.IsPresent -eq $False) {
       $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
@@ -167,7 +176,7 @@ function Export-CertificateStoreBundle {
       }
     }
 
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate $CandidateCertificate
+    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
 
     if ($DisallowedThumbprintSet.Contains($CertificateHash) -eq $True) {
       $ExcludedDisallowed++
@@ -185,19 +194,21 @@ function Export-CertificateStoreBundle {
   $CandidateCertificateArray = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$CandidateCertificates.ToArray()
   $SelectedCertificates = @(
     Select-ExportableCertificate `
-      -Certificate $CandidateCertificateArray `
-      -DisallowedThumbprint ([System.String[]]$DisallowedThumbprints.ToArray()) `
+      -Certificate:$CandidateCertificateArray `
+      -DisallowedThumbprint:([System.String[]]$DisallowedThumbprints.ToArray()) `
       -IncludeExpired:$IncludeExpired.IsPresent
   )
 
   $PemBlocks = [System.Collections.Generic.List[System.String]]::new()
+  # Fall back to the first requested store when a selected certificate has no tracked source entry,
+  # preserving the caller's store preference in PEM labels.
   $DefaultSourceStore = 'Root'
   if ($StoreName.Count -gt 0) {
     $DefaultSourceStore = [System.String]$StoreName[0]
   }
 
   foreach ($SelectedCertificate in $SelectedCertificates) {
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate $SelectedCertificate
+    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$SelectedCertificate
     $SourceStore = $DefaultSourceStore
 
     if ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $True) {
@@ -207,34 +218,43 @@ function Export-CertificateStoreBundle {
     $PemBlocks.Add(
       (
         ConvertTo-PemCertificate `
-          -Certificate $SelectedCertificate `
-          -StoreName $SourceStore
+          -Certificate:$SelectedCertificate `
+          -StoreName:$SourceStore
       )
     )
   }
 
   $WriteResult = Write-CertificateBundle `
-    -Path $Path `
-    -PemBlock ([System.String[]]$PemBlocks.ToArray()) `
-    -MinimumCertificateCount $MinimumCertificateCount `
+    -Path:$Path `
+    -PemBlock:([System.String[]]$PemBlocks.ToArray()) `
+    -MinimumCertificateCount:$MinimumCertificateCount `
     -WriteManifest:$WriteManifest.IsPresent
 
   $Status = [System.String]$WriteResult.Status
   $BundleSha256 = [System.String]$WriteResult.BundleSha256
   $ManifestPath = $WriteResult.ManifestPath
 
-  New-CertificateStoreExporterResult `
-    -Path $Path `
-    -Status $Status `
-    -Certificate $SelectedCertificates `
-    -BundleSha256 $BundleSha256 `
-    -Examined $CandidateCertificates.Count `
-    -ExcludedExpired $ExcludedExpired `
-    -ExcludedNotYetValid $ExcludedNotYetValid `
-    -ExcludedDisallowed $ExcludedDisallowed `
-    -ExcludedDuplicate $ExcludedDuplicate `
-    -StoreLocation $StoreLocation `
-    -StoreName $StoreName `
-    -ManifestPath $ManifestPath
+  # It's always desirable to explicitly set the Result object with its desired class as close
+  #   to the soft return to ensure the output is predictable and easily traceable.
+  [PSCustomObject]$Result = New-CertificateStoreExporterResult `
+    -Path:$Path `
+    -Status:$Status `
+    -Certificate:$SelectedCertificates `
+    -BundleSha256:$BundleSha256 `
+    -Examined:($CandidateCertificates.Count) `
+    -ExcludedExpired:$ExcludedExpired `
+    -ExcludedNotYetValid:$ExcludedNotYetValid `
+    -ExcludedDisallowed:$ExcludedDisallowed `
+    -ExcludedDuplicate:$ExcludedDuplicate `
+    -StoreLocation:$StoreLocation `
+    -StoreName:$StoreName `
+    -ManifestPath:$ManifestPath
 
+  # Do a  'soft'  return by outputting the result to the pipe without using the return function
+  #   which would immediately end the function,  this enables us to have the very last
+  #   executing item be write-debug giving us a valuable breakpoint & enabling better
+  #   debugging functionality and output.
+  $Result
+
+  Write-Debug -Message:'[Export-CertificateStoreBundle] Exiting'
 }
