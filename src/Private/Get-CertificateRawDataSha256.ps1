@@ -47,12 +47,11 @@ function Get-CertificateRawDataSha256 {
   }
 
   process {
-    Write-Debug -Message '[Get-CertificateRawDataSha256] Entering Process'
-
     # Reset Variable(s)
     $HashBytes = [System.Byte[]]@()
-    [System.String]$Private:Result = [System.String]::Empty
+    $Result = [System.String]::Empty
     $Sha256 = $Null
+    Write-Debug -Message '[Get-CertificateRawDataSha256] Entering Process'
 
     $Sha256 = [System.Security.Cryptography.SHA256]::Create()
 

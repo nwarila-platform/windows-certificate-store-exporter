@@ -65,8 +65,6 @@ function ConvertTo-PemCertificate {
   }
 
   process {
-    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
-
     # Reset Variable(s)
     $Base64 = [System.String]::Empty
     $CharacterBytes = [System.Byte[]]@()
@@ -77,9 +75,10 @@ function ConvertTo-PemCertificate {
     $Lines = $Null
     $NotAfter = [System.String]::Empty
     $NotBefore = [System.String]::Empty
-    [System.String]$Private:Result = [System.String]::Empty
+    $Result = [System.String]::Empty
     $Sha256 = [System.String]::Empty
     $Subject = [System.String]::Empty
+    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
 
     $EscapedSubjectBuilder = [System.Text.StringBuilder]::new()
     foreach ($Character in $Certificate.Subject.ToCharArray()) {
