@@ -59,6 +59,8 @@ function Write-CertificateBundle {
     $WriteManifest
   )
 
+  Write-Debug -Message:'[Write-CertificateBundle] Entering'
+
   # Initialize Variable(s)
   [System.String]$Private:BundleBackupPath = [System.String]::Empty
   [System.String]$Private:BundleSha256 = [System.String]::Empty
@@ -81,6 +83,7 @@ function Write-CertificateBundle {
   [System.Boolean]$Private:ManifestUnchanged = $False
   [System.String]$Private:OperationTarget = [System.String]::Empty
   [System.String]$Private:PathLeaf = [System.String]::Empty
+  [PSCustomObject]$Private:Result = $Null
   [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
   [System.String]$Private:Status = [System.String]::Empty
 
@@ -88,11 +91,11 @@ function Write-CertificateBundle {
     $FailureMessage = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.' -f $PemBlock.Count, $MinimumCertificateCount
 
     New-ErrorRecord `
-      -Message $FailureMessage `
-      -ErrorId ([ExporterExitCode]::BelowMinimumCertificateCount) `
-      -Category ([System.Management.Automation.ErrorCategory]::InvalidData) `
-      -TargetObject $Path `
-      -IsFatal
+      -Category:([System.Management.Automation.ErrorCategory]::InvalidData) `
+      -ErrorId:([ExporterExitCode]::BelowMinimumCertificateCount) `
+      -IsFatal:$True `
+      -Message:$FailureMessage `
+      -TargetObject:$Path
   }
 
   $Encoding = [System.Text.UTF8Encoding]::new($False)
@@ -101,25 +104,27 @@ function Write-CertificateBundle {
   $PathLeaf = [System.IO.Path]::GetFileName($FullPath)
   $BundleText = ([System.String[]]$PemBlock -join "`n") -replace "`r`n?", "`n"
 
+  # PEM bundle bytes are consumed by minimal trust stores; reject non-ASCII before any write.
   foreach ($Character in $BundleText.ToCharArray()) {
     if ([System.Int32]$Character -gt 0x7F) {
       New-ErrorRecord `
-        -Message 'Certificate bundle content must be ASCII.' `
-        -ErrorId ([ExporterExitCode]::WriteFailure) `
-        -Category ([System.Management.Automation.ErrorCategory]::InvalidData) `
-        -TargetObject $Path `
-        -IsFatal
+        -Category:([System.Management.Automation.ErrorCategory]::InvalidData) `
+        -ErrorId:([ExporterExitCode]::WriteFailure) `
+        -IsFatal:$True `
+        -Message:('Certificate bundle content must be ASCII.') `
+        -TargetObject:$Path
     }
   }
 
   $BundleBytes = $Encoding.GetBytes($BundleText)
-  $Sha256 = [System.Security.Cryptography.SHA256]::Create()
 
-  try {
+  Try {
+    $Sha256 = [System.Security.Cryptography.SHA256]::Create()
     $BundleSha256 = [System.BitConverter]::ToString(
       $Sha256.ComputeHash($BundleBytes)
     ).Replace('-', '')
 
+    # Avoid rewriting byte-identical content so callers keep stable mtimes and skip needless swaps.
     if ([System.IO.File]::Exists($FullPath) -eq $True) {
       $ExistingBytes = [System.IO.File]::ReadAllBytes($FullPath)
       $ExistingSha256 = [System.BitConverter]::ToString(
@@ -134,6 +139,7 @@ function Write-CertificateBundle {
     if ($WriteManifest.IsPresent -eq $True) {
       $ManifestPath = '{0}.sha256' -f $Path
       $ManifestFullPath = '{0}.sha256' -f $FullPath
+      # sha256sum-compatible sidecars are "<hex><two spaces><leaf><LF>" for portable verification.
       $ManifestText = '{0}  {1}{2}' -f $BundleSha256, $PathLeaf, "`n"
       $ManifestBytes = $Encoding.GetBytes($ManifestText)
 
@@ -171,17 +177,18 @@ function Write-CertificateBundle {
       ) {
         $Status = 'WhatIf'
       } else {
-        try {
+        Try {
           if ($BundleUnchanged -eq $False) {
+            # Same-directory temps keep the final Replace/Move atomic on the target volume.
             $BundleTempPath = Join-Path `
-              -Path $DirectoryPath `
-              -ChildPath ('.{0}.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
+              -Path:$DirectoryPath `
+              -ChildPath:('.{0}.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
             [System.IO.File]::WriteAllText($BundleTempPath, $BundleText, $Encoding)
 
             if ([System.IO.File]::Exists($FullPath) -eq $True) {
               $BundleBackupPath = Join-Path `
-                -Path $DirectoryPath `
-                -ChildPath ('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
+                -Path:$DirectoryPath `
+                -ChildPath:('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
               [System.IO.File]::Replace($BundleTempPath, $FullPath, $BundleBackupPath)
               [System.IO.File]::Delete($BundleBackupPath)
             } else {
@@ -190,15 +197,16 @@ function Write-CertificateBundle {
           }
 
           if ($WriteManifest.IsPresent -eq $True -and $ManifestUnchanged -eq $False) {
+            # Manifest writes use the same temp-then-swap path so bundle metadata is never half-written.
             $ManifestTempPath = Join-Path `
-              -Path $DirectoryPath `
-              -ChildPath ('.{0}.sha256.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
+              -Path:$DirectoryPath `
+              -ChildPath:('.{0}.sha256.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
             [System.IO.File]::WriteAllText($ManifestTempPath, $ManifestText, $Encoding)
 
             if ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
               $ManifestBackupPath = Join-Path `
-                -Path $DirectoryPath `
-                -ChildPath ('.{0}.sha256.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
+                -Path:$DirectoryPath `
+                -ChildPath:('.{0}.sha256.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
               [System.IO.File]::Replace($ManifestTempPath, $ManifestFullPath, $ManifestBackupPath)
               [System.IO.File]::Delete($ManifestBackupPath)
             } else {
@@ -207,7 +215,8 @@ function Write-CertificateBundle {
           }
 
           $Status = 'Written'
-        } catch {
+        } Catch {
+          # Failed atomic swaps can leave temp or backup artifacts; remove them so retry is clean.
           if (
             [System.String]::IsNullOrEmpty($BundleTempPath) -eq $False -and
             [System.IO.File]::Exists($BundleTempPath) -eq $True
@@ -237,21 +246,24 @@ function Write-CertificateBundle {
           }
 
           New-ErrorRecord `
-            -Message ('Failed to write certificate bundle: {0}' -f $PSItem.Exception.Message) `
-            -ErrorId ([ExporterExitCode]::WriteFailure) `
-            -Category ([System.Management.Automation.ErrorCategory]::WriteError) `
-            -TargetObject $Path `
-            -IsFatal
+            -Category:([System.Management.Automation.ErrorCategory]::WriteError) `
+            -ErrorId:([ExporterExitCode]::WriteFailure) `
+            -Exception:$PSItem.Exception `
+            -IsFatal:$True `
+            -Message:('Failed to write certificate bundle: {0}' -f $PSItem.Exception.Message) `
+            -TargetObject:$Path
         }
       }
     }
-  } finally {
+  } Finally {
     if ($Null -ne $Sha256) {
       $Sha256.Dispose()
     }
   }
 
-  [PSCustomObject]@{
+  # It's always desirable to explicitly set the Result object with its desired class as close
+  #   to the soft return to ensure the output is predictable and easily traceable.
+  [PSCustomObject]$Result = [PSCustomObject]@{
     Path             = [System.String]$Path
     Status           = [System.String]$Status
     BundleSha256     = [System.String]$BundleSha256
@@ -259,4 +271,10 @@ function Write-CertificateBundle {
     ManifestPath     = $ManifestPath
   }
 
+  # Do a 'soft' return by outputting the result to the pipe without using the return keyword
+  #   which would immediately end the function, this enables us to have the very last
+  #   executing item be Write-Debug giving us a valuable breakpoint and better debugging output.
+  $Result
+
+  Write-Debug -Message:'[Write-CertificateBundle] Exiting'
 }
