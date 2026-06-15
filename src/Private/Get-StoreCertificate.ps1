@@ -62,6 +62,8 @@ function Get-StoreCertificate {
     $StoreName = 'Root'
   )
 
+  Write-Debug -Message '[Get-StoreCertificate] Entering'
+
   # Initialize Variable(s)
   [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]$Private:CertificateCollection = $Null
   [System.String]$Private:FailureMessage = [System.String]::Empty
@@ -69,6 +71,7 @@ function Get-StoreCertificate {
     [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly -bor
     [System.Security.Cryptography.X509Certificates.OpenFlags]::OpenExistingOnly
   )
+  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:Result = @()
   [System.Security.Cryptography.X509Certificates.X509Store]$Private:Store = $Null
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:StoreCertificates = @()
   [System.Security.Cryptography.X509Certificates.StoreLocation]$Private:TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine
@@ -106,5 +109,7 @@ function Get-StoreCertificate {
     }
   }
 
-  $StoreCertificates
+  $Result = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$StoreCertificates
+  ([System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result)
+  Write-Debug -Message '[Get-StoreCertificate] Exiting'
 }

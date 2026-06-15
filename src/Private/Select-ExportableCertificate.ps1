@@ -50,6 +50,8 @@ function Select-ExportableCertificate {
     $IncludeExpired
   )
 
+  Write-Debug -Message '[Select-ExportableCertificate] Entering'
+
   # Initialize Variable(s)
   [System.String]$Private:CertificateHash = [System.String]::Empty
   [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
@@ -57,6 +59,7 @@ function Select-ExportableCertificate {
   [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
   [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
   [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
+  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:Result = @()
   [System.Collections.Generic.SortedDictionary[
   System.String,
   System.Security.Cryptography.X509Certificates.X509Certificate2
@@ -102,9 +105,11 @@ function Select-ExportableCertificate {
     }
   }
 
-  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
+  $Result = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
     $SelectedByHash.GetEnumerator() | ForEach-Object -Process {
       $PSItem.Value
     }
   )
+  ([System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result)
+  Write-Debug -Message '[Select-ExportableCertificate] Exiting'
 }

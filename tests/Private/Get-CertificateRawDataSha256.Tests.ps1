@@ -26,4 +26,20 @@ Describe 'Get-CertificateRawDataSha256' {
       $Certificate.Dispose()
     }
   }
+
+  It 'fails closed when certificate RawData is empty' {
+    $Certificate = New-MockObject `
+      -Type ([System.Security.Cryptography.X509Certificates.X509Certificate2]) `
+      -Properties @{
+        RawData = [System.Byte[]]@()
+        Subject = 'CN=Empty RawData'
+      }
+
+    ($Null -eq $Certificate.RawData) | Should -BeFalse
+    $Certificate.RawData.Length | Should -Be 0
+
+    {
+      Get-CertificateRawDataSha256 -Certificate $Certificate
+    } | Should -Throw -ErrorId 'Unhandled,New-ErrorRecord'
+  }
 }

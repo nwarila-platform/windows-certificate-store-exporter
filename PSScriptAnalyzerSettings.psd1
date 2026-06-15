@@ -18,6 +18,7 @@
   IncludeRules        = @('*')
 
   ExcludeRules        = @(
+    'PSUseCorrectCasing'
     'PSUseShouldProcessForStateChangingFunctions'
   )
 
@@ -60,10 +61,6 @@
       CheckHashtable = $true
     }
 
-    PSUseCorrectCasing                   = @{
-      Enable = $true
-    }
-
     'Measure-PrivateVariableDeclaration' = @{
       Enable = $true
     }
@@ -73,6 +70,10 @@
     }
 
     'Measure-FlatNonPipelineFunction'    = @{
+      Enable = $true
+    }
+
+    'Measure-CanonicalNamedBlock'        = @{
       Enable = $true
     }
 

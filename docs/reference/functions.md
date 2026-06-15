@@ -53,7 +53,7 @@ Creates or throws a structured `ErrorRecord` with an exporter `ExporterExitCode`
 ErrorId.
 
 ```powershell
-New-ErrorRecord -Message <string> -ErrorId <ExporterExitCode> [-Category <ErrorCategory>] [-TargetObject <object>] [-IsFatal]
+New-ErrorRecord -Message <string> -ErrorId <ExporterExitCode> [-Exception <Exception>] [-Category <ErrorCategory>] [-TargetObject <object>] [-IsFatal]
 ```
 
 ## Resolve-ExitCode
