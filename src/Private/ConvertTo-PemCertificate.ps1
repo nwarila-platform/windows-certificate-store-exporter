@@ -45,7 +45,7 @@ function ConvertTo-PemCertificate {
   )
 
   Begin {
-    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Begin'
+    Write-Debug -Message:'[ConvertTo-PemCertificate] Entering Begin'
 
     # Initialize Variable(s)
     [System.String]$Private:Base64 = [System.String]::Empty
@@ -61,9 +61,9 @@ function ConvertTo-PemCertificate {
     [System.String]$Private:Sha256 = [System.String]::Empty
     [System.String]$Private:Subject = [System.String]::Empty
 
-    Write-Debug -Message '[ConvertTo-PemCertificate] Exiting Begin'
+    Write-Debug -Message:'[ConvertTo-PemCertificate] Exiting Begin'
   } Process {
-    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
+    Write-Debug -Message:'[ConvertTo-PemCertificate] Entering Process'
 
     # Reset Variable(s)
     $Base64 = [System.String]::Empty
@@ -79,6 +79,7 @@ function ConvertTo-PemCertificate {
     $Sha256 = [System.String]::Empty
     $Subject = [System.String]::Empty
 
+    # PEM metadata comments stay ASCII so bundle diffs and consumers do not depend on locale.
     $EscapedSubjectBuilder = [System.Text.StringBuilder]::new()
     foreach ($Character in $Certificate.Subject.ToCharArray()) {
       $CharacterCode = [System.Int32]$Character
@@ -121,7 +122,7 @@ function ConvertTo-PemCertificate {
 
     $Subject = $EscapedSubjectBuilder.ToString()
     $Issuer = $EscapedIssuerBuilder.ToString()
-    $Sha256 = Get-CertificateRawDataSha256 -Certificate $Certificate
+    $Sha256 = Get-CertificateRawDataSha256 -Certificate:$Certificate
     $NotBefore = $Certificate.NotBefore.ToUniversalTime().ToString(
       'yyyy-MM-ddTHH:mm:ssZ',
       [System.Globalization.CultureInfo]::InvariantCulture
@@ -150,12 +151,12 @@ function ConvertTo-PemCertificate {
 
     [void]$Lines.Add('-----END CERTIFICATE-----')
 
-    $Result = [System.String]($Lines.ToArray() -join "`n")
-    ([System.String]$Result)
+    [System.String]$Result = [System.String]($Lines.ToArray() -join "`n")
+    $Result
 
-    Write-Debug -Message '[ConvertTo-PemCertificate] Exiting Process'
+    Write-Debug -Message:'[ConvertTo-PemCertificate] Exiting Process'
   } End {
-    Write-Debug -Message '[ConvertTo-PemCertificate] Entering End'
-    Write-Debug -Message '[ConvertTo-PemCertificate] Exiting End'
+    Write-Debug -Message:'[ConvertTo-PemCertificate] Entering End'
+    Write-Debug -Message:'[ConvertTo-PemCertificate] Exiting End'
   }
 }

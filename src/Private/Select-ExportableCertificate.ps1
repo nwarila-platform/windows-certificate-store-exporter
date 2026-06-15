@@ -50,7 +50,7 @@ function Select-ExportableCertificate {
     $IncludeExpired
   )
 
-  Write-Debug -Message '[Select-ExportableCertificate] Entering'
+  Write-Debug -Message:'[Select-ExportableCertificate] Entering'
 
   # Initialize Variable(s)
   [System.String]$Private:CertificateHash = [System.String]::Empty
@@ -69,11 +69,13 @@ function Select-ExportableCertificate {
   $DisallowedSet = [System.Collections.Generic.HashSet[System.String]]::new(
     [System.StringComparer]::OrdinalIgnoreCase
   )
-  $DisallowedThumbprint | ForEach-Object -Process {
-    if ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
-      [void]$DisallowedSet.Add($PSItem)
-    }
-  }
+  $DisallowedThumbprint | ForEach-Object -Process:({
+      if ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
+        [void]$DisallowedSet.Add($PSItem)
+      }
+    })
+  # SHA-256 DER identity is the stable key for Disallowed subtraction, deduplication, and
+  # deterministic bundle ordering.
   $SelectedByHash = [System.Collections.Generic.SortedDictionary[
   System.String,
   System.Security.Cryptography.X509Certificates.X509Certificate2
@@ -86,6 +88,7 @@ function Select-ExportableCertificate {
 
     $IsCurrent = $True
     if ($IncludeExpired.IsPresent -eq $False) {
+      # Export only currently valid certificates unless the caller explicitly requests otherwise.
       $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
       $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
       $IsCurrent = [System.Boolean]($NotBeforeUtc -le $NowUtc -and $NotAfterUtc -ge $NowUtc)
@@ -95,7 +98,7 @@ function Select-ExportableCertificate {
       continue
     }
 
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate $CandidateCertificate
+    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
     if ($DisallowedSet.Contains($CertificateHash) -eq $True) {
       continue
     }
@@ -105,11 +108,11 @@ function Select-ExportableCertificate {
     }
   }
 
-  $Result = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
-    $SelectedByHash.GetEnumerator() | ForEach-Object -Process {
-      $PSItem.Value
-    }
+  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
+    $SelectedByHash.GetEnumerator() | ForEach-Object -Process:({
+        $PSItem.Value
+      })
   )
-  ([System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result)
-  Write-Debug -Message '[Select-ExportableCertificate] Exiting'
+  $Result
+  Write-Debug -Message:'[Select-ExportableCertificate] Exiting'
 }
