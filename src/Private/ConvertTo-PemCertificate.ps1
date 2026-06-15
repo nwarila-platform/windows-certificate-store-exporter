@@ -57,6 +57,7 @@ function ConvertTo-PemCertificate {
     [System.Collections.Generic.List[System.String]]$Private:Lines = $Null
     [System.String]$Private:NotAfter = [System.String]::Empty
     [System.String]$Private:NotBefore = [System.String]::Empty
+    [System.String]$Private:Result = [System.String]::Empty
     [System.String]$Private:Sha256 = [System.String]::Empty
     [System.String]$Private:Subject = [System.String]::Empty
 
@@ -64,6 +65,9 @@ function ConvertTo-PemCertificate {
   }
 
   process {
+    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
+
+    # Reset Variable(s)
     $Base64 = [System.String]::Empty
     $CharacterBytes = [System.Byte[]]@()
     $CharacterCode = 0
@@ -73,9 +77,9 @@ function ConvertTo-PemCertificate {
     $Lines = $Null
     $NotAfter = [System.String]::Empty
     $NotBefore = [System.String]::Empty
+    [System.String]$Private:Result = [System.String]::Empty
     $Sha256 = [System.String]::Empty
     $Subject = [System.String]::Empty
-    Write-Debug -Message '[ConvertTo-PemCertificate] Entering Process'
 
     $EscapedSubjectBuilder = [System.Text.StringBuilder]::new()
     foreach ($Character in $Certificate.Subject.ToCharArray()) {
@@ -148,7 +152,8 @@ function ConvertTo-PemCertificate {
 
     [void]$Lines.Add('-----END CERTIFICATE-----')
 
-    [System.String]($Lines.ToArray() -join "`n")
+    $Result = [System.String]($Lines.ToArray() -join "`n")
+    ([System.String]$Result)
 
     Write-Debug -Message '[ConvertTo-PemCertificate] Exiting Process'
   }
