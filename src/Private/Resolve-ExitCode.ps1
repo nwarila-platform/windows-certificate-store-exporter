@@ -35,23 +35,30 @@ function Resolve-ExitCode {
     $ErrorRecord
   )
 
+  Write-Debug -Message:'[Resolve-ExitCode] Entering'
+
   # Initialize Variable(s)
   [ExporterExitCode]$Private:ExitCode = [ExporterExitCode]::Unhandled
   [System.String]$Private:FullyQualifiedErrorId = [System.String]::Empty
+  [System.Int32]$Private:Result = 0
   [System.String]$Private:ShortErrorId = [System.String]::Empty
 
   $FullyQualifiedErrorId = [System.String]$ErrorRecord.FullyQualifiedErrorId
+  # The short ErrorId is the leading segment before the first comma (ThrowTerminatingError appends
+  #   ",<FunctionName>"); only that leading id maps to an exit code.
   $ShortErrorId = [System.String]($FullyQualifiedErrorId -split ',', 2)[0]
 
-  if ([System.Enum]::IsDefined([ExporterExitCode], $ShortErrorId) -eq $False) {
-    return
+  # Only a KNOWN exporter ErrorId that is NOT Success/Unhandled maps to an explicit process exit
+  #   code. Unknown ids and Success/Unhandled intentionally emit NOTHING, so the EntryPoint trap
+  #   treats them as an unhandled failure (exit 1).
+  If ([System.Enum]::IsDefined([ExporterExitCode], $ShortErrorId) -eq $True) {
+    $ExitCode = [ExporterExitCode]$ShortErrorId
+
+    If ($ExitCode -notin @([ExporterExitCode]::Success, [ExporterExitCode]::Unhandled)) {
+      [System.Int32]$Result = [System.Int32]$ExitCode
+      $Result
+    }
   }
 
-  $ExitCode = [ExporterExitCode]$ShortErrorId
-
-  if ($ExitCode -in @([ExporterExitCode]::Success, [ExporterExitCode]::Unhandled)) {
-    return
-  }
-
-  [System.Int32]$ExitCode
+  Write-Debug -Message:'[Resolve-ExitCode] Exiting'
 }
