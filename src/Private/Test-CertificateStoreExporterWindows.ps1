@@ -26,7 +26,14 @@ function Test-CertificateStoreExporterWindows {
   [OutputType([System.Boolean])]
   param ()
 
-  [System.Boolean](
+  Write-Debug -Message '[Test-CertificateStoreExporterWindows] Entering'
+
+  # Initialize Variable(s)
+  [System.Boolean]$Private:Result = $False
+
+  $Result = [System.Boolean](
     [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
   )
+  ([System.Boolean]$Result)
+  Write-Debug -Message '[Test-CertificateStoreExporterWindows] Exiting'
 }
