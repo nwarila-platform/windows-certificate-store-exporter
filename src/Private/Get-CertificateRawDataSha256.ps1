@@ -34,7 +34,7 @@ function Get-CertificateRawDataSha256 {
       Mandatory = $True,
       ParameterSetName = 'default',
       ValueFromPipeline = $True,
-      ValueFromPipelineByPropertyName = $True
+      ValueFromPipelineByPropertyName = $False
     )]
     [ValidateNotNull()]
     [System.Security.Cryptography.X509Certificates.X509Certificate2]
@@ -59,6 +59,17 @@ function Get-CertificateRawDataSha256 {
     [System.String]$HashString = [System.String]::Empty
     [System.String]$Result = [System.String]::Empty
     [System.Security.Cryptography.SHA256]$Sha256 = $Null
+
+    # A certificate with no DER bytes has no computable identity; fail closed rather than emit the
+    # well-known empty-input hash, which would let an empty/placeholder cert collide or masquerade.
+    If (($Null -eq $Certificate.RawData) -or ($Certificate.RawData.Length -eq 0)) {
+      New-ErrorRecord `
+        -Category:([System.Management.Automation.ErrorCategory]::InvalidData) `
+        -ErrorId:([ExporterExitCode]::Unhandled) `
+        -IsFatal:$True `
+        -Message:('Certificate has no RawData (DER bytes) to hash; subject: {0}.' -f $Certificate.Subject) `
+        -TargetObject:$Certificate
+    }
 
     Try {
       # BitConverter.ToString renders bytes as hyphen-delimited hex ("4A-B2-..."); strip the
