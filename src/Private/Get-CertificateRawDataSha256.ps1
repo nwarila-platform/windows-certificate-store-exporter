@@ -40,13 +40,16 @@ function Get-CertificateRawDataSha256 {
 
     # Initialize Variable(s)
     [System.Byte[]]$Private:HashBytes = [System.Byte[]]@()
+    [System.String]$Private:Result = [System.String]::Empty
     [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
 
     Write-Debug -Message '[Get-CertificateRawDataSha256] Exiting Begin'
   }
 
   process {
+    # Reset Variable(s)
     $HashBytes = [System.Byte[]]@()
+    $Result = [System.String]::Empty
     $Sha256 = $Null
     Write-Debug -Message '[Get-CertificateRawDataSha256] Entering Process'
 
@@ -54,13 +57,14 @@ function Get-CertificateRawDataSha256 {
 
     try {
       $HashBytes = $Sha256.ComputeHash($Certificate.RawData)
-      [System.BitConverter]::ToString($HashBytes).Replace('-', '')
+      $Result = [System.String]([System.BitConverter]::ToString($HashBytes).Replace('-', ''))
     } finally {
       if ($Null -ne $Sha256) {
         $Sha256.Dispose()
       }
     }
 
+    ([System.String]$Result)
     Write-Debug -Message '[Get-CertificateRawDataSha256] Exiting Process'
   }
 
