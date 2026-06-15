@@ -65,7 +65,10 @@ function Get-StoreCertificate {
   # Initialize Variable(s)
   [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]$Private:CertificateCollection = $Null
   [System.String]$Private:FailureMessage = [System.String]::Empty
-  [System.Security.Cryptography.X509Certificates.OpenFlags]$Private:OpenFlags = [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly
+  [System.Security.Cryptography.X509Certificates.OpenFlags]$Private:OpenFlags = (
+    [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly -bor
+    [System.Security.Cryptography.X509Certificates.OpenFlags]::OpenExistingOnly
+  )
   [System.Security.Cryptography.X509Certificates.X509Store]$Private:Store = $Null
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:StoreCertificates = @()
   [System.Security.Cryptography.X509Certificates.StoreLocation]$Private:TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine
@@ -80,16 +83,13 @@ function Get-StoreCertificate {
   }
 
   $TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::$StoreLocation
-  $OpenFlags = [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly -bor [System.Security.Cryptography.X509Certificates.OpenFlags]::OpenExistingOnly
 
   try {
     $Store = & $StoreFactory -Name $StoreName -Location $TypedStoreLocation
     $Store.Open($OpenFlags)
     $CertificateCollection = $Store.Certificates
     $StoreCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
-      $CertificateCollection | ForEach-Object -Process {
-        $PSItem
-      }
+      $CertificateCollection
     )
   } catch {
     $FailureMessage = 'Failed to read Windows certificate store {0}\{1}: {2}' -f $StoreLocation, $StoreName, $PSItem.Exception.Message
