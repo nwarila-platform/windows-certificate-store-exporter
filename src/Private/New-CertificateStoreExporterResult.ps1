@@ -19,6 +19,9 @@ Function New-CertificateStoreExporterResult {
     .PARAMETER Certificate
         Certificates included in bundle order.
 
+    .PARAMETER CertificateThumbprint
+        Precomputed SHA-256 DER thumbprints in bundle order.
+
     .PARAMETER BundleSha256
         SHA-256 hash of the candidate or written bundle body.
 
@@ -86,6 +89,18 @@ Function New-CertificateStoreExporterResult {
     [AllowEmptyCollection()]
     [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
     $Certificate = @(),
+
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [AllowEmptyCollection()]
+    [ValidatePattern('^[A-Fa-f0-9]{64}$')]
+    [System.String[]]
+    $CertificateThumbprint = @(),
 
     [Parameter(
       DontShow = $False,
@@ -216,9 +231,15 @@ Function New-CertificateStoreExporterResult {
   [System.Collections.Generic.List[System.String]]$Private:Thumbprints = $Null
 
   $Thumbprints = [System.Collections.Generic.List[System.String]]::new()
-  # Result identities are SHA-256 over RawData; X509Certificate2.Thumbprint is SHA-1.
-  $Certificate | ForEach-Object -Process: {
-    $Thumbprints.Add((Get-CertificateRawDataSha256 -Certificate:$PSItem))
+  If ($PSBoundParameters.ContainsKey('CertificateThumbprint') -eq $True) {
+    $CertificateThumbprint | ForEach-Object -Process:({
+        $Thumbprints.Add($PSItem)
+      })
+  } Else {
+    # Result identities are SHA-256 over RawData; X509Certificate2.Thumbprint is SHA-1.
+    $Certificate | ForEach-Object -Process:({
+        $Thumbprints.Add((Get-CertificateRawDataSha256 -Certificate:$PSItem))
+      })
   }
 
   $Excluded = [PSCustomObject]@{

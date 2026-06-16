@@ -20,10 +20,15 @@ Describe 'Select-ExportableCertificate' {
     }
   }
 
-  It 'returns an empty array for empty input' {
+  It 'returns an empty selection contract for empty input' {
     $Result = Select-ExportableCertificate -Certificate @()
 
-    $Result | Should -HaveCount 0
+    @($Result.Selected) | Should -HaveCount 0
+    @($Result.SelectedThumbprint) | Should -HaveCount 0
+    $Result.ExcludedExpired | Should -Be 0
+    $Result.ExcludedNotYetValid | Should -Be 0
+    $Result.ExcludedDisallowed | Should -Be 0
+    $Result.ExcludedDuplicate | Should -Be 0
   }
 
   It 'drops expired and not-yet-valid certificates by default' {
@@ -34,8 +39,13 @@ Describe 'Select-ExportableCertificate' {
     try {
       $Result = Select-ExportableCertificate -Certificate @($Expired, $Valid, $NotYetValid)
 
-      $Result | Should -HaveCount 1
-      $Result[0] | Should -Be $Valid
+      @($Result.Selected) | Should -HaveCount 1
+      $Result.Selected[0] | Should -Be $Valid
+      $Result.SelectedThumbprint | Should -Be @(Get-CertificateRawDataSha256 -Certificate $Valid)
+      $Result.ExcludedExpired | Should -Be 1
+      $Result.ExcludedNotYetValid | Should -Be 1
+      $Result.ExcludedDisallowed | Should -Be 0
+      $Result.ExcludedDuplicate | Should -Be 0
     } finally {
       $NotYetValid.Dispose()
       $Expired.Dispose()
@@ -54,8 +64,13 @@ Describe 'Select-ExportableCertificate' {
       $ExpectedHashes = Get-TestCertificateSha256 -Certificate @($Expired, $NotYetValid) |
         Sort-Object
 
-      $Result | Should -HaveCount 2
-      Get-TestCertificateSha256 -Certificate $Result | Should -Be $ExpectedHashes
+      @($Result.Selected) | Should -HaveCount 2
+      Get-TestCertificateSha256 -Certificate $Result.Selected | Should -Be $ExpectedHashes
+      $Result.SelectedThumbprint | Should -Be $ExpectedHashes
+      $Result.ExcludedExpired | Should -Be 0
+      $Result.ExcludedNotYetValid | Should -Be 0
+      $Result.ExcludedDisallowed | Should -Be 0
+      $Result.ExcludedDuplicate | Should -Be 0
     } finally {
       $NotYetValid.Dispose()
       $Expired.Dispose()
@@ -73,8 +88,13 @@ Describe 'Select-ExportableCertificate' {
         -Certificate @($Disallowed, $Valid) `
         -DisallowedThumbprint @($DisallowedHash)
 
-      $Result | Should -HaveCount 1
-      $Result[0] | Should -Be $Valid
+      @($Result.Selected) | Should -HaveCount 1
+      $Result.Selected[0] | Should -Be $Valid
+      $Result.SelectedThumbprint | Should -Be @(Get-CertificateRawDataSha256 -Certificate $Valid)
+      $Result.ExcludedExpired | Should -Be 0
+      $Result.ExcludedNotYetValid | Should -Be 0
+      $Result.ExcludedDisallowed | Should -Be 1
+      $Result.ExcludedDuplicate | Should -Be 0
     } finally {
       $Disallowed.Dispose()
       $Valid.Dispose()
@@ -88,9 +108,15 @@ Describe 'Select-ExportableCertificate' {
     try {
       $Result = Select-ExportableCertificate -Certificate @($Duplicate, $Original)
 
-      $Result | Should -HaveCount 1
-      (Get-CertificateRawDataSha256 -Certificate $Result[0]) |
+      @($Result.Selected) | Should -HaveCount 1
+      (Get-CertificateRawDataSha256 -Certificate $Result.Selected[0]) |
         Should -Be (Get-CertificateRawDataSha256 -Certificate $Original)
+      $Result.SelectedThumbprint |
+        Should -Be @(Get-CertificateRawDataSha256 -Certificate $Original)
+      $Result.ExcludedExpired | Should -Be 0
+      $Result.ExcludedNotYetValid | Should -Be 0
+      $Result.ExcludedDisallowed | Should -Be 0
+      $Result.ExcludedDuplicate | Should -Be 1
     } finally {
       $Duplicate.Dispose()
       $Original.Dispose()
@@ -103,8 +129,13 @@ Describe 'Select-ExportableCertificate' {
     try {
       $Result = Select-ExportableCertificate -Certificate @($Certificate)
 
-      $Result | Should -HaveCount 1
-      $Result[0] | Should -Be $Certificate
+      @($Result.Selected) | Should -HaveCount 1
+      $Result.Selected[0] | Should -Be $Certificate
+      $Result.SelectedThumbprint | Should -Be @(Get-CertificateRawDataSha256 -Certificate $Certificate)
+      $Result.ExcludedExpired | Should -Be 0
+      $Result.ExcludedNotYetValid | Should -Be 0
+      $Result.ExcludedDisallowed | Should -Be 0
+      $Result.ExcludedDuplicate | Should -Be 0
     } finally {
       $Certificate.Dispose()
     }
@@ -125,7 +156,8 @@ Describe 'Select-ExportableCertificate' {
 
       $Result = Select-ExportableCertificate -Certificate $InputCertificates
 
-      Get-TestCertificateSha256 -Certificate $Result | Should -Be $ExpectedHashes
+      Get-TestCertificateSha256 -Certificate $Result.Selected | Should -Be $ExpectedHashes
+      $Result.SelectedThumbprint | Should -Be $ExpectedHashes
     } finally {
       $Third.Dispose()
       $Second.Dispose()

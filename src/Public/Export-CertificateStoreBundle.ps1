@@ -118,46 +118,33 @@ Function Export-CertificateStoreBundle {
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]$Private:CandidateCertificates = $Null
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:CandidateCertificateArray = @()
+  [System.Int32]$Private:CertificateIndex = 0
   [System.String]$Private:CertificateHash = [System.String]::Empty
   [System.String]$Private:DefaultSourceStore = [System.String]::Empty
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:DisallowedCertificates = @()
-  [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedThumbprintSet = $Null
-  [System.Collections.Generic.List[System.String]]$Private:DisallowedThumbprints = $Null
-  [System.Int32]$Private:ExcludedDisallowed = 0
-  [System.Int32]$Private:ExcludedDuplicate = 0
-  [System.Int32]$Private:ExcludedExpired = 0
-  [System.Int32]$Private:ExcludedNotYetValid = 0
+  [System.String[]]$Private:DisallowedThumbprints = @()
   [System.Collections.Generic.Dictionary[System.String, System.String]]$Private:FirstSourceStoreByHash = $Null
   [System.String]$Private:ManifestPath = $Null
-  [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
-  [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
-  [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
   [System.Collections.Generic.List[System.String]]$Private:PemBlocks = $Null
+  [PSCustomObject]$Private:SelectionResult = $Null
+  [System.Security.Cryptography.X509Certificates.X509Certificate2]$Private:SelectedCertificate = $Null
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:SelectedCertificates = @()
-  [System.Collections.Generic.HashSet[System.String]]$Private:SeenEligibleThumbprints = $Null
+  [System.String[]]$Private:SelectedThumbprints = @()
   [System.String]$Private:SourceStore = [System.String]::Empty
   [System.String]$Private:Status = [System.String]::Empty
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:StoreCertificates = @()
   [PSCustomObject]$Private:Result = $Null
   [System.Object]$Private:WriteResult = $Null
 
-  $NowUtc = [System.DateTime]::UtcNow
   $CandidateCertificates = [System.Collections.Generic.List[
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]::new()
-  $DisallowedThumbprints = [System.Collections.Generic.List[System.String]]::new()
-  $DisallowedThumbprintSet = [System.Collections.Generic.HashSet[System.String]]::new(
-    [System.StringComparer]::OrdinalIgnoreCase
-  )
   # Track the first source store for each certificate identity so PEM blocks can be labelled with
   # the store that originally contributed the certificate.
   $FirstSourceStoreByHash = [System.Collections.Generic.Dictionary[
   System.String,
   System.String
   ]]::new([System.StringComparer]::OrdinalIgnoreCase)
-  $SeenEligibleThumbprints = [System.Collections.Generic.HashSet[System.String]]::new(
-    [System.StringComparer]::OrdinalIgnoreCase
-  )
 
   ForEach ($RequestedStoreName In $StoreName) {
     $StoreCertificates = Get-StoreCertificate `
@@ -184,56 +171,24 @@ Function Export-CertificateStoreBundle {
     -StoreLocation:$StoreLocation `
     -StoreName:'Disallowed'
 
-  ForEach ($DisallowedCertificate In $DisallowedCertificates) {
-    If ($Null -eq $DisallowedCertificate) {
-      Continue
-    }
-
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$DisallowedCertificate
-    $DisallowedThumbprints.Add($CertificateHash)
-    [void]$DisallowedThumbprintSet.Add($CertificateHash)
-  }
-
-  # Count every candidate exclusion class here because the result contract reports these Excluded
-  # totals separately from the selected certificate list.
-  ForEach ($CandidateCertificate In $CandidateCertificates) {
-    If ($IncludeExpired.IsPresent -eq $False) {
-      $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
-      $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
-
-      If ($NotAfterUtc -lt $NowUtc) {
-        $ExcludedExpired++
+  $DisallowedThumbprints = [System.String[]]@(
+    ForEach ($DisallowedCertificate In $DisallowedCertificates) {
+      If ($Null -eq $DisallowedCertificate) {
         Continue
       }
 
-      If ($NotBeforeUtc -gt $NowUtc) {
-        $ExcludedNotYetValid++
-        Continue
-      }
+      $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$DisallowedCertificate
+      $CertificateHash
     }
-
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
-
-    If ($DisallowedThumbprintSet.Contains($CertificateHash) -eq $True) {
-      $ExcludedDisallowed++
-      Continue
-    }
-
-    If ($SeenEligibleThumbprints.Contains($CertificateHash) -eq $True) {
-      $ExcludedDuplicate++
-      Continue
-    }
-
-    [void]$SeenEligibleThumbprints.Add($CertificateHash)
-  }
+  )
 
   $CandidateCertificateArray = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$CandidateCertificates.ToArray()
-  $SelectedCertificates = @(
-    Select-ExportableCertificate `
-      -Certificate:$CandidateCertificateArray `
-      -DisallowedThumbprint:([System.String[]]$DisallowedThumbprints.ToArray()) `
-      -IncludeExpired:$IncludeExpired.IsPresent
-  )
+  $SelectionResult = Select-ExportableCertificate `
+    -Certificate:$CandidateCertificateArray `
+    -DisallowedThumbprint:$DisallowedThumbprints `
+    -IncludeExpired:$IncludeExpired.IsPresent
+  $SelectedCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$SelectionResult.Selected
+  $SelectedThumbprints = [System.String[]]$SelectionResult.SelectedThumbprint
 
   $PemBlocks = [System.Collections.Generic.List[System.String]]::new()
   # Fall back to the first requested store when a selected certificate has no tracked source entry,
@@ -243,8 +198,9 @@ Function Export-CertificateStoreBundle {
     $DefaultSourceStore = [System.String]$StoreName[0]
   }
 
-  ForEach ($SelectedCertificate In $SelectedCertificates) {
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$SelectedCertificate
+  For ($CertificateIndex = 0; $CertificateIndex -lt $SelectedCertificates.Count; $CertificateIndex++) {
+    $SelectedCertificate = $SelectedCertificates[$CertificateIndex]
+    $CertificateHash = [System.String]$SelectedThumbprints[$CertificateIndex]
     $SourceStore = $DefaultSourceStore
 
     If ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $True) {
@@ -276,12 +232,13 @@ Function Export-CertificateStoreBundle {
     -Path:$Path `
     -Status:$Status `
     -Certificate:$SelectedCertificates `
+    -CertificateThumbprint:$SelectedThumbprints `
     -BundleSha256:$BundleSha256 `
     -Examined:($CandidateCertificates.Count) `
-    -ExcludedExpired:$ExcludedExpired `
-    -ExcludedNotYetValid:$ExcludedNotYetValid `
-    -ExcludedDisallowed:$ExcludedDisallowed `
-    -ExcludedDuplicate:$ExcludedDuplicate `
+    -ExcludedExpired:([System.Int32]$SelectionResult.ExcludedExpired) `
+    -ExcludedNotYetValid:([System.Int32]$SelectionResult.ExcludedNotYetValid) `
+    -ExcludedDisallowed:([System.Int32]$SelectionResult.ExcludedDisallowed) `
+    -ExcludedDuplicate:([System.Int32]$SelectionResult.ExcludedDuplicate) `
     -StoreLocation:$StoreLocation `
     -StoreName:$StoreName `
     -ManifestPath:$ManifestPath
