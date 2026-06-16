@@ -860,3 +860,129 @@ function ConvertTo-Thing {
     $Results | Should -HaveCount 0
   }
 }
+
+Describe 'SG-6 house analyzer rules' {
+  BeforeAll {
+    $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+    if (-not (Get-Module -Name PSScriptAnalyzer)) {
+      Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+    }
+  }
+
+  It 'flags hard return statements inside functions' {
+    $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param ()
+    return 'thing'
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-SoftReturn'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-SoftReturn' })
+
+    $Results.RuleName | Should -Contain 'Measure-SoftReturn'
+    $Results.Message | Should -Match "uses 'return'"
+  }
+
+  It 'flags Private Result functions whose last statement is not an Exiting debug anchor' {
+    $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param ()
+    [System.String]$Private:Result = 'thing'
+    $Result
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-SoftReturn'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-SoftReturn' })
+
+    $Results.RuleName | Should -Contain 'Measure-SoftReturn'
+    $Results.Message | Should -Match 'last statement'
+  }
+
+  It 'accepts a compliant flat soft-return function' {
+    $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param ()
+    Write-Debug -Message '[Get-Thing] Entering'
+    [System.String]$Private:Result = 'thing'
+    $Result
+    Write-Debug -Message '[Get-Thing] Exiting'
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-SoftReturn'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-SoftReturn' })
+
+    $Results | Should -HaveCount 0
+  }
+
+  It 'accepts a compliant pipeline soft-return function' {
+    $ScriptDefinition = @'
+function ConvertTo-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline = $True)]
+        [System.String]
+        $InputObject
+    )
+    begin {
+        [System.String]$Private:Result = [System.String]::Empty
+    }
+    process {
+        Write-Debug -Message '[ConvertTo-Thing] Entering Process'
+        $Result = [System.String]::Empty
+        [System.String]$Result = $InputObject.ToUpperInvariant()
+        $Result
+        Write-Debug -Message '[ConvertTo-Thing] Exiting Process'
+    }
+    end {
+        Write-Debug -Message '[ConvertTo-Thing] Exiting End'
+    }
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-SoftReturn'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-SoftReturn' })
+
+    $Results | Should -HaveCount 0
+  }
+
+  It 'exempts throw-only helpers without Private Result' {
+    $ScriptDefinition = @'
+function New-ThingError {
+    [CmdletBinding()]
+    param ()
+    $PSCmdlet.ThrowTerminatingError($Null)
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-SoftReturn'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-SoftReturn' })
+
+    $Results | Should -HaveCount 0
+  }
+}

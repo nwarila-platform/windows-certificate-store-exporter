@@ -92,5 +92,9 @@
     'Measure-NoNewVariableDeclaration'   = @{
       Enable = $true
     }
+
+    'Measure-SoftReturn'                 = @{
+      Enable = $true
+    }
   }
 }

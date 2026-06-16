@@ -89,16 +89,17 @@ function Test-HouseRuleAstBelongsToFunction {
   )
 
   $Private:ParentAst = $Ast
+  [System.Boolean]$Private:BelongsToFunction = $False
 
-  while ($Null -ne $ParentAst) {
+  while ($Null -ne $ParentAst -and $BelongsToFunction -eq $False) {
     if ($ParentAst -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
-      return [System.Boolean]([System.Object]::ReferenceEquals($ParentAst, $FunctionAst))
+      $BelongsToFunction = [System.Boolean]([System.Object]::ReferenceEquals($ParentAst, $FunctionAst))
+    } else {
+      $ParentAst = $ParentAst.Parent
     }
-
-    $ParentAst = $ParentAst.Parent
   }
 
-  [System.Boolean]$False
+  [System.Boolean]$BelongsToFunction
 
 }
 
@@ -118,19 +119,14 @@ function Get-HouseRuleVariableName {
     $VariableAst
   )
 
-  if ($VariableAst.VariablePath.IsDriveQualified -eq $True) {
-    return
+  if (
+    $VariableAst.VariablePath.IsDriveQualified -eq $False -and
+    $VariableAst.VariablePath.IsVariable -eq $True -and
+    $VariableAst.VariablePath.IsScript -eq $False -and
+    $VariableAst.VariablePath.IsGlobal -eq $False
+  ) {
+    [System.String]($VariableAst.VariablePath.UserPath -replace '(?i)^(private|local):', '')
   }
-
-  if ($VariableAst.VariablePath.IsVariable -eq $False) {
-    return
-  }
-
-  if ($VariableAst.VariablePath.IsScript -eq $True -or $VariableAst.VariablePath.IsGlobal -eq $True) {
-    return
-  }
-
-  [System.String]($VariableAst.VariablePath.UserPath -replace '(?i)^(private|local):', '')
 
 }
 
@@ -270,38 +266,37 @@ function Get-HouseRuleIteratorName {
   } | ForEach-Object -Process {
     if ($PSItem -is [System.Management.Automation.Language.ForEachStatementAst]) {
       [void]$Names.Add((Get-HouseRuleVariableName -VariableAst $PSItem.Variable))
-      return
-    }
+    } else {
+      if ($Null -ne $PSItem.Initializer) {
+        $PSItem.Initializer.FindAll(
+          {
+            param (
+              [System.Management.Automation.Language.Ast]
+              $Ast
+            )
 
-    if ($Null -ne $PSItem.Initializer) {
-      $PSItem.Initializer.FindAll(
-        {
-          param (
-            [System.Management.Automation.Language.Ast]
-            $Ast
-          )
-
-          $Ast -is [System.Management.Automation.Language.VariableExpressionAst]
-        },
-        $False
-      ) | ForEach-Object -Process {
-        [void]$Names.Add((Get-HouseRuleVariableName -VariableAst $PSItem))
+            $Ast -is [System.Management.Automation.Language.VariableExpressionAst]
+          },
+          $False
+        ) | ForEach-Object -Process {
+          [void]$Names.Add((Get-HouseRuleVariableName -VariableAst $PSItem))
+        }
       }
-    }
 
-    if ($Null -ne $PSItem.Iterator) {
-      $PSItem.Iterator.FindAll(
-        {
-          param (
-            [System.Management.Automation.Language.Ast]
-            $Ast
-          )
+      if ($Null -ne $PSItem.Iterator) {
+        $PSItem.Iterator.FindAll(
+          {
+            param (
+              [System.Management.Automation.Language.Ast]
+              $Ast
+            )
 
-          $Ast -is [System.Management.Automation.Language.VariableExpressionAst]
-        },
-        $False
-      ) | ForEach-Object -Process {
-        [void]$Names.Add((Get-HouseRuleVariableName -VariableAst $PSItem))
+            $Ast -is [System.Management.Automation.Language.VariableExpressionAst]
+          },
+          $False
+        ) | ForEach-Object -Process {
+          [void]$Names.Add((Get-HouseRuleVariableName -VariableAst $PSItem))
+        }
       }
     }
   }
@@ -327,23 +322,15 @@ function Get-HouseRuleStaticString {
     $Ast
   )
 
-  if ($Null -eq $Ast) {
-    return
-  }
-
-  if ($Ast -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
-    [System.String]$Ast.Value
-    return
-  }
-
-  if ($Ast -is [System.Management.Automation.Language.ConstantExpressionAst]) {
-    [System.String]$Ast.Value
-    return
-  }
-
-  if ($Ast -is [System.Management.Automation.Language.ArrayLiteralAst]) {
-    $Ast.Elements | ForEach-Object -Process {
-      Get-HouseRuleStaticString -Ast $PSItem
+  if ($Null -ne $Ast) {
+    if ($Ast -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
+      [System.String]$Ast.Value
+    } elseif ($Ast -is [System.Management.Automation.Language.ConstantExpressionAst]) {
+      [System.String]$Ast.Value
+    } elseif ($Ast -is [System.Management.Automation.Language.ArrayLiteralAst]) {
+      $Ast.Elements | ForEach-Object -Process {
+        Get-HouseRuleStaticString -Ast $PSItem
+      }
     }
   }
 
@@ -492,20 +479,11 @@ function Get-HouseRuleAssignedExpressionVariable {
       Extent    = $Ast.Extent
       IsPrivate = [System.Boolean]$Ast.VariablePath.IsPrivate
     }
-    return
-  }
-
-  if ($Ast -is [System.Management.Automation.Language.ConvertExpressionAst]) {
+  } elseif ($Ast -is [System.Management.Automation.Language.ConvertExpressionAst]) {
     Get-HouseRuleAssignedExpressionVariable -Ast $Ast.Child
-    return
-  }
-
-  if ($Ast -is [System.Management.Automation.Language.AttributedExpressionAst]) {
+  } elseif ($Ast -is [System.Management.Automation.Language.AttributedExpressionAst]) {
     Get-HouseRuleAssignedExpressionVariable -Ast $Ast.Child
-    return
-  }
-
-  if ($Ast -is [System.Management.Automation.Language.ArrayLiteralAst]) {
+  } elseif ($Ast -is [System.Management.Automation.Language.ArrayLiteralAst]) {
     $Ast.Elements | ForEach-Object -Process {
       Get-HouseRuleAssignedExpressionVariable -Ast $PSItem
     }
@@ -546,36 +524,30 @@ function Get-HouseRuleAssignedVariable {
   } | ForEach-Object -Process {
     if ($PSItem -is [System.Management.Automation.Language.AssignmentStatementAst]) {
       Get-HouseRuleAssignedExpressionVariable -Ast $PSItem.Left
-      return
-    }
-
-    if ($PSItem -is [System.Management.Automation.Language.UnaryExpressionAst]) {
+    } elseif ($PSItem -is [System.Management.Automation.Language.UnaryExpressionAst]) {
       Get-HouseRuleAssignedExpressionVariable -Ast $PSItem.Child
-      return
-    }
+    } else {
+      $Private:CommandAst = $PSItem
+      $Private:CommandName = $CommandAst.GetCommandName()
 
-    $Private:CommandAst = $PSItem
-    $Private:CommandName = $CommandAst.GetCommandName()
-    if ($CommandName -inotmatch '^(New|Set)-Variable$') {
-      return
-    }
-
-    if (Test-HouseRuleCommandUsesNonLocalScope -CommandAst $CommandAst) {
-      return
-    }
-
-    $Private:Names = [System.String[]]@(
-      Get-HouseRuleCommandArgumentString -CommandAst $CommandAst -ParameterName 'Name'
-    )
-
-    $Names | ForEach-Object -Process {
-      [PSCustomObject]@{
-        Name      = [System.String]$PSItem
-        Extent    = $CommandAst.Extent
-        IsPrivate = [System.Boolean](
-          $CommandName -ieq 'New-Variable' -and
-          (Test-HouseRuleCommandHasPrivateOption -CommandAst $CommandAst)
+      if (
+        $CommandName -imatch '^(New|Set)-Variable$' -and
+        (Test-HouseRuleCommandUsesNonLocalScope -CommandAst $CommandAst) -eq $False
+      ) {
+        $Private:Names = [System.String[]]@(
+          Get-HouseRuleCommandArgumentString -CommandAst $CommandAst -ParameterName 'Name'
         )
+
+        $Names | ForEach-Object -Process {
+          [PSCustomObject]@{
+            Name      = [System.String]$PSItem
+            Extent    = $CommandAst.Extent
+            IsPrivate = [System.Boolean](
+              $CommandName -ieq 'New-Variable' -and
+              (Test-HouseRuleCommandHasPrivateOption -CommandAst $CommandAst)
+            )
+          }
+        }
       }
     }
   } | Where-Object -FilterScript {
@@ -609,39 +581,42 @@ function Get-HouseRulePrivateDeclarationName {
     $SearchAst = $FunctionAst.Body
   }
 
-  [System.String[]]@(
-    $SearchAst.FindAll(
-      {
-        param (
-          [System.Management.Automation.Language.Ast]
-          $Ast
-        )
+  $Private:Names = [System.Collections.Generic.List[System.String]]::new()
 
-        $Ast -is [System.Management.Automation.Language.AssignmentStatementAst] -or
-        $Ast -is [System.Management.Automation.Language.CommandAst]
-      },
-      $True
-    ) | Where-Object -FilterScript {
-      Test-HouseRuleAstBelongsToFunction -Ast $PSItem -FunctionAst $FunctionAst
-    } | ForEach-Object -Process {
-      if ($PSItem -is [System.Management.Automation.Language.AssignmentStatementAst]) {
-        Get-HouseRuleAssignedExpressionVariable -Ast $PSItem.Left |
-          Where-Object -FilterScript { $PSItem.IsPrivate -eq $True } |
-          ForEach-Object -Process { $PSItem.Name }
-          return
+  $SearchAst.FindAll(
+    {
+      param (
+        [System.Management.Automation.Language.Ast]
+        $Ast
+      )
+
+      $Ast -is [System.Management.Automation.Language.AssignmentStatementAst] -or
+      $Ast -is [System.Management.Automation.Language.CommandAst]
+    },
+    $True
+  ) | Where-Object -FilterScript {
+    Test-HouseRuleAstBelongsToFunction -Ast $PSItem -FunctionAst $FunctionAst
+  } | ForEach-Object -Process {
+    if ($PSItem -is [System.Management.Automation.Language.AssignmentStatementAst]) {
+      foreach ($AssignedVariable in Get-HouseRuleAssignedExpressionVariable -Ast $PSItem.Left) {
+        if ($AssignedVariable.IsPrivate -eq $True) {
+          [void]$Names.Add($AssignedVariable.Name)
         }
-
-        if ($PSItem.GetCommandName() -inotmatch '^New-Variable$') {
-          return
-        }
-
-        if ((Test-HouseRuleCommandHasPrivateOption -CommandAst $PSItem) -eq $False) {
-          return
-        }
-
-        Get-HouseRuleCommandArgumentString -CommandAst $PSItem -ParameterName 'Name'
       }
-  )
+    }
+
+    if (
+      $PSItem -is [System.Management.Automation.Language.CommandAst] -and
+      $PSItem.GetCommandName() -imatch '^New-Variable$' -and
+      (Test-HouseRuleCommandHasPrivateOption -CommandAst $PSItem) -eq $True
+    ) {
+      foreach ($CommandArgumentName in Get-HouseRuleCommandArgumentString -CommandAst $PSItem -ParameterName 'Name') {
+        [void]$Names.Add($CommandArgumentName)
+      }
+    }
+  }
+
+  [System.String[]]$Names.ToArray()
 
 }
 
@@ -661,45 +636,43 @@ function Test-HouseRulePipelineParameter {
     $FunctionAst
   )
 
-  if ($Null -eq $FunctionAst.Body.ParamBlock) {
-    return [System.Boolean]$False
-  }
+  [System.Boolean]$Private:HasPipelineParameter = $False
 
-  foreach ($ParameterAst in $FunctionAst.Body.ParamBlock.Parameters) {
-    foreach ($AttributeAst in $ParameterAst.Attributes) {
-      if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
-        continue
-      }
-
-      if ($AttributeAst.TypeName.FullName -ine 'Parameter') {
-        continue
-      }
-
-      foreach ($NamedArgument in $AttributeAst.NamedArguments) {
-        if ($NamedArgument.ArgumentName -inotmatch '^ValueFromPipeline(ByPropertyName)?$') {
+  if ($Null -ne $FunctionAst.Body.ParamBlock) {
+    foreach ($ParameterAst in $FunctionAst.Body.ParamBlock.Parameters) {
+      foreach ($AttributeAst in $ParameterAst.Attributes) {
+        if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
           continue
         }
 
-        if ($Null -eq $NamedArgument.Argument) {
-          return [System.Boolean]$True
+        if ($AttributeAst.TypeName.FullName -ine 'Parameter') {
+          continue
         }
 
-        if ($NamedArgument.Argument.Extent.Text -ieq $NamedArgument.ArgumentName) {
-          return [System.Boolean]$True
-        }
-
-        try {
-          if ($NamedArgument.Argument.SafeGetValue() -eq $True) {
-            return [System.Boolean]$True
+        foreach ($NamedArgument in $AttributeAst.NamedArguments) {
+          if ($NamedArgument.ArgumentName -inotmatch '^ValueFromPipeline(ByPropertyName)?$') {
+            continue
           }
-        } catch {
-          continue
+
+          if ($Null -eq $NamedArgument.Argument) {
+            $HasPipelineParameter = $True
+          } elseif ($NamedArgument.Argument.Extent.Text -ieq $NamedArgument.ArgumentName) {
+            $HasPipelineParameter = $True
+          } else {
+            try {
+              if ($NamedArgument.Argument.SafeGetValue() -eq $True) {
+                $HasPipelineParameter = $True
+              }
+            } catch {
+              continue
+            }
+          }
         }
       }
     }
   }
 
-  [System.Boolean]$False
+  [System.Boolean]$HasPipelineParameter
 
 }
 
@@ -719,23 +692,12 @@ function Test-HouseRuleNamedBlock {
     $FunctionAst
   )
 
-  if ($Null -ne $FunctionAst.Body.DynamicParamBlock) {
-    return [System.Boolean]$True
-  }
-
-  if ($Null -ne $FunctionAst.Body.BeginBlock) {
-    return [System.Boolean]$True
-  }
-
-  if ($Null -ne $FunctionAst.Body.ProcessBlock) {
-    return [System.Boolean]$True
-  }
-
-  if ($Null -ne $FunctionAst.Body.EndBlock -and $FunctionAst.Body.EndBlock.Unnamed -eq $False) {
-    return [System.Boolean]$True
-  }
-
-  [System.Boolean]$False
+  [System.Boolean](
+    $Null -ne $FunctionAst.Body.DynamicParamBlock -or
+    $Null -ne $FunctionAst.Body.BeginBlock -or
+    $Null -ne $FunctionAst.Body.ProcessBlock -or
+    ($Null -ne $FunctionAst.Body.EndBlock -and $FunctionAst.Body.EndBlock.Unnamed -eq $False)
+  )
 
 }
 
@@ -800,22 +762,20 @@ function Get-HouseRuleFunctionAttribute {
     $FunctionAst
   )
 
-  if ($Null -eq $FunctionAst.Body.ParamBlock) {
-    return
-  }
-
-  $FunctionAst.Body.ParamBlock.Attributes |
-    Where-Object -FilterScript {
-      $PSItem -is [System.Management.Automation.Language.AttributeAst] -and
-      (
+  if ($Null -ne $FunctionAst.Body.ParamBlock) {
+    $FunctionAst.Body.ParamBlock.Attributes |
+      Where-Object -FilterScript {
+        $PSItem -is [System.Management.Automation.Language.AttributeAst] -and
         (
-          ([System.String]$PSItem.TypeName.FullName) -replace
-          '^(System\.Management\.Automation\.)?',
+          (
+            ([System.String]$PSItem.TypeName.FullName) -replace
+            '^(System\.Management\.Automation\.)?',
+            ''
+          ) -replace 'Attribute$',
           ''
-        ) -replace 'Attribute$',
-        ''
-      ) -ieq $AttributeName
-    }
+        ) -ieq $AttributeName
+      }
+  }
 
 }
 
@@ -862,25 +822,23 @@ function Get-HouseRuleParameterAttributeOrderKey {
     $AttributeAst
   )
 
+  [System.String]$Private:OrderKey = '2|'
+
   if ($AttributeAst -is [System.Management.Automation.Language.TypeConstraintAst]) {
-    return [System.String]'3|'
+    $OrderKey = '3|'
+  } elseif ($AttributeAst -is [System.Management.Automation.Language.AttributeAst]) {
+    $Private:AttributeName = Get-HouseRuleAttributeName -AttributeAst $AttributeAst
+
+    if ($AttributeName -ieq 'Parameter') {
+      $OrderKey = '0|Parameter'
+    } elseif ($AttributeName -ieq 'Alias') {
+      $OrderKey = '1|Alias'
+    } else {
+      $OrderKey = [System.String]('2|{0}' -f $AttributeName)
+    }
   }
 
-  if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
-    return [System.String]'2|'
-  }
-
-  $Private:AttributeName = Get-HouseRuleAttributeName -AttributeAst $AttributeAst
-
-  if ($AttributeName -ieq 'Parameter') {
-    return [System.String]'0|Parameter'
-  }
-
-  if ($AttributeName -ieq 'Alias') {
-    return [System.String]'1|Alias'
-  }
-
-  [System.String]('2|{0}' -f $AttributeName)
+  [System.String]$OrderKey
 
 }
 
@@ -901,13 +859,15 @@ function Test-HouseRuleAlphabeticalOrder {
     $Value
   )
 
+  [System.Boolean]$Private:IsOrdered = $True
+
   for ($Index = 1; $Index -lt $Value.Count; $Index++) {
     if ([System.StringComparer]::OrdinalIgnoreCase.Compare($Value[$Index - 1], $Value[$Index]) -gt 0) {
-      return [System.Boolean]$False
+      $IsOrdered = $False
     }
   }
 
-  [System.Boolean]$True
+  [System.Boolean]$IsOrdered
 
 }
 
@@ -927,19 +887,21 @@ function Test-HouseRuleNamedArgumentValueIsTrue {
     $NamedArgument
   )
 
+  [System.Boolean]$Private:IsTrue = $False
+
   if ($Null -eq $NamedArgument.Argument) {
-    return [System.Boolean]$True
+    $IsTrue = $True
+  } elseif ($NamedArgument.Argument.Extent.Text -ieq $NamedArgument.ArgumentName) {
+    $IsTrue = $True
+  } else {
+    try {
+      $IsTrue = [System.Boolean]$NamedArgument.Argument.SafeGetValue()
+    } catch {
+      $IsTrue = $False
+    }
   }
 
-  if ($NamedArgument.Argument.Extent.Text -ieq $NamedArgument.ArgumentName) {
-    return [System.Boolean]$True
-  }
-
-  try {
-    return [System.Boolean]$NamedArgument.Argument.SafeGetValue()
-  } catch {
-    return [System.Boolean]$False
-  }
+  [System.Boolean]$IsTrue
 
 }
 
@@ -963,13 +925,15 @@ function Get-HouseRuleNamedAttributeArgument {
     $AttributeAst
   )
 
+  [System.Management.Automation.Language.NamedAttributeArgumentAst]$Private:MatchedArgument = $Null
+
   foreach ($NamedArgument in $AttributeAst.NamedArguments) {
-    if ($NamedArgument.ArgumentName -ieq $ArgumentName) {
-      return [System.Management.Automation.Language.NamedAttributeArgumentAst]$NamedArgument
+    if ($NamedArgument.ArgumentName -ieq $ArgumentName -and $Null -eq $MatchedArgument) {
+      $MatchedArgument = [System.Management.Automation.Language.NamedAttributeArgumentAst]$NamedArgument
     }
   }
 
-  $Null
+  $MatchedArgument
 
 }
 
@@ -994,18 +958,18 @@ function Test-HouseRuleNamedArgumentValueEqual {
     $NamedArgument
   )
 
-  # Bare attribute flags are intentionally rejected here; house style spells out the value.
-  if ($Null -eq $NamedArgument.Argument) {
-    return [System.Boolean]$False
+  [System.Boolean]$Private:IsEqual = $False
+
+  if ($Null -ne $NamedArgument.Argument) {
+    try {
+      $Private:ActualValue = $NamedArgument.Argument.SafeGetValue()
+      $IsEqual = [System.Boolean]([System.Object]::Equals($ActualValue, $ExpectedValue))
+    } catch {
+      $IsEqual = $False
+    }
   }
 
-  try {
-    $Private:ActualValue = $NamedArgument.Argument.SafeGetValue()
-  } catch {
-    return [System.Boolean]$False
-  }
-
-  [System.Boolean]([System.Object]::Equals($ActualValue, $ExpectedValue))
+  [System.Boolean]$IsEqual
 
 }
 
@@ -1028,6 +992,7 @@ function Test-HouseRuleParameterAttributeOrder {
   # Initialize Variable(s)
   [System.String]$Private:CurrentKey = [System.String]::Empty
   [System.Boolean]$Private:HasPreviousKey = $False
+  [System.Boolean]$Private:IsOrdered = $True
   [System.String]$Private:PreviousKey = [System.String]::Empty
 
   foreach ($AttributeAst in $ParameterAst.Attributes) {
@@ -1037,14 +1002,14 @@ function Test-HouseRuleParameterAttributeOrder {
       $HasPreviousKey -eq $True -and
       [System.StringComparer]::OrdinalIgnoreCase.Compare($PreviousKey, $CurrentKey) -gt 0
     ) {
-      return [System.Boolean]$False
+      $IsOrdered = $False
     }
 
     $HasPreviousKey = $True
     $PreviousKey = $CurrentKey
   }
 
-  [System.Boolean]$True
+  [System.Boolean]$IsOrdered
 
 }
 
@@ -1064,7 +1029,8 @@ function Test-HouseRuleParameterTypeLast {
     $ParameterAst
   )
 
-  $Private:HasSeenType = $False
+  [System.Boolean]$Private:HasSeenType = $False
+  [System.Boolean]$Private:IsTypeLast = $True
 
   foreach ($AttributeAst in $ParameterAst.Attributes) {
     if ($AttributeAst -is [System.Management.Automation.Language.TypeConstraintAst]) {
@@ -1076,11 +1042,11 @@ function Test-HouseRuleParameterTypeLast {
       $HasSeenType -eq $True -and
       $AttributeAst -is [System.Management.Automation.Language.AttributeAst]
     ) {
-      return [System.Boolean]$False
+      $IsTypeLast = $False
     }
   }
 
-  [System.Boolean]$True
+  [System.Boolean]$IsTypeLast
 
 }
 
@@ -1100,6 +1066,8 @@ function Test-HouseRuleParameterOrderGuard {
     $FunctionAst
   )
 
+  [System.Boolean]$Private:HasParameterOrderGuard = $False
+
   foreach ($CmdletBindingAttribute in Get-HouseRuleFunctionAttribute -FunctionAst $FunctionAst -AttributeName 'CmdletBinding') {
     foreach ($NamedArgument in $CmdletBindingAttribute.NamedArguments) {
       if ($NamedArgument.ArgumentName -ine 'PositionalBinding') {
@@ -1107,34 +1075,32 @@ function Test-HouseRuleParameterOrderGuard {
       }
 
       if ((Test-HouseRuleNamedArgumentValueIsTrue -NamedArgument $NamedArgument) -eq $True) {
-        return [System.Boolean]$True
+        $HasParameterOrderGuard = $True
       }
     }
   }
 
-  if ($Null -eq $FunctionAst.Body.ParamBlock) {
-    return [System.Boolean]$False
-  }
+  if ($Null -ne $FunctionAst.Body.ParamBlock) {
+    foreach ($ParameterAst in $FunctionAst.Body.ParamBlock.Parameters) {
+      foreach ($AttributeAst in $ParameterAst.Attributes) {
+        if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
+          continue
+        }
 
-  foreach ($ParameterAst in $FunctionAst.Body.ParamBlock.Parameters) {
-    foreach ($AttributeAst in $ParameterAst.Attributes) {
-      if ($AttributeAst -isnot [System.Management.Automation.Language.AttributeAst]) {
-        continue
-      }
+        if ((Get-HouseRuleAttributeName -AttributeAst $AttributeAst) -ine 'Parameter') {
+          continue
+        }
 
-      if ((Get-HouseRuleAttributeName -AttributeAst $AttributeAst) -ine 'Parameter') {
-        continue
-      }
-
-      foreach ($NamedArgument in $AttributeAst.NamedArguments) {
-        if ($NamedArgument.ArgumentName -ieq 'Position') {
-          return [System.Boolean]$True
+        foreach ($NamedArgument in $AttributeAst.NamedArguments) {
+          if ($NamedArgument.ArgumentName -ieq 'Position') {
+            $HasParameterOrderGuard = $True
+          }
         }
       }
     }
   }
 
-  [System.Boolean]$False
+  [System.Boolean]$HasParameterOrderGuard
 
 }
 
@@ -1219,30 +1185,115 @@ function Test-HouseRuleEnteringProcessDebugStatement {
     $StatementAst
   )
 
-  if ($StatementAst -isnot [System.Management.Automation.Language.PipelineAst]) {
-    return [System.Boolean]$False
-  }
+  [System.Boolean]$Private:IsEnteringProcessDebug = $False
 
-  if ($StatementAst.PipelineElements.Count -ne 1) {
-    return [System.Boolean]$False
-  }
-
-  [System.Management.Automation.Language.CommandAst]$Private:CommandAst = $StatementAst.PipelineElements[0] -as [System.Management.Automation.Language.CommandAst]
-  if ($Null -eq $CommandAst) {
-    return [System.Boolean]$False
-  }
-
-  if ($CommandAst.GetCommandName() -inotmatch '^Write-Debug$') {
-    return [System.Boolean]$False
-  }
-
-  foreach ($Message in Get-HouseRuleCommandArgumentString -CommandAst $CommandAst -ParameterName 'Message') {
-    if ($Message -imatch '\]\s+Entering Process$') {
-      return [System.Boolean]$True
+  if (
+    $StatementAst -is [System.Management.Automation.Language.PipelineAst] -and
+    $StatementAst.PipelineElements.Count -eq 1
+  ) {
+    [System.Management.Automation.Language.CommandAst]$Private:CommandAst = $StatementAst.PipelineElements[0] -as [System.Management.Automation.Language.CommandAst]
+    if ($Null -ne $CommandAst -and $CommandAst.GetCommandName() -imatch '^Write-Debug$') {
+      foreach ($Message in Get-HouseRuleCommandArgumentString -CommandAst $CommandAst -ParameterName 'Message') {
+        if ($Message -imatch '\]\s+Entering Process$') {
+          $IsEnteringProcessDebug = $True
+        }
+      }
     }
   }
 
-  [System.Boolean]$False
+  [System.Boolean]$IsEnteringProcessDebug
+
+}
+
+function Test-HouseRuleExitingDebugStatement {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Boolean])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.StatementAst]
+    $StatementAst
+  )
+
+  [System.Boolean]$Private:IsExitingDebug = $False
+
+  if (
+    $StatementAst -is [System.Management.Automation.Language.PipelineAst] -and
+    $StatementAst.PipelineElements.Count -eq 1
+  ) {
+    [System.Management.Automation.Language.CommandAst]$Private:CommandAst = $StatementAst.PipelineElements[0] -as [System.Management.Automation.Language.CommandAst]
+    if ($Null -ne $CommandAst -and $CommandAst.GetCommandName() -imatch '^Write-Debug$') {
+      foreach ($Message in Get-HouseRuleCommandArgumentString -CommandAst $CommandAst -ParameterName 'Message') {
+        if ($Message -imatch '\]\s+Exiting(\s+.+)?$') {
+          $IsExitingDebug = $True
+        }
+      }
+    }
+  }
+
+  [System.Boolean]$IsExitingDebug
+
+}
+
+function Test-HouseRuleFunctionDeclaresPrivateResult {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Boolean])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.FunctionDefinitionAst]
+    $FunctionAst
+  )
+
+  [System.Boolean]$Private:DeclaresPrivateResult = $False
+
+  foreach ($DeclarationName in Get-HouseRulePrivateDeclarationName -FunctionAst $FunctionAst) {
+    if ($DeclarationName -ieq 'Result') {
+      $DeclaresPrivateResult = $True
+    }
+  }
+
+  [System.Boolean]$DeclaresPrivateResult
+
+}
+
+function Test-HouseRuleLastStatementExitingDebug {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([System.Boolean])]
+  param (
+    [Parameter()]
+    [AllowNull()]
+    [System.Management.Automation.Language.NamedBlockAst]
+    $BlockAst
+  )
+
+  [System.Boolean]$Private:IsLastStatementExitingDebug = $False
+
+  if ($Null -ne $BlockAst -and $BlockAst.Statements.Count -gt 0) {
+    [System.Management.Automation.Language.StatementAst]$Private:LastStatement = $BlockAst.Statements[$BlockAst.Statements.Count - 1]
+    $IsLastStatementExitingDebug = Test-HouseRuleExitingDebugStatement -StatementAst $LastStatement
+  }
+
+  [System.Boolean]$IsLastStatementExitingDebug
 
 }
 
@@ -1851,6 +1902,100 @@ function Measure-NoNewVariableDeclaration {
         "Function '{0}' uses New-Variable for a local declaration; use a typed `$Private:Name assignment instead." -f
         $FunctionAst.Name
       )
+    }
+  }
+
+}
+
+function Measure-SoftReturn {
+  <#
+    .SYNOPSIS
+        Flags hard returns and missing SG-6 soft-return debug anchors.
+    #>
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+  param (
+    [Parameter(Mandatory = $True)]
+    [System.Management.Automation.Language.ScriptBlockAst]
+    $ScriptBlockAst
+  )
+
+  foreach ($FunctionAst in Get-HouseRuleFunctionAst -ScriptBlockAst $ScriptBlockAst) {
+    $FunctionAst.Body.FindAll(
+      {
+        param (
+          [System.Management.Automation.Language.Ast]
+          $Ast
+        )
+
+        $Ast -is [System.Management.Automation.Language.ReturnStatementAst]
+      },
+      $True
+    ) | Where-Object -FilterScript {
+      Test-HouseRuleAstBelongsToFunction -Ast $PSItem -FunctionAst $FunctionAst
+    } | ForEach-Object -Process {
+      ConvertTo-HouseRuleDiagnosticRecord `
+        -RuleName 'Measure-SoftReturn' `
+        -Extent $PSItem.Extent `
+        -Message (
+        "Function '{0}' uses 'return'; SG-6 requires single-exit (soft return)." -f
+        $FunctionAst.Name
+      )
+    }
+
+    if ((Test-HouseRuleFunctionDeclaresPrivateResult -FunctionAst $FunctionAst) -eq $False) {
+      continue
+    }
+
+    [System.Boolean]$Private:HasExplicitEndBlock = [System.Boolean](
+      $Null -ne $FunctionAst.Body.EndBlock -and
+      $FunctionAst.Body.EndBlock.Unnamed -eq $False
+    )
+    [System.Boolean]$Private:HasPipelineShape = [System.Boolean](
+      $Null -ne $FunctionAst.Body.ProcessBlock -or
+      $HasExplicitEndBlock -eq $True
+    )
+    [System.String]$Private:Message = (
+      "Function '{0}' last statement must be Write-Debug '... Exiting ...' (SG-6 soft return)." -f
+      $FunctionAst.Name
+    )
+
+    if ($HasPipelineShape -eq $True) {
+      if (
+        $Null -ne $FunctionAst.Body.ProcessBlock -and
+        (Test-HouseRuleLastStatementExitingDebug -BlockAst $FunctionAst.Body.ProcessBlock) -eq $False
+      ) {
+        ConvertTo-HouseRuleDiagnosticRecord `
+          -RuleName 'Measure-SoftReturn' `
+          -Extent $FunctionAst.Body.ProcessBlock.Extent `
+          -Message $Message
+      }
+
+      if ($HasExplicitEndBlock -eq $True) {
+        if ((Test-HouseRuleLastStatementExitingDebug -BlockAst $FunctionAst.Body.EndBlock) -eq $False) {
+          ConvertTo-HouseRuleDiagnosticRecord `
+            -RuleName 'Measure-SoftReturn' `
+            -Extent $FunctionAst.Body.EndBlock.Extent `
+            -Message $Message
+        }
+      } else {
+        ConvertTo-HouseRuleDiagnosticRecord `
+          -RuleName 'Measure-SoftReturn' `
+          -Extent $FunctionAst.Extent `
+          -Message $Message
+      }
+    } elseif ((Test-HouseRuleLastStatementExitingDebug -BlockAst $FunctionAst.Body.EndBlock) -eq $False) {
+      ConvertTo-HouseRuleDiagnosticRecord `
+        -RuleName 'Measure-SoftReturn' `
+        -Extent $FunctionAst.Body.EndBlock.Extent `
+        -Message $Message
     }
   }
 
