@@ -32,9 +32,16 @@ Function Test-CertificateStoreExporterWindows {
   [System.Boolean]$Private:Result = $False
 
   # Keep platform detection behind a seam so tests can force the non-Windows branch.
+  # It's always desirable to explicitly set the Result object with its desired class as close
+  #   to the soft return to ensure the output is predictable and easily traceable.
   [System.Boolean]$Result = [System.Boolean](
     [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
   )
+
+  # Do a  'soft'  return by outputting the result to the pipe without using the return function
+  #   which would immediately end the function,  this enables us to have the very last
+  #   executing item be write-debug giving us a valuable breakpoint & enabling better
+  #   debugging functionality and output.
   $Result
   Write-Debug -Message:'[Test-CertificateStoreExporterWindows] Exiting'
 }

@@ -1,33 +1,27 @@
-# REPORT - SG-7 Docs
+# REPORT - SG-6 Result Comments
 
 Status: complete
-Branch: `codex-sg7-docs`
+Branch: `codex-sg6-resultcomments`
 
 ## Changes
 
-- Added `SG-7 - Explicit parameter surface` to `docs/STYLE-GUIDE.md`.
-  - Documents the required five `[Parameter(...)]` options:
-    `DontShow`, `Mandatory`, `ParameterSetName`, `ValueFromPipeline`,
-    `ValueFromPipelineByPropertyName`.
-  - Records the forbid-list: `Position`, `HelpMessage`, and
-    `ValueFromRemainingArguments`.
-  - Calls out the `$StoreFactory` hidden test-seam exemption with
-    `DontShow = $True`.
-  - Names `Measure-ExplicitParameterAttribute` and
-    `Measure-CanonicalAttributeOrder` as the enforcing analyzer rules.
-- Added `ADR-repo/0008: Adopt SG-7 Explicit Parameter Surface` at
-  `docs/decision-records/repo/0008-sg7-explicit-parameter-surface.md`.
-  - Records the honest framing: explicit five-option surface is an
-    auditability preference; the forbid-list is correctness.
-  - Cites Microsoft primary sources for `[Parameter()]`, `PositionalBinding`,
-    and `ParameterAttribute` defaults/semantics.
-- Updated `docs/decision-records/README.md` with the repo/0008 index entry.
-- Tightened the SG-5 parameter-order example so it points at the SG-7 option list.
+- Added the canonical soft-return WHY comment blocks to:
+  - `src/Private/ConvertTo-PemCertificate.ps1`
+  - `src/Private/Get-StoreCertificate.ps1`
+  - `src/Private/Select-ExportableCertificate.ps1`
+  - `src/Private/Test-CertificateStoreExporterWindows.ps1`
+  - `src/Private/Resolve-ExitCode.ps1`
+- The wording matches the canary in
+  `src/Private/Get-CertificateRawDataSha256.ps1` exactly.
+- `Resolve-ExitCode.ps1` keeps the existing intent comments; the two canonical
+  blocks were placed inside the mapped-code `If` branch above the existing
+  `$Result` handoff and emit.
 
 ## Scope
 
-- Docs/handoff only.
-- No source code changed.
+- Comments only.
+- No statement, value, or structure changed.
+- Only the five requested functions were touched.
 - No analyzer code changed.
 - No analyzer settings changed.
 - No push or merge performed.
