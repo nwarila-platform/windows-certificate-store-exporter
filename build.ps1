@@ -11,7 +11,7 @@
     .\build.ps1 -Task All
 #>
 [CmdletBinding()]
-param (
+Param (
   [Parameter()]
   [ValidateSet('Build', 'Test', 'Analyze', 'Smoke', 'Clean', 'All')]
   [System.String[]]
@@ -29,7 +29,7 @@ $BuildRoot = Join-Path -Path $ProjectRoot -ChildPath 'build'
 $OutputFile = Join-Path -Path $BuildRoot -ChildPath ('{0}.ps1' -f $ProjectName)
 $FunctionsFile = Join-Path -Path $BuildRoot -ChildPath ('{0}.Functions.ps1' -f $ProjectName)
 
-function Get-LatestAvailableModule {
+Function Get-LatestAvailableModule {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -39,7 +39,7 @@ function Get-LatestAvailableModule {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Management.Automation.PSModuleInfo])]
-  param (
+  Param (
     [Parameter(Mandatory = $True)]
     [ValidateNotNullOrEmpty()]
     [System.String]
@@ -51,7 +51,7 @@ function Get-LatestAvailableModule {
     Select-Object -First 1
 }
 
-function Test-Syntax {
+Function Test-Syntax {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -61,7 +61,7 @@ function Test-Syntax {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param (
+  Param (
     [Parameter(Mandatory = $True)]
     [ValidateNotNullOrEmpty()]
     [System.String[]]
@@ -72,7 +72,7 @@ function Test-Syntax {
 
   $Path | ForEach-Object -Process {
     $private:ScriptPath = [System.String]$PSItem
-    if (Test-Path -LiteralPath $ScriptPath) {
+    If (Test-Path -LiteralPath $ScriptPath) {
       $private:Tokens = $Null
       $private:ParseErrors = $Null
       $Null = [System.Management.Automation.Language.Parser]::ParseFile(
@@ -81,7 +81,7 @@ function Test-Syntax {
         [ref]$ParseErrors
       )
 
-      if ($ParseErrors.Count -gt 0) {
+      If ($ParseErrors.Count -gt 0) {
         $ParseErrors | ForEach-Object -Process {
           $Messages.Add(
             (
@@ -96,8 +96,8 @@ function Test-Syntax {
     }
   }
 
-  if ($Messages.Count -gt 0) {
-    throw (
+  If ($Messages.Count -gt 0) {
+    Throw (
       'Syntax errors detected:{0}{1}' -f
       [System.Environment]::NewLine,
       ($Messages -join [System.Environment]::NewLine)
@@ -105,7 +105,7 @@ function Test-Syntax {
   }
 }
 
-function Get-EntryPointContent {
+Function Get-EntryPointContent {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -115,7 +115,7 @@ function Get-EntryPointContent {
     SupportsShouldProcess = $False
   )]
   [OutputType([PSCustomObject])]
-  param ()
+  Param ()
 
   $private:EntryPointPath = Join-Path -Path $SourceRoot -ChildPath 'EntryPoint.ps1'
   $private:EntryPointText = (Get-Content -LiteralPath $EntryPointPath -Raw).Trim()
@@ -124,28 +124,28 @@ function Get-EntryPointContent {
   $private:InParamBlock = $False
   $private:ParenDepth = 0
 
-  for ($Index = 0; $Index -lt $EntryPointLines.Count; $Index++) {
+  For ($Index = 0; $Index -lt $EntryPointLines.Count; $Index++) {
     $private:Line = [System.String]$EntryPointLines[$Index]
     $private:TrimmedLine = $Line.Trim()
 
-    if ($InParamBlock -eq $False -and $TrimmedLine -match '^Param\s*\(') {
+    If ($InParamBlock -eq $False -and $TrimmedLine -match '^Param\s*\(') {
       $InParamBlock = $True
     }
 
-    if ($InParamBlock -eq $True) {
+    If ($InParamBlock -eq $True) {
       $private:OpenParenCount = ([regex]::Matches($Line, '\(')).Count
       $private:CloseParenCount = ([regex]::Matches($Line, '\)')).Count
       $ParenDepth += ($OpenParenCount - $CloseParenCount)
 
-      if ($ParenDepth -eq 0) {
+      If ($ParenDepth -eq 0) {
         $ParamEnd = $Index
-        break
+        Break
       }
     }
   }
 
-  if ($ParamEnd -lt 0) {
-    throw 'EntryPoint.ps1 must contain a Param block.'
+  If ($ParamEnd -lt 0) {
+    Throw 'EntryPoint.ps1 must contain a Param block.'
   }
 
   [PSCustomObject]@{
@@ -154,7 +154,7 @@ function Get-EntryPointContent {
   }
 }
 
-function Add-FunctionFileContent {
+Function Add-FunctionFileContent {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -164,7 +164,7 @@ function Add-FunctionFileContent {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param (
+  Param (
     [Parameter(Mandatory = $True)]
     [ValidateNotNullOrEmpty()]
     [System.String]
@@ -188,7 +188,7 @@ function Add-FunctionFileContent {
       Sort-Object -Property Name
   )
 
-  if ($FunctionFiles.Count -gt 0) {
+  If ($FunctionFiles.Count -gt 0) {
     $Null = $StringBuilder.AppendLine(('#region {0}' -f $RegionName))
     $Null = $StringBuilder.AppendLine('')
 
@@ -204,7 +204,7 @@ function Add-FunctionFileContent {
   }
 }
 
-function Invoke-SmokeTest {
+Function Invoke-SmokeTest {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -214,7 +214,7 @@ function Invoke-SmokeTest {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param ()
+  Param ()
 
   $private:SmokeRoot = Join-Path -Path $TestRoot -ChildPath 'Smoke'
   $private:SmokeFiles = @(
@@ -225,9 +225,9 @@ function Invoke-SmokeTest {
       Sort-Object -Property Name
   )
 
-  if ($SmokeFiles.Count -eq 0) {
+  If ($SmokeFiles.Count -eq 0) {
     Write-Warning -Message 'No smoke tests found.'
-  } else {
+  } Else {
     $SmokeFiles | ForEach-Object -Process {
       Write-Information -MessageData ('Smoke: {0}' -f $PSItem.Name) -InformationAction Continue
       & $PSItem.FullName
@@ -235,7 +235,7 @@ function Invoke-SmokeTest {
   }
 }
 
-function Invoke-Build {
+Function Invoke-Build {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -245,9 +245,9 @@ function Invoke-Build {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param ()
+  Param ()
 
-  if (-not (Test-Path -LiteralPath $BuildRoot)) {
+  If (-not (Test-Path -LiteralPath $BuildRoot)) {
     $Null = New-Item -Path $BuildRoot -ItemType Directory
   }
 
@@ -277,10 +277,10 @@ function Invoke-Build {
   $Null = $FullBuilder.AppendLine('#Requires -Version 5.1')
   $Null = $FullBuilder.AppendLine('')
 
-  for ($Index = 0; $Index -le $EntryPoint.ParamEnd; $Index++) {
+  For ($Index = 0; $Index -le $EntryPoint.ParamEnd; $Index++) {
     $private:Line = [System.String]$EntryPoint.Lines[$Index]
-    if ($Line.Trim() -match '^#Requires') {
-      continue
+    If ($Line.Trim() -match '^#Requires') {
+      Continue
     }
 
     $Null = $FullBuilder.AppendLine($Line)
@@ -292,7 +292,7 @@ function Invoke-Build {
   $Null = $FullBuilder.AppendLine('#region Entry Point')
   $Null = $FullBuilder.AppendLine('')
 
-  for ($Index = ($EntryPoint.ParamEnd + 1); $Index -lt $EntryPoint.Lines.Count; $Index++) {
+  For ($Index = ($EntryPoint.ParamEnd + 1); $Index -lt $EntryPoint.Lines.Count; $Index++) {
     $Null = $FullBuilder.AppendLine([System.String]$EntryPoint.Lines[$Index])
   }
 
@@ -310,7 +310,7 @@ function Invoke-Build {
   Write-Information -MessageData ('Build complete: {0}' -f $OutputFile) -InformationAction Continue
 }
 
-function Invoke-Analyze {
+Function Invoke-Analyze {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -320,9 +320,9 @@ function Invoke-Analyze {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param ()
+  Param ()
 
-  if (-not (Test-Path -LiteralPath $OutputFile)) {
+  If (-not (Test-Path -LiteralPath $OutputFile)) {
     Invoke-Build
   }
 
@@ -337,9 +337,9 @@ function Invoke-Analyze {
   Test-Syntax -Path $SyntaxTargets
 
   $private:AnalyzerModule = Get-LatestAvailableModule -Name 'PSScriptAnalyzer'
-  if ($Null -eq $AnalyzerModule) {
+  If ($Null -eq $AnalyzerModule) {
     Write-Warning -Message 'PSScriptAnalyzer is not installed. Syntax validation passed.'
-  } else {
+  } Else {
     Import-Module -Name $AnalyzerModule.Path -Force
 
     $private:SettingsFile = Join-Path -Path $ProjectRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
@@ -350,20 +350,20 @@ function Invoke-Analyze {
       Invoke-ScriptAnalyzer -Path (Join-Path -Path $ProjectRoot -ChildPath 'build.ps1') -Settings $SettingsFile
     )
 
-    if ($Results.Count -gt 0) {
+    If ($Results.Count -gt 0) {
       $private:FormattedResults = $Results |
         Format-Table -Property RuleName, Severity, ScriptName, Line, Message -AutoSize |
         Out-String
       Write-Information -MessageData $FormattedResults -InformationAction Continue
 
-      throw ('PSScriptAnalyzer found {0} issue(s).' -f $Results.Count)
+      Throw ('PSScriptAnalyzer found {0} issue(s).' -f $Results.Count)
     }
 
     Write-Information -MessageData 'Analysis passed.' -InformationAction Continue
   }
 }
 
-function Invoke-Test {
+Function Invoke-Test {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -373,15 +373,15 @@ function Invoke-Test {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param ()
+  Param ()
 
-  if (-not (Test-Path -LiteralPath $FunctionsFile)) {
+  If (-not (Test-Path -LiteralPath $FunctionsFile)) {
     Invoke-Build
   }
 
   $private:PesterModule = Get-LatestAvailableModule -Name 'Pester'
-  if ($Null -eq $PesterModule -or $PesterModule.Version.Major -lt 5) {
-    throw 'Pester 5 or newer is required for tests and coverage.'
+  If ($Null -eq $PesterModule -or $PesterModule.Version.Major -lt 5) {
+    Throw 'Pester 5 or newer is required for tests and coverage.'
   }
 
   Import-Module -Name $PesterModule.Path -Force
@@ -402,7 +402,7 @@ function Invoke-Test {
   Invoke-Pester -Configuration $PesterConfig
 }
 
-function Invoke-Smoke {
+Function Invoke-Smoke {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -412,16 +412,16 @@ function Invoke-Smoke {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param ()
+  Param ()
 
-  if (-not (Test-Path -LiteralPath $FunctionsFile)) {
+  If (-not (Test-Path -LiteralPath $FunctionsFile)) {
     Invoke-Build
   }
 
   Invoke-SmokeTest
 }
 
-function Invoke-Clean {
+Function Invoke-Clean {
   [CmdletBinding(
     ConfirmImpact = 'None',
     DefaultParameterSetName = 'default',
@@ -431,16 +431,16 @@ function Invoke-Clean {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Void])]
-  param ()
+  Param ()
 
-  if (Test-Path -LiteralPath $BuildRoot) {
+  If (Test-Path -LiteralPath $BuildRoot) {
     Remove-Item -LiteralPath $BuildRoot -Recurse -Force
   }
 
   Write-Information -MessageData 'Clean complete.' -InformationAction Continue
 }
 
-if ('All' -in $Task) {
+If ('All' -in $Task) {
   $Task = @('Clean', 'Build', 'Analyze', 'Test', 'Smoke')
 }
 

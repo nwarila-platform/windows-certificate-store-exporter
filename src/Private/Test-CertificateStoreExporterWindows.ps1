@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Test-CertificateStoreExporterWindows {
+Function Test-CertificateStoreExporterWindows {
   <#
     .SYNOPSIS
         Tests whether the exporter is running on Windows.
@@ -24,7 +24,7 @@ function Test-CertificateStoreExporterWindows {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Boolean])]
-  param ()
+  Param ()
 
   Write-Debug -Message:'[Test-CertificateStoreExporterWindows] Entering'
 

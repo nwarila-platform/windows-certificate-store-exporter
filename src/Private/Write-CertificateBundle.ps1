@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Write-CertificateBundle {
+Function Write-CertificateBundle {
   <#
     .SYNOPSIS
         Writes a certificate bundle.
@@ -38,7 +38,7 @@ function Write-CertificateBundle {
     SupportsShouldProcess = $True
   )]
   [OutputType([PSCustomObject])]
-  param (
+  Param (
     [Parameter()]
     [ValidateRange(0, [System.Int32]::MaxValue)]
     [System.Int32]
@@ -87,7 +87,7 @@ function Write-CertificateBundle {
   [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
   [System.String]$Private:Status = [System.String]::Empty
 
-  if ($PemBlock.Count -lt $MinimumCertificateCount) {
+  If ($PemBlock.Count -lt $MinimumCertificateCount) {
     $FailureMessage = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.' -f $PemBlock.Count, $MinimumCertificateCount
 
     New-ErrorRecord `
@@ -105,8 +105,8 @@ function Write-CertificateBundle {
   $BundleText = ([System.String[]]$PemBlock -join "`n") -replace "`r`n?", "`n"
 
   # PEM bundle bytes are consumed by minimal trust stores; reject non-ASCII before any write.
-  foreach ($Character in $BundleText.ToCharArray()) {
-    if ([System.Int32]$Character -gt 0x7F) {
+  ForEach ($Character In $BundleText.ToCharArray()) {
+    If ([System.Int32]$Character -gt 0x7F) {
       New-ErrorRecord `
         -Category:([System.Management.Automation.ErrorCategory]::InvalidData) `
         -ErrorId:([ExporterExitCode]::WriteFailure) `
@@ -125,7 +125,7 @@ function Write-CertificateBundle {
     ).Replace('-', '')
 
     # Avoid rewriting byte-identical content so callers keep stable mtimes and skip needless swaps.
-    if ([System.IO.File]::Exists($FullPath) -eq $True) {
+    If ([System.IO.File]::Exists($FullPath) -eq $True) {
       $ExistingBytes = [System.IO.File]::ReadAllBytes($FullPath)
       $ExistingSha256 = [System.BitConverter]::ToString(
         $Sha256.ComputeHash($ExistingBytes)
@@ -136,14 +136,14 @@ function Write-CertificateBundle {
       )
     }
 
-    if ($WriteManifest.IsPresent -eq $True) {
+    If ($WriteManifest.IsPresent -eq $True) {
       $ManifestPath = '{0}.sha256' -f $Path
       $ManifestFullPath = '{0}.sha256' -f $FullPath
       # sha256sum-compatible sidecars are "<hex><two spaces><leaf><LF>" for portable verification.
       $ManifestText = '{0}  {1}{2}' -f $BundleSha256, $PathLeaf, "`n"
       $ManifestBytes = $Encoding.GetBytes($ManifestText)
 
-      if ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
+      If ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
         $ExistingBytes = [System.IO.File]::ReadAllBytes($ManifestFullPath)
         $ExistingSha256 = [System.BitConverter]::ToString(
           $Sha256.ComputeHash($ExistingBytes)
@@ -157,59 +157,59 @@ function Write-CertificateBundle {
           )
         )
       }
-    } else {
+    } Else {
       $ManifestUnchanged = $True
     }
 
-    if ($BundleUnchanged -eq $True -and $ManifestUnchanged -eq $True) {
+    If ($BundleUnchanged -eq $True -and $ManifestUnchanged -eq $True) {
       $Status = 'Unchanged'
-    } else {
+    } Else {
       $OperationTarget = $FullPath
-      if ($WriteManifest.IsPresent -eq $True) {
+      If ($WriteManifest.IsPresent -eq $True) {
         $OperationTarget = '{0} and {1}' -f $FullPath, $ManifestFullPath
       }
 
-      if (
+      If (
         [System.Boolean]$PSCmdlet.ShouldProcess(
           $OperationTarget,
           'Write certificate bundle'
         ) -eq $False
       ) {
         $Status = 'WhatIf'
-      } else {
+      } Else {
         Try {
-          if ($BundleUnchanged -eq $False) {
+          If ($BundleUnchanged -eq $False) {
             # Same-directory temps keep the final Replace/Move atomic on the target volume.
             $BundleTempPath = Join-Path `
               -Path:$DirectoryPath `
               -ChildPath:('.{0}.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
             [System.IO.File]::WriteAllText($BundleTempPath, $BundleText, $Encoding)
 
-            if ([System.IO.File]::Exists($FullPath) -eq $True) {
+            If ([System.IO.File]::Exists($FullPath) -eq $True) {
               $BundleBackupPath = Join-Path `
                 -Path:$DirectoryPath `
                 -ChildPath:('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
               [System.IO.File]::Replace($BundleTempPath, $FullPath, $BundleBackupPath)
               [System.IO.File]::Delete($BundleBackupPath)
-            } else {
+            } Else {
               [System.IO.File]::Move($BundleTempPath, $FullPath)
             }
           }
 
-          if ($WriteManifest.IsPresent -eq $True -and $ManifestUnchanged -eq $False) {
+          If ($WriteManifest.IsPresent -eq $True -and $ManifestUnchanged -eq $False) {
             # Manifest writes use the same temp-then-swap path so bundle metadata is never half-written.
             $ManifestTempPath = Join-Path `
               -Path:$DirectoryPath `
               -ChildPath:('.{0}.sha256.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
             [System.IO.File]::WriteAllText($ManifestTempPath, $ManifestText, $Encoding)
 
-            if ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
+            If ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
               $ManifestBackupPath = Join-Path `
                 -Path:$DirectoryPath `
                 -ChildPath:('.{0}.sha256.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
               [System.IO.File]::Replace($ManifestTempPath, $ManifestFullPath, $ManifestBackupPath)
               [System.IO.File]::Delete($ManifestBackupPath)
-            } else {
+            } Else {
               [System.IO.File]::Move($ManifestTempPath, $ManifestFullPath)
             }
           }
@@ -217,28 +217,28 @@ function Write-CertificateBundle {
           $Status = 'Written'
         } Catch {
           # Failed atomic swaps can leave temp or backup artifacts; remove them so retry is clean.
-          if (
+          If (
             [System.String]::IsNullOrEmpty($BundleTempPath) -eq $False -and
             [System.IO.File]::Exists($BundleTempPath) -eq $True
           ) {
             [System.IO.File]::Delete($BundleTempPath)
           }
 
-          if (
+          If (
             [System.String]::IsNullOrEmpty($BundleBackupPath) -eq $False -and
             [System.IO.File]::Exists($BundleBackupPath) -eq $True
           ) {
             [System.IO.File]::Delete($BundleBackupPath)
           }
 
-          if (
+          If (
             [System.String]::IsNullOrEmpty($ManifestTempPath) -eq $False -and
             [System.IO.File]::Exists($ManifestTempPath) -eq $True
           ) {
             [System.IO.File]::Delete($ManifestTempPath)
           }
 
-          if (
+          If (
             [System.String]::IsNullOrEmpty($ManifestBackupPath) -eq $False -and
             [System.IO.File]::Exists($ManifestBackupPath) -eq $True
           ) {
@@ -256,7 +256,7 @@ function Write-CertificateBundle {
       }
     }
   } Finally {
-    if ($Null -ne $Sha256) {
+    If ($Null -ne $Sha256) {
       $Sha256.Dispose()
     }
   }

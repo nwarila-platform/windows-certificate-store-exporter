@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Get-StoreCertificate {
+Function Get-StoreCertificate {
   <#
     .SYNOPSIS
         Reads certificates from a Windows certificate store.
@@ -33,12 +33,12 @@ function Get-StoreCertificate {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
-  param (
+  Param (
     [Parameter(DontShow = $True)]
     [ValidateNotNull()]
     [System.Management.Automation.ScriptBlock]
     $StoreFactory = {
-      param (
+      Param (
         [Parameter(Mandatory = $True)]
         [System.String]
         $Name,
@@ -77,7 +77,7 @@ function Get-StoreCertificate {
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:StoreCertificates = @()
   [System.Security.Cryptography.X509Certificates.StoreLocation]$Private:TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine
 
-  if ((Test-CertificateStoreExporterWindows) -eq $False) {
+  If ((Test-CertificateStoreExporterWindows) -eq $False) {
     New-ErrorRecord `
       -Category:([System.Management.Automation.ErrorCategory]::InvalidOperation) `
       -ErrorId:([ExporterExitCode]::NotWindows) `
@@ -109,7 +109,7 @@ function Get-StoreCertificate {
       -TargetObject:('{0}\{1}' -f $StoreLocation, $StoreName)
   } Finally {
     # Always release the native store handle, even if opening or enumeration fails.
-    if ($Null -ne $Store) {
+    If ($Null -ne $Store) {
       $Store.Dispose()
     }
   }

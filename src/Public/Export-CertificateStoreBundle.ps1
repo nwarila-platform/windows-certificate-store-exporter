@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Export-CertificateStoreBundle {
+Function Export-CertificateStoreBundle {
   <#
     .SYNOPSIS
         Exports a Windows certificate store bundle.
@@ -44,7 +44,7 @@ function Export-CertificateStoreBundle {
     SupportsShouldProcess = $True
   )]
   [OutputType([PSCustomObject])]
-  param (
+  Param (
     [Parameter()]
     [System.Management.Automation.SwitchParameter]
     $IncludeExpired,
@@ -123,20 +123,20 @@ function Export-CertificateStoreBundle {
     [System.StringComparer]::OrdinalIgnoreCase
   )
 
-  foreach ($RequestedStoreName in $StoreName) {
+  ForEach ($RequestedStoreName In $StoreName) {
     $StoreCertificates = Get-StoreCertificate `
       -StoreLocation:$StoreLocation `
       -StoreName:$RequestedStoreName
 
-    foreach ($StoreCertificate in $StoreCertificates) {
-      if ($Null -eq $StoreCertificate) {
-        continue
+    ForEach ($StoreCertificate In $StoreCertificates) {
+      If ($Null -eq $StoreCertificate) {
+        Continue
       }
 
       $CandidateCertificates.Add($StoreCertificate)
       $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$StoreCertificate
 
-      if ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $False) {
+      If ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $False) {
         $FirstSourceStoreByHash.Add($CertificateHash, $RequestedStoreName)
       }
     }
@@ -148,9 +148,9 @@ function Export-CertificateStoreBundle {
     -StoreLocation:$StoreLocation `
     -StoreName:'Disallowed'
 
-  foreach ($DisallowedCertificate in $DisallowedCertificates) {
-    if ($Null -eq $DisallowedCertificate) {
-      continue
+  ForEach ($DisallowedCertificate In $DisallowedCertificates) {
+    If ($Null -eq $DisallowedCertificate) {
+      Continue
     }
 
     $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$DisallowedCertificate
@@ -160,32 +160,32 @@ function Export-CertificateStoreBundle {
 
   # Count every candidate exclusion class here because the result contract reports these Excluded
   # totals separately from the selected certificate list.
-  foreach ($CandidateCertificate in $CandidateCertificates) {
-    if ($IncludeExpired.IsPresent -eq $False) {
+  ForEach ($CandidateCertificate In $CandidateCertificates) {
+    If ($IncludeExpired.IsPresent -eq $False) {
       $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
       $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
 
-      if ($NotAfterUtc -lt $NowUtc) {
+      If ($NotAfterUtc -lt $NowUtc) {
         $ExcludedExpired++
-        continue
+        Continue
       }
 
-      if ($NotBeforeUtc -gt $NowUtc) {
+      If ($NotBeforeUtc -gt $NowUtc) {
         $ExcludedNotYetValid++
-        continue
+        Continue
       }
     }
 
     $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
 
-    if ($DisallowedThumbprintSet.Contains($CertificateHash) -eq $True) {
+    If ($DisallowedThumbprintSet.Contains($CertificateHash) -eq $True) {
       $ExcludedDisallowed++
-      continue
+      Continue
     }
 
-    if ($SeenEligibleThumbprints.Contains($CertificateHash) -eq $True) {
+    If ($SeenEligibleThumbprints.Contains($CertificateHash) -eq $True) {
       $ExcludedDuplicate++
-      continue
+      Continue
     }
 
     [void]$SeenEligibleThumbprints.Add($CertificateHash)
@@ -203,15 +203,15 @@ function Export-CertificateStoreBundle {
   # Fall back to the first requested store when a selected certificate has no tracked source entry,
   # preserving the caller's store preference in PEM labels.
   $DefaultSourceStore = 'Root'
-  if ($StoreName.Count -gt 0) {
+  If ($StoreName.Count -gt 0) {
     $DefaultSourceStore = [System.String]$StoreName[0]
   }
 
-  foreach ($SelectedCertificate in $SelectedCertificates) {
+  ForEach ($SelectedCertificate In $SelectedCertificates) {
     $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$SelectedCertificate
     $SourceStore = $DefaultSourceStore
 
-    if ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $True) {
+    If ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $True) {
       $SourceStore = [System.String]$FirstSourceStoreByHash[$CertificateHash]
     }
 

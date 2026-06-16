@@ -85,6 +85,10 @@
       Enable = $true
     }
 
+    'Measure-CanonicalKeywordCasing'     = @{
+      Enable = $true
+    }
+
     'Measure-NoRemoveVariableCleanup'    = @{
       Enable = $true
     }

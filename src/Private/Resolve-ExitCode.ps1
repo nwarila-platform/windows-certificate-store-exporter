@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Resolve-ExitCode {
+Function Resolve-ExitCode {
   <#
     .SYNOPSIS
         Resolves exporter error records to process exit codes.
@@ -28,7 +28,7 @@ function Resolve-ExitCode {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Int32])]
-  param (
+  Param (
     [Parameter(Mandatory = $True)]
     [ValidateNotNull()]
     [System.Management.Automation.ErrorRecord]

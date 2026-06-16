@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function ConvertTo-PemCertificate {
+Function ConvertTo-PemCertificate {
   <#
     .SYNOPSIS
         Converts a certificate into a PEM block.
@@ -32,7 +32,7 @@ function ConvertTo-PemCertificate {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.String])]
-  param (
+  Param (
     [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
     [ValidateNotNull()]
     [System.Security.Cryptography.X509Certificates.X509Certificate2]
@@ -81,41 +81,41 @@ function ConvertTo-PemCertificate {
 
     # PEM metadata comments stay ASCII so bundle diffs and consumers do not depend on locale.
     $EscapedSubjectBuilder = [System.Text.StringBuilder]::new()
-    foreach ($Character in $Certificate.Subject.ToCharArray()) {
+    ForEach ($Character In $Certificate.Subject.ToCharArray()) {
       $CharacterCode = [System.Int32]$Character
 
-      if ($CharacterCode -eq 0x5C) {
+      If ($CharacterCode -eq 0x5C) {
         [void]$EscapedSubjectBuilder.Append('\\')
-        continue
+        Continue
       }
 
-      if ($CharacterCode -ge 0x20 -and $CharacterCode -le 0x7E) {
+      If ($CharacterCode -ge 0x20 -and $CharacterCode -le 0x7E) {
         [void]$EscapedSubjectBuilder.Append($Character)
-        continue
+        Continue
       }
 
       $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes([System.String]$Character)
-      foreach ($CharacterByte in $CharacterBytes) {
+      ForEach ($CharacterByte In $CharacterBytes) {
         [void]$EscapedSubjectBuilder.Append(('\x{0:X2}' -f $CharacterByte))
       }
     }
 
     $EscapedIssuerBuilder = [System.Text.StringBuilder]::new()
-    foreach ($Character in $Certificate.Issuer.ToCharArray()) {
+    ForEach ($Character In $Certificate.Issuer.ToCharArray()) {
       $CharacterCode = [System.Int32]$Character
 
-      if ($CharacterCode -eq 0x5C) {
+      If ($CharacterCode -eq 0x5C) {
         [void]$EscapedIssuerBuilder.Append('\\')
-        continue
+        Continue
       }
 
-      if ($CharacterCode -ge 0x20 -and $CharacterCode -le 0x7E) {
+      If ($CharacterCode -ge 0x20 -and $CharacterCode -le 0x7E) {
         [void]$EscapedIssuerBuilder.Append($Character)
-        continue
+        Continue
       }
 
       $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes([System.String]$Character)
-      foreach ($CharacterByte in $CharacterBytes) {
+      ForEach ($CharacterByte In $CharacterBytes) {
         [void]$EscapedIssuerBuilder.Append(('\x{0:X2}' -f $CharacterByte))
       }
     }
@@ -143,7 +143,7 @@ function ConvertTo-PemCertificate {
     [void]$Lines.Add(('# Source: {0}' -f $StoreName))
     [void]$Lines.Add('-----BEGIN CERTIFICATE-----')
 
-    for ($Index = 0; $Index -lt $Base64.Length; $Index += 64) {
+    For ($Index = 0; $Index -lt $Base64.Length; $Index += 64) {
       [void]$Lines.Add(
         $Base64.Substring($Index, [System.Math]::Min(64, $Base64.Length - $Index))
       )
