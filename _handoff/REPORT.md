@@ -1,56 +1,32 @@
-# REPORT - Message Table
+# REPORT — SG-8 docs
 
-## Implemented
+## Completed
 
-- Added the build-generated message table initializer before `#region Private Functions` in `build.ps1`:
-  `[System.Collections.Hashtable]$Script:Message = @{}`
-- Confirmed the initializer appears in both generated artifacts:
-  `build/Export-CertificateStoreBundle.Functions.ps1` and `build/Export-CertificateStoreBundle.ps1`.
-- Added file-scope `# Message(s)` fragments after `#Requires` and before `Function` in:
-  - `src/Private/Get-CertificateRawDataSha256.ps1`
-    - `Get-CertificateRawDataSha256.NoRawData`
-    - `Get-CertificateRawDataSha256.HashFailure`
-  - `src/Private/Get-StoreCertificate.ps1`
-    - `Get-StoreCertificate.NotWindows`
-    - `Get-StoreCertificate.ReadFailure`
-  - `src/Private/Write-CertificateBundle.ps1`
-    - `Write-CertificateBundle.BelowMinimum`
-    - `Write-CertificateBundle.NonAscii`
-    - `Write-CertificateBundle.WriteFailure`
-- Retrofitted the user-facing `New-ErrorRecord -Message` call sites to use `$Script:Message[...]`.
-- Removed `$FailureMessage` declarations and assignments from:
-  - `Get-StoreCertificate`
-  - `Write-CertificateBundle`
-- Left `Write-Debug` strings unchanged.
-
-## Message Fidelity
-
-- Messages remain byte-identical to the previous literals.
-- The store read message uses a plain single-quoted hashtable value:
-  `Failed to read Windows certificate store {0}\{1}: {2}`
-- Runtime backslash check passed:
-  `Failed to read Windows certificate store LocalMachine\Root: Synthetic store-open failure.`
+- Added SG-8 to `docs/STYLE-GUIDE.md`: centralized `$Script:Message` table,
+  per-function co-located fragments, direct table lookup/formatting at call sites,
+  single-quoted hashtable values, namespaced keys, duplicate-key collision
+  detection, no inline user-facing `-Message` literals, no message-only
+  intermediates, and `Write-Debug` excluded.
+- Added ADR `docs/decision-records/repo/0009-sg8-centralized-message-table.md`.
+  It records the plain-hashtable mechanism, rejection of `data {}` /
+  `ConvertFrom-StringData` for Windows-path backslash safety, rejection of
+  localization machinery for this English-only single-file tool, and the DSC
+  Community per-resource string-table influence.
 
 ## Verification
 
-- Ran fresh process:
-  `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
-- Result:
-  - Clean OK
-  - Build OK
-  - Analyze passed with 0 findings
-  - Pester passed: 91 passed, 0 failed
-  - Coverage: 96.06% / 90%
-  - Six exit codes proven by tests:
-    - Success -> 0
-    - Unhandled -> 1
-    - BelowMinimumCertificateCount -> 2
-    - NotWindows -> 3
-    - StoreReadFailure -> 4
-    - WriteFailure -> 5
-  - Smoke: `BuildArtifacts.ps1` passed
-  - Smoke: `LiveStoreRead.ps1` passed
+- No code, analyzer, or settings files changed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
+  passed:
+  - Build OK.
+  - Analyze passed with 0 findings.
+  - Pester: 91 passed, 0 failed.
+  - Coverage: 96.06% / 90%.
+  - Exit-code tests covered six codes.
+  - Smoke phase completed successfully.
 
-## False Premises
+## Git
 
-- None found.
+- Branch: `codex-sg8-docs`.
+- Signed commit created locally.
+- Not pushed or merged.

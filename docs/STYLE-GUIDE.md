@@ -597,3 +597,55 @@ $Path
 [System.Management.Automation.ScriptBlock]
 $StoreFactory
 ```
+
+---
+
+## SG-8 — Centralized message table **[judgment — review-enforced]**
+
+See [ADR-repo/0009](decision-records/repo/0009-sg8-centralized-message-table.md)
+for the accepted rationale and source references.
+
+**Rule.** User-facing message strings live in one script-scope
+`$Script:Message` hashtable. Author message entries per function as co-located
+file-scope fragments, immediately before or after the owning function:
+
+```powershell
+$Script:Message += @{
+  'Get-Thing.MissingPath' = 'Path ''{0}'' does not exist.'
+}
+```
+
+The build emits `[System.Collections.Hashtable]$Script:Message = @{}` at the top
+of the merged functions artifact before the first fragment, so `$Script:Message +=
+@{ ... }` is StrictMode-safe. Call sites index the table directly and format at the
+point of use:
+
+```powershell
+New-ErrorRecord -Message:($Script:Message['Get-Thing.MissingPath'] -f $Path)
+```
+
+Message values are plain single-quoted hashtable strings. Do not use `data {}` or
+`ConvertFrom-StringData` for the house message table. Keys are namespaced as
+`FunctionName.Purpose`; duplicate keys fail during merge because hashtable addition
+throws, giving collision detection. Do not write inline user-facing `-Message`
+literals, and do not introduce `$FailureMessage`-style intermediate variables whose
+only purpose is to hold a formatted message.
+
+`Write-Debug` text is explicitly out of scope. Debug anchors are diagnostic trace
+strings, not user-facing messages, and they stay inline so SG-6's function-flow
+shape remains visible.
+
+**Why.** The convention gives user-facing text a single lookup surface without
+moving messages away from the function that owns them. Per-function fragments keep
+small-file review ergonomic while the build still produces one merged table for the
+single-script artifact.
+
+**Honest framing.** For a tool this small, one hand-written central table would also
+be correct. The house chooses co-located fragments because the owning function,
+tests, and messages stay together during normal edits. This mirrors the DSC
+per-resource string-table habit, but keeps the table in script because this
+repository intentionally ships a single English-only script instead of localized
+resource files.
+
+**Enforced by:** review. There is no analyzer rule yet; a future
+`Measure-*` rule may make the mechanical parts enforceable.
