@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function New-ErrorRecord {
+Function New-ErrorRecord {
   <#
     .SYNOPSIS
         Creates or throws a structured PowerShell error record.
@@ -44,7 +44,7 @@ function New-ErrorRecord {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Management.Automation.ErrorRecord])]
-  param (
+  Param (
     [Parameter()]
     [System.Management.Automation.ErrorCategory]
     $Category = [System.Management.Automation.ErrorCategory]::InvalidOperation,
@@ -77,9 +77,9 @@ function New-ErrorRecord {
   [System.Management.Automation.ErrorRecord]$Private:ErrorRecord = $Null
   [System.InvalidOperationException]$Private:RecordException = $Null
 
-  if ($Null -eq $Exception) {
+  If ($Null -eq $Exception) {
     $RecordException = [System.InvalidOperationException]::new($Message)
-  } else {
+  } Else {
     $RecordException = [System.InvalidOperationException]::new($Message, $Exception)
   }
 
@@ -90,7 +90,7 @@ function New-ErrorRecord {
     $TargetObject
   )
 
-  if ($IsFatal.IsPresent -eq $True) {
+  If ($IsFatal.IsPresent -eq $True) {
     $PSCmdlet.ThrowTerminatingError($ErrorRecord)
   }
 

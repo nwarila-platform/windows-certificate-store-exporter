@@ -406,6 +406,125 @@ function ConvertTo-Thing {
   }
 }
 
+Describe 'canonical keyword casing house analyzer rule' {
+  BeforeAll {
+    $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+    if (-not (Get-Module -Name PSScriptAnalyzer)) {
+      Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+    }
+  }
+
+  It 'flags lowercase <Keyword> with canonical suggestion <ExpectedKeyword>' -TestCases @(
+    @{
+      ExpectedKeyword  = 'If'
+      Keyword          = 'if'
+      ScriptDefinition = "Function Get-Thing {`n    Param ()`n    if (`$True) { 'yes' }`n}"
+    }
+    @{
+      ExpectedKeyword  = 'ForEach'
+      Keyword          = 'foreach'
+      ScriptDefinition = "Function Get-Thing {`n    Param ()`n    foreach (`$Item In @(1)) { `$Item }`n}"
+    }
+    @{
+      ExpectedKeyword  = 'Param'
+      Keyword          = 'param'
+      ScriptDefinition = "Function Get-Thing {`n    param ()`n}"
+    }
+    @{
+      ExpectedKeyword  = 'Function'
+      Keyword          = 'function'
+      ScriptDefinition = "function Get-Thing {`n    Param ()`n}"
+    }
+  ) {
+    param (
+      [System.String]
+      $ExpectedKeyword,
+
+      [System.String]
+      $Keyword,
+
+      [System.String]
+      $ScriptDefinition
+    )
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-CanonicalKeywordCasing'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalKeywordCasing' })
+    [System.String[]]$Messages = @($Results.Message | Select-Object -Unique)
+
+    $Messages | Should -HaveCount 1
+    $Messages | Should -Contain ("Keyword '{0}' must be canonical casing '{1}'." -f $Keyword, $ExpectedKeyword)
+  }
+
+  It 'accepts PascalCase forms including compound keywords' {
+    $ScriptDefinition = @'
+Function ConvertTo-Thing {
+    [CmdletBinding()]
+    Param (
+        [Parameter(ValueFromPipeline = $True)]
+        [System.String]
+        $InputObject
+    )
+    DynamicParam {
+        [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+    } Begin {
+        If ($InputObject) {
+            $InputObject
+        } ElseIf ($False) {
+            'fallback'
+        } Else {
+            ForEach ($Item In @(1)) {
+                $Item
+            }
+        }
+    } Process {
+        $InputObject
+    } End {
+        Try {
+            'done'
+        } Catch {
+            Throw
+        } Finally {
+            'cleanup'
+        }
+    }
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-CanonicalKeywordCasing'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalKeywordCasing' })
+
+    $Results | Should -HaveCount 0
+  }
+
+  It 'does not flag lower-case operator tokens' {
+    $ScriptDefinition = @'
+Function Test-Thing {
+    Param ()
+    If ($True -and (1 -in @(1))) {
+        'ok'
+    }
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-CanonicalKeywordCasing'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-CanonicalKeywordCasing' })
+
+    $Results | Should -HaveCount 0
+  }
+}
+
 Describe 'SG-4 house analyzer rules' {
   BeforeAll {
     $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'

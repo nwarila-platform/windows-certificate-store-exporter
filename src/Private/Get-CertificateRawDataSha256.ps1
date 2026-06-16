@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Get-CertificateRawDataSha256 {
+Function Get-CertificateRawDataSha256 {
   <#
     .SYNOPSIS
         Computes the SHA-256 thumbprint for a certificate.

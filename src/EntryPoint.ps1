@@ -8,7 +8,7 @@
   SupportsPaging = $False,
   SupportsShouldProcess = $True
 )]
-param (
+Param (
   [Parameter()]
   [ValidatePattern('^\d{3}$')]
   [System.String]
@@ -55,14 +55,14 @@ param (
 # This file is not a function. build.ps1 folds this body after the merged
 # Private/Public function definitions.
 
-trap {
+Trap {
   $Script:ExitCode = 1
 
-  if ($Script:TrapEnabled -eq $True) {
+  If ($Script:TrapEnabled -eq $True) {
     Write-Error -ErrorRecord $PSItem -ErrorAction Continue
   }
 
-  exit ([System.Int32]$Script:ExitCode)
+  Exit ([System.Int32]$Script:ExitCode)
 }
 
 #region Initialization
@@ -98,30 +98,30 @@ $ExporterParameters = @{
   WriteManifest           = $WriteManifest
 }
 
-try {
+Try {
   Write-Debug -Message '[EntryPoint] Invoking Export-CertificateStoreBundle'
   $Result = Export-CertificateStoreBundle @ExporterParameters
 
-  if ($Null -ne $Result) {
+  If ($Null -ne $Result) {
     $Result
   }
 
   Write-Debug -Message '[EntryPoint] Exiting with code 0'
-  exit ([System.Int32]$Script:ExitCode)
-} catch {
+  Exit ([System.Int32]$Script:ExitCode)
+} Catch {
   $ResolvedExitCode = Resolve-ExitCode -ErrorRecord $PSItem
 
-  if ($Null -ne $ResolvedExitCode) {
+  If ($Null -ne $ResolvedExitCode) {
     $Script:ExitCode = [System.Int32]$ResolvedExitCode
 
-    if ($Script:TrapEnabled -eq $True) {
+    If ($Script:TrapEnabled -eq $True) {
       Write-Error -ErrorRecord $PSItem -ErrorAction Continue
     }
 
-    exit ([System.Int32]$Script:ExitCode)
+    Exit ([System.Int32]$Script:ExitCode)
   }
 
-  throw
+  Throw
 }
 
 #endregion

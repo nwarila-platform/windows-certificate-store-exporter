@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function Select-ExportableCertificate {
+Function Select-ExportableCertificate {
   <#
     .SYNOPSIS
         Selects certificates eligible for export.
@@ -34,7 +34,7 @@ function Select-ExportableCertificate {
     SupportsShouldProcess = $False
   )]
   [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
-  param (
+  Param (
     [Parameter()]
     [AllowEmptyCollection()]
     [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
@@ -70,7 +70,7 @@ function Select-ExportableCertificate {
     [System.StringComparer]::OrdinalIgnoreCase
   )
   $DisallowedThumbprint | ForEach-Object -Process:({
-      if ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
+      If ([System.String]::IsNullOrWhiteSpace($PSItem) -eq $False) {
         [void]$DisallowedSet.Add($PSItem)
       }
     })
@@ -81,29 +81,29 @@ function Select-ExportableCertificate {
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]::new([System.StringComparer]::Ordinal)
 
-  foreach ($CandidateCertificate in $Certificate) {
-    if ($Null -eq $CandidateCertificate) {
-      continue
+  ForEach ($CandidateCertificate In $Certificate) {
+    If ($Null -eq $CandidateCertificate) {
+      Continue
     }
 
     $IsCurrent = $True
-    if ($IncludeExpired.IsPresent -eq $False) {
+    If ($IncludeExpired.IsPresent -eq $False) {
       # Export only currently valid certificates unless the caller explicitly requests otherwise.
       $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
       $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
       $IsCurrent = [System.Boolean]($NotBeforeUtc -le $NowUtc -and $NotAfterUtc -ge $NowUtc)
     }
 
-    if ($IsCurrent -eq $False) {
-      continue
+    If ($IsCurrent -eq $False) {
+      Continue
     }
 
     $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
-    if ($DisallowedSet.Contains($CertificateHash) -eq $True) {
-      continue
+    If ($DisallowedSet.Contains($CertificateHash) -eq $True) {
+      Continue
     }
 
-    if ($SelectedByHash.ContainsKey($CertificateHash) -eq $False) {
+    If ($SelectedByHash.ContainsKey($CertificateHash) -eq $False) {
       $SelectedByHash.Add($CertificateHash, $CandidateCertificate)
     }
   }

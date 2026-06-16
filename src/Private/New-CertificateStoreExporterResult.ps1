@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-function New-CertificateStoreExporterResult {
+Function New-CertificateStoreExporterResult {
   <#
     .SYNOPSIS
         Creates the exporter success result object.
@@ -64,7 +64,7 @@ function New-CertificateStoreExporterResult {
     SupportsShouldProcess = $False
   )]
   [OutputType([PSCustomObject])]
-  param (
+  Param (
     [Parameter(Mandatory = $True)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
     [System.String]

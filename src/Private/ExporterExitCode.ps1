@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 
-enum ExporterExitCode {
+Enum ExporterExitCode {
   Success = 0
   Unhandled = 1
   BelowMinimumCertificateCount = 2
