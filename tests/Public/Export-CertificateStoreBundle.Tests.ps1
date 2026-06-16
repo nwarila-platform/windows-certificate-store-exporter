@@ -123,7 +123,15 @@ function Export-CertificateStoreBundle {
 
         [Parameter(Mandatory = $True)]
         [System.String]
-        $Directory
+        $Directory,
+
+        [Parameter()]
+        [System.String[]]
+        $Argument = @(),
+
+        [Parameter()]
+        [System.Management.Automation.SwitchParameter]
+        $PassThru
       )
 
       $ProjectRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
@@ -136,6 +144,12 @@ function Export-CertificateStoreBundle {
       $BundlePath = Join-Path `
         -Path $Directory `
         -ChildPath ('entrypoint-{0}.pem' -f [System.Guid]::NewGuid().ToString('N'))
+      $OutputPath = Join-Path `
+        -Path $Directory `
+        -ChildPath ('entrypoint-{0}.out' -f [System.Guid]::NewGuid().ToString('N'))
+      $ErrorPath = Join-Path `
+        -Path $Directory `
+        -ChildPath ('entrypoint-{0}.err' -f [System.Guid]::NewGuid().ToString('N'))
       $Arguments = [System.Collections.Generic.List[System.String]]::new()
       $Arguments.Add('-NoLogo')
       $Arguments.Add('-NoProfile')
@@ -146,9 +160,40 @@ function Export-CertificateStoreBundle {
       $Arguments.Add($HarnessFile)
       $Arguments.Add('-Path')
       $Arguments.Add($BundlePath)
+      foreach ($Value in $Argument) {
+        $Arguments.Add($Value)
+      }
 
-      $Null = & $PowerShellCommand.Source @Arguments 2>&1
-      [System.Int32]$LASTEXITCODE
+      $Process = Start-Process `
+        -FilePath $PowerShellCommand.Source `
+        -ArgumentList ([System.String[]]$Arguments) `
+        -Wait `
+        -PassThru `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $OutputPath `
+        -RedirectStandardError $ErrorPath
+      $ExitCode = [System.Int32]$Process.ExitCode
+      $OutputText = [System.String]::Empty
+      if (Test-Path -LiteralPath $OutputPath) {
+        $OutputText = Get-Content -LiteralPath $OutputPath -Raw
+      }
+      $ErrorText = [System.String]::Empty
+      if (Test-Path -LiteralPath $ErrorPath) {
+        $ErrorText = Get-Content -LiteralPath $ErrorPath -Raw
+      }
+
+      if ($PassThru) {
+        [PSCustomObject]@{
+          ExitCode = $ExitCode
+          Output   = [System.String]::Join(
+            [System.Environment]::NewLine,
+            [System.String[]]@($OutputText, $ErrorText)
+          )
+        }
+        return
+      }
+
+      $ExitCode
     }
   }
 
@@ -434,5 +479,16 @@ function Export-CertificateStoreBundle {
 
     Invoke-TestEntryPointHarness -Scenario $Scenario -Directory $TestRoot |
       Should -Be $ExpectedExitCode
+  }
+
+  It 'rejects MinimumCertificateCount below the CLI floor' {
+    $Result = Invoke-TestEntryPointHarness `
+      -Scenario Success `
+      -Directory $TestRoot `
+      -Argument @('-MinimumCertificateCount', '0') `
+      -PassThru
+
+    $Result.ExitCode | Should -Not -Be 0
+    $Result.Output | Should -Match 'MinimumCertificateCount'
   }
 }
