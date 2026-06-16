@@ -164,6 +164,16 @@ Describe 'Write-CertificateBundle' {
     Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
   }
 
+  It 'rejects non-FileSystem provider paths before writing' {
+    {
+      Write-CertificateBundle `
+        -Path 'Variable:\CertificateStoreExporterBundle' `
+        -PemBlock @($Script:FirstPemBlock)
+    } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord'
+
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+  }
+
   It 'honors WhatIf without writing bundle or manifest bytes' {
     $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
 
