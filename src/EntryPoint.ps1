@@ -163,7 +163,19 @@ Try {
   Write-Debug -Message '[EntryPoint] Exiting with code 0'
   Exit ([System.Int32]$Script:ExitCode)
 } Catch {
-  $ResolvedExitCode = Resolve-ExitCode -ErrorRecord $PSItem
+  # Map a known exporter ErrorId to its process exit code. The short id is the leading segment
+  #   before the first comma (ThrowTerminatingError appends ",<FunctionName>"). Success/Unhandled and
+  #   unknown ids resolve to $Null, so the Throw below routes them to the trap as unhandled (exit 1).
+  $ShortErrorId = ([System.String]$PSItem.FullyQualifiedErrorId -split ',', 2)[0]
+  $ResolvedExitCode = $Null
+
+  If ([System.Enum]::IsDefined([ExporterExitCode], $ShortErrorId) -eq $True) {
+    $CandidateExitCode = [ExporterExitCode]$ShortErrorId
+
+    If ($CandidateExitCode -notin @([ExporterExitCode]::Success, [ExporterExitCode]::Unhandled)) {
+      $ResolvedExitCode = [System.Int32]$CandidateExitCode
+    }
+  }
 
   If ($Null -ne $ResolvedExitCode) {
     $Script:ExitCode = [System.Int32]$ResolvedExitCode

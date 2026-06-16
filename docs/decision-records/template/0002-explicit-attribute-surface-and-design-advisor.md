@@ -47,8 +47,8 @@ Two forces collide:
    proof-of-concept (`New-ErrorRecord`, which spelled out all eight options) read as
    *more* honest than the bare `[CmdletBinding()]` everywhere else, not less.
 2. **Decidability.** Many of these are genuine judgments. Whether a unit should be a
-   function at all (`Resolve-ExitCode` is really an `enum`; `New-ErrorRecord` is
-   really a class factory), whether it should stream the pipeline, and what
+   function at all (pure mappings may belong closer to `enum` or table logic;
+   `New-ErrorRecord` is really a class factory), whether it should stream the pipeline, and what
    `ConfirmImpact` a state change warrants are not derivable from the AST. Microsoft
    guidance (SC02: "design every cmdlet as if it sits in the middle of a pipeline")
    is *strongly encouraged*, not mechanical; "this should be pipelined" has **no AST
