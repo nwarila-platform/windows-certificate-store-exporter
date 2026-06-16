@@ -1,5 +1,11 @@
 #Requires -Version 5.1
 
+# Message(s)
+$Script:Message += @{
+  'Get-StoreCertificate.NotWindows'  = 'Windows certificate stores are only available on Windows.'
+  'Get-StoreCertificate.ReadFailure' = 'Failed to read Windows certificate store {0}\{1}: {2}'
+}
+
 Function Get-StoreCertificate {
   <#
     .SYNOPSIS
@@ -96,7 +102,6 @@ Function Get-StoreCertificate {
 
   # Initialize Variable(s)
   [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]$Private:CertificateCollection = $Null
-  [System.String]$Private:FailureMessage = [System.String]::Empty
   # Open least-privilege and never create a missing store while this exporter is only reading.
   [System.Security.Cryptography.X509Certificates.OpenFlags]$Private:OpenFlags = (
     [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly -bor
@@ -112,7 +117,7 @@ Function Get-StoreCertificate {
       -Category:([System.Management.Automation.ErrorCategory]::InvalidOperation) `
       -ErrorId:([ExporterExitCode]::NotWindows) `
       -IsFatal:$True `
-      -Message:('Windows certificate stores are only available on Windows.') `
+      -Message:($Script:Message['Get-StoreCertificate.NotWindows']) `
       -TargetObject:('{0}\{1}' -f $StoreLocation, $StoreName)
   }
 
@@ -128,14 +133,12 @@ Function Get-StoreCertificate {
       $CertificateCollection
     )
   } Catch {
-    $FailureMessage = 'Failed to read Windows certificate store {0}\{1}: {2}' -f $StoreLocation, $StoreName, $PSItem.Exception.Message
-
     New-ErrorRecord `
       -Category:([System.Management.Automation.ErrorCategory]::ReadError) `
       -ErrorId:([ExporterExitCode]::StoreReadFailure) `
       -Exception:$PSItem.Exception `
       -IsFatal:$True `
-      -Message:$FailureMessage `
+      -Message:($Script:Message['Get-StoreCertificate.ReadFailure'] -f $StoreLocation, $StoreName, $PSItem.Exception.Message) `
       -TargetObject:('{0}\{1}' -f $StoreLocation, $StoreName)
   } Finally {
     # Always release the native store handle, even if opening or enumeration fails.

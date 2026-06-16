@@ -1,5 +1,12 @@
 #Requires -Version 5.1
 
+# Message(s)
+$Script:Message += @{
+  'Write-CertificateBundle.BelowMinimum' = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.'
+  'Write-CertificateBundle.NonAscii'     = 'Certificate bundle content must be ASCII.'
+  'Write-CertificateBundle.WriteFailure' = 'Failed to write certificate bundle: {0}'
+}
+
 Function Write-CertificateBundle {
   <#
     .SYNOPSIS
@@ -96,7 +103,6 @@ Function Write-CertificateBundle {
   [System.Text.UTF8Encoding]$Private:Encoding = $Null
   [System.Byte[]]$Private:ExistingBytes = [System.Byte[]]@()
   [System.String]$Private:ExistingSha256 = [System.String]::Empty
-  [System.String]$Private:FailureMessage = [System.String]::Empty
   [System.String]$Private:FullPath = [System.String]::Empty
   [System.String]$Private:ManifestPath = $Null
   [System.Byte[]]$Private:ManifestBytes = [System.Byte[]]@()
@@ -112,13 +118,11 @@ Function Write-CertificateBundle {
   [System.String]$Private:Status = [System.String]::Empty
 
   If ($PemBlock.Count -lt $MinimumCertificateCount) {
-    $FailureMessage = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.' -f $PemBlock.Count, $MinimumCertificateCount
-
     New-ErrorRecord `
       -Category:([System.Management.Automation.ErrorCategory]::InvalidData) `
       -ErrorId:([ExporterExitCode]::BelowMinimumCertificateCount) `
       -IsFatal:$True `
-      -Message:$FailureMessage `
+      -Message:($Script:Message['Write-CertificateBundle.BelowMinimum'] -f $PemBlock.Count, $MinimumCertificateCount) `
       -TargetObject:$Path
   }
 
@@ -135,7 +139,7 @@ Function Write-CertificateBundle {
         -Category:([System.Management.Automation.ErrorCategory]::InvalidData) `
         -ErrorId:([ExporterExitCode]::WriteFailure) `
         -IsFatal:$True `
-        -Message:('Certificate bundle content must be ASCII.') `
+        -Message:($Script:Message['Write-CertificateBundle.NonAscii']) `
         -TargetObject:$Path
     }
   }
@@ -274,7 +278,7 @@ Function Write-CertificateBundle {
             -ErrorId:([ExporterExitCode]::WriteFailure) `
             -Exception:$PSItem.Exception `
             -IsFatal:$True `
-            -Message:('Failed to write certificate bundle: {0}' -f $PSItem.Exception.Message) `
+            -Message:($Script:Message['Write-CertificateBundle.WriteFailure'] -f $PSItem.Exception.Message) `
             -TargetObject:$Path
         }
       }

@@ -1,47 +1,56 @@
-# REPORT - Item C Classify Once
+# REPORT - Message Table
 
-Status: complete
-Branch: `codex-cq-classify-once`
+## Implemented
 
-## Changes
+- Added the build-generated message table initializer before `#region Private Functions` in `build.ps1`:
+  `[System.Collections.Hashtable]$Script:Message = @{}`
+- Confirmed the initializer appears in both generated artifacts:
+  `build/Export-CertificateStoreBundle.Functions.ps1` and `build/Export-CertificateStoreBundle.ps1`.
+- Added file-scope `# Message(s)` fragments after `#Requires` and before `Function` in:
+  - `src/Private/Get-CertificateRawDataSha256.ps1`
+    - `Get-CertificateRawDataSha256.NoRawData`
+    - `Get-CertificateRawDataSha256.HashFailure`
+  - `src/Private/Get-StoreCertificate.ps1`
+    - `Get-StoreCertificate.NotWindows`
+    - `Get-StoreCertificate.ReadFailure`
+  - `src/Private/Write-CertificateBundle.ps1`
+    - `Write-CertificateBundle.BelowMinimum`
+    - `Write-CertificateBundle.NonAscii`
+    - `Write-CertificateBundle.WriteFailure`
+- Retrofitted the user-facing `New-ErrorRecord -Message` call sites to use `$Script:Message[...]`.
+- Removed `$FailureMessage` declarations and assignments from:
+  - `Get-StoreCertificate`
+  - `Write-CertificateBundle`
+- Left `Write-Debug` strings unchanged.
 
-- `Select-ExportableCertificate` now returns one `[PSCustomObject]` instead of a bare certificate array.
-- The new `Select` contract contains:
-  - `Selected`: retained `[X509Certificate2[]]`, still sorted ascending by SHA-256 DER identity.
-  - `SelectedThumbprint`: parallel `[String[]]` SHA-256 identities in the same order.
-  - `ExcludedExpired`, `ExcludedNotYetValid`, `ExcludedDisallowed`, `ExcludedDuplicate`: counted in the same single pass that filters.
-- `Export-CertificateStoreBundle` now calls `Select-ExportableCertificate` once and consumes that result.
-- Deleted the export-side standalone exclusion-counting loop and the duplicate disallowed hash set.
-- Export still hashes each requested store certificate once for source-store attribution and each Disallowed certificate once for the disallowed thumbprint array.
-- Export uses `SelectedThumbprint` for PEM source lookup and passes those same identities into the result factory.
-- `New-CertificateStoreExporterResult` now accepts optional `-CertificateThumbprint [String[]]`; when supplied, it uses those values directly and does not re-hash `-Certificate`.
+## Message Fidelity
 
-## Behavior Proof
-
-- Public `Export-CertificateStoreBundle` contract tests were not changed; their existing assertions still prove:
-  - `Examined` remains the candidate certificate count.
-  - `Excluded.Expired`, `Excluded.NotYetValid`, `Excluded.Disallowed`, and `Excluded.Duplicate` stay unchanged.
-  - `Thumbprints` and their order stay unchanged.
-  - Bundle bytes and bundle SHA-256 stay unchanged.
-  - The six entry point exit codes remain mapped to `0..5`.
-- Internal tests changed mechanically for the new `Select` return object and for the new result-factory precomputed thumbprint path.
-- The new result-factory test mocks the hash helper and verifies `-CertificateThumbprint` does not invoke it.
+- Messages remain byte-identical to the previous literals.
+- The store read message uses a plain single-quoted hashtable value:
+  `Failed to read Windows certificate store {0}\{1}: {2}`
+- Runtime backslash check passed:
+  `Failed to read Windows certificate store LocalMachine\Root: Synthetic store-open failure.`
 
 ## Verification
 
-Command:
+- Ran fresh process:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
+- Result:
+  - Clean OK
+  - Build OK
+  - Analyze passed with 0 findings
+  - Pester passed: 91 passed, 0 failed
+  - Coverage: 96.06% / 90%
+  - Six exit codes proven by tests:
+    - Success -> 0
+    - Unhandled -> 1
+    - BelowMinimumCertificateCount -> 2
+    - NotWindows -> 3
+    - StoreReadFailure -> 4
+    - WriteFailure -> 5
+  - Smoke: `BuildArtifacts.ps1` passed
+  - Smoke: `LiveStoreRead.ps1` passed
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All
-```
+## False Premises
 
-Result: passed.
-
-- Build OK.
-- Analyze: 0 findings.
-- Pester: 91 passed, 0 failed.
-- Coverage: 95.98% (threshold 90%).
-- Exit-code tests: all six mappings passed.
-- Smoke stage passed: `BuildArtifacts.ps1`, `LiveStoreRead.ps1`.
-
-No false premise found. No external behavior shifted intentionally or observed in the unchanged contract tests.
+- None found.
