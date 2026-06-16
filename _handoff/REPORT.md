@@ -1,64 +1,50 @@
-# SG-7 Implementation Report
+# REPORT - SG-7 Docs
 
-Branch: `codex-sg7-param`
+Status: complete
+Branch: `codex-sg7-docs`
 
-## Implemented
+## Changes
 
-- Added `Measure-ExplicitParameterAttribute` in `analyzers/HouseRules.psm1`.
-- Enabled it in `PSScriptAnalyzerSettings.psd1`.
-- Added SG-7 tests in `tests/HouseRules.Tests.ps1`:
-  - bare `[Parameter()]` is flagged for missing explicit options;
-  - `Position` is flagged and the diagnostic says it re-enables positional binding under `CmdletBinding(PositionalBinding = $False)`;
-  - the complete five-option form passes.
+- Added `SG-7 - Explicit parameter surface` to `docs/STYLE-GUIDE.md`.
+  - Documents the required five `[Parameter(...)]` options:
+    `DontShow`, `Mandatory`, `ParameterSetName`, `ValueFromPipeline`,
+    `ValueFromPipelineByPropertyName`.
+  - Records the forbid-list: `Position`, `HelpMessage`, and
+    `ValueFromRemainingArguments`.
+  - Calls out the `$StoreFactory` hidden test-seam exemption with
+    `DontShow = $True`.
+  - Names `Measure-ExplicitParameterAttribute` and
+    `Measure-CanonicalAttributeOrder` as the enforcing analyzer rules.
+- Added `ADR-repo/0008: Adopt SG-7 Explicit Parameter Surface` at
+  `docs/decision-records/repo/0008-sg7-explicit-parameter-surface.md`.
+  - Records the honest framing: explicit five-option surface is an
+    auditability preference; the forbid-list is correctness.
+  - Cites Microsoft primary sources for `[Parameter()]`, `PositionalBinding`,
+    and `ParameterAttribute` defaults/semantics.
+- Updated `docs/decision-records/README.md` with the repo/0008 index entry.
+- Tightened the SG-5 parameter-order example so it points at the SG-7 option list.
 
-## Rule Surface
+## Scope
 
-Required options:
-
-- `DontShow`
-- `Mandatory`
-- `ParameterSetName`
-- `ValueFromPipeline`
-- `ValueFromPipelineByPropertyName`
-
-Forbidden options:
-
-- `HelpMessage`
-- `Position`
-- `ValueFromRemainingArguments`
-
-The rule checks the root script `Param()` block and each function's own top-level `Param()` block. It does not walk arbitrary nested scriptblock params.
-
-## Retrofit Counts
-
-- `src/**` including `src/EntryPoint.ps1`: 50 `[Parameter(...)]` attributes are now SG-7 explicit.
-- 49 source attributes were expanded from compact form; `Get-CertificateRawDataSha256` already had the five-option form and was preserved.
-- `build.ps1` plus `analyzers/HouseRules.psm1`: 58 existing support-file attributes were also expanded because the build self-analyzes those files.
-- 3 new analyzer helper/rule parameters were added with the explicit form.
-
-Behavior-preserving values:
-
-- `ValueFromPipeline = $True` remains only on `ConvertTo-PemCertificate` and `Get-CertificateRawDataSha256` certificate parameters.
-- `DontShow = $True` remains only on the `Get-StoreCertificate` `$StoreFactory` test seam.
-- `ValueFromPipelineByPropertyName = $False` everywhere in `src`.
-- `ParameterSetName = 'default'` everywhere.
-
-StoreFactory handling: the nested default scriptblock params were retrofitted too, even though the rule is scoped not to require nested scriptblock traversal.
+- Docs/handoff only.
+- No source code changed.
+- No analyzer code changed.
+- No analyzer settings changed.
+- No push or merge performed.
 
 ## Verification
 
-- Probe: bare `[Parameter()]` fires for all five missing SG-7 options.
-- Probe: `Position` fires with the positional-binding diagnostic.
-- Probe: complete five-option form returns 0 diagnostics.
-- Focused codebase check: `Measure-ExplicitParameterAttribute` returned `0` diagnostics across the built script, functions bundle, analyzer module, and `build.ps1`.
-- Fresh gate: `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
-  - Build OK.
-  - Analyze passed.
-  - Pester: 90 passed, 0 failed.
-  - Coverage: 95.93% (target 90%).
-  - Exit-code tests proved all six codes: 0, 1, 2, 3, 4, 5.
-  - Smokes ran: `BuildArtifacts.ps1`, `LiveStoreRead.ps1`.
+Command:
 
-## Notes
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All
+```
 
-- False premise/tooling wrinkle: PowerShell binding treats explicit default `Parameter` values as no-ops, but the built-in `PSUseProcessBlockForPipelineCommand` rule treats the presence of `ValueFromPipeline = $False` as pipeline input. SG-7 requires that explicit false value, so `PSUseProcessBlockForPipelineCommand` is now excluded and the house pipeline-shape rules remain authoritative.
+Result: passed.
+
+- Build OK.
+- Analyze: 0 findings.
+- Pester: 90 passed, 0 failed.
+- Coverage: 95.93% (threshold 90%).
+- Exit-code tests: six mappings passed.
+- Smoke stage: passed (`BuildArtifacts.ps1`, `LiveStoreRead.ps1`).
