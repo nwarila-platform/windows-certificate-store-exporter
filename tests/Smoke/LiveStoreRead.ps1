@@ -80,7 +80,7 @@ try {
   $Arguments.Add($BundlePath)
   $Arguments.Add('-WhatIf')
   $Arguments.Add('-MinimumCertificateCount')
-  $Arguments.Add('0')
+  $Arguments.Add('1')
 
   $ReleaseOutput = @(& $PowerShellCommand.Source @Arguments 2> $ReleaseErrorPath)
   $ReleaseExitCode = [System.Int32]$LASTEXITCODE

@@ -2,9 +2,10 @@
 
 # Message(s)
 $Script:Message += @{
-  'Write-CertificateBundle.BelowMinimum' = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.'
-  'Write-CertificateBundle.NonAscii'     = 'Certificate bundle content must be ASCII.'
-  'Write-CertificateBundle.WriteFailure' = 'Failed to write certificate bundle: {0}'
+  'Write-CertificateBundle.BelowMinimum'      = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.'
+  'Write-CertificateBundle.NonAscii'          = 'Certificate bundle content must be ASCII.'
+  'Write-CertificateBundle.NonFileSystemPath' = 'Certificate bundle path must resolve to the FileSystem provider: {0}'
+  'Write-CertificateBundle.WriteFailure'      = 'Failed to write certificate bundle: {0}'
 }
 
 Function Write-CertificateBundle {
@@ -53,7 +54,7 @@ Function Write-CertificateBundle {
       ValueFromPipeline = $False,
       ValueFromPipelineByPropertyName = $False
     )]
-    [ValidateRange(0, [System.Int32]::MaxValue)]
+    [ValidateRange(1, [System.Int32]::MaxValue)]
     [System.Int32]
     $MinimumCertificateCount = 1,
 
@@ -96,10 +97,12 @@ Function Write-CertificateBundle {
   [System.String]$Private:BundleBackupPath = [System.String]::Empty
   [System.String]$Private:BundleSha256 = [System.String]::Empty
   [System.Byte[]]$Private:BundleBytes = [System.Byte[]]@()
+  [System.IO.FileStream]$Private:BundleTempStream = $Null
   [System.String]$Private:BundleTempPath = [System.String]::Empty
   [System.String]$Private:BundleText = [System.String]::Empty
   [System.Boolean]$Private:BundleUnchanged = $False
   [System.String]$Private:DirectoryPath = [System.String]::Empty
+  [System.Management.Automation.PSDriveInfo]$Private:Drive = $Null
   [System.Text.UTF8Encoding]$Private:Encoding = $Null
   [System.Byte[]]$Private:ExistingBytes = [System.Byte[]]@()
   [System.String]$Private:ExistingSha256 = [System.String]::Empty
@@ -108,11 +111,13 @@ Function Write-CertificateBundle {
   [System.Byte[]]$Private:ManifestBytes = [System.Byte[]]@()
   [System.String]$Private:ManifestFullPath = [System.String]::Empty
   [System.String]$Private:ManifestBackupPath = [System.String]::Empty
+  [System.IO.FileStream]$Private:ManifestTempStream = $Null
   [System.String]$Private:ManifestTempPath = [System.String]::Empty
   [System.String]$Private:ManifestText = [System.String]::Empty
   [System.Boolean]$Private:ManifestUnchanged = $False
   [System.String]$Private:OperationTarget = [System.String]::Empty
   [System.String]$Private:PathLeaf = [System.String]::Empty
+  [System.Management.Automation.ProviderInfo]$Private:Provider = $Null
   [PSCustomObject]$Private:Result = $Null
   [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
   [System.String]$Private:Status = [System.String]::Empty
@@ -127,7 +132,21 @@ Function Write-CertificateBundle {
   }
 
   $Encoding = [System.Text.UTF8Encoding]::new($False)
-  $FullPath = $PSCmdlet.GetUnresolvedProviderPathFromPSPath($Path)
+  $FullPath = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
+    $Path,
+    [ref]$Provider,
+    [ref]$Drive
+  )
+
+  If ($Provider.Name -ne 'FileSystem') {
+    New-ErrorRecord `
+      -Category:([System.Management.Automation.ErrorCategory]::InvalidArgument) `
+      -ErrorId:([ExporterExitCode]::WriteFailure) `
+      -IsFatal:$True `
+      -Message:($Script:Message['Write-CertificateBundle.NonFileSystemPath'] -f $Path) `
+      -TargetObject:$Path
+  }
+
   $DirectoryPath = [System.IO.Path]::GetDirectoryName($FullPath)
   $PathLeaf = [System.IO.Path]::GetFileName($FullPath)
   $BundleText = ([System.String[]]$PemBlock -join "`n") -replace "`r`n?", "`n"
@@ -211,7 +230,19 @@ Function Write-CertificateBundle {
             $BundleTempPath = Join-Path `
               -Path:$DirectoryPath `
               -ChildPath:('.{0}.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
-            [System.IO.File]::WriteAllText($BundleTempPath, $BundleText, $Encoding)
+            $BundleTempStream = [System.IO.FileStream]::new(
+              $BundleTempPath,
+              [System.IO.FileMode]::CreateNew,
+              [System.IO.FileAccess]::Write,
+              [System.IO.FileShare]::None
+            )
+
+            Try {
+              $BundleTempStream.Write($BundleBytes, 0, $BundleBytes.Count)
+            } Finally {
+              $BundleTempStream.Dispose()
+              $BundleTempStream = $Null
+            }
 
             If ([System.IO.File]::Exists($FullPath) -eq $True) {
               $BundleBackupPath = Join-Path `
@@ -229,7 +260,19 @@ Function Write-CertificateBundle {
             $ManifestTempPath = Join-Path `
               -Path:$DirectoryPath `
               -ChildPath:('.{0}.sha256.{1}.tmp' -f $PathLeaf, [System.Guid]::NewGuid())
-            [System.IO.File]::WriteAllText($ManifestTempPath, $ManifestText, $Encoding)
+            $ManifestTempStream = [System.IO.FileStream]::new(
+              $ManifestTempPath,
+              [System.IO.FileMode]::CreateNew,
+              [System.IO.FileAccess]::Write,
+              [System.IO.FileShare]::None
+            )
+
+            Try {
+              $ManifestTempStream.Write($ManifestBytes, 0, $ManifestBytes.Count)
+            } Finally {
+              $ManifestTempStream.Dispose()
+              $ManifestTempStream = $Null
+            }
 
             If ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
               $ManifestBackupPath = Join-Path `
