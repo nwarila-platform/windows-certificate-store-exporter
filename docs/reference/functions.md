@@ -56,15 +56,6 @@ ErrorId.
 New-ErrorRecord -Message <string> -ErrorId <ExporterExitCode> [-Exception <Exception>] [-Category <ErrorCategory>] [-TargetObject <object>] [-IsFatal]
 ```
 
-## Resolve-ExitCode
-
-Maps known exporter error records to process exit codes and emits no output for
-unknown errors.
-
-```powershell
-Resolve-ExitCode -ErrorRecord <ErrorRecord>
-```
-
 ## Select-ExportableCertificate
 
 Filters certificates by validity, subtracts Disallowed hashes, de-duplicates by

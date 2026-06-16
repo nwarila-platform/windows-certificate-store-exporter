@@ -11,7 +11,6 @@ src/
     Get-StoreCertificate.ps1
     New-CertificateStoreExporterResult.ps1
     New-ErrorRecord.ps1
-    Resolve-ExitCode.ps1
     Select-ExportableCertificate.ps1
     Test-CertificateStoreExporterWindows.ps1
     Write-CertificateBundle.ps1

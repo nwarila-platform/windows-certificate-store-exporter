@@ -22,7 +22,6 @@ if (-not (Test-Path -LiteralPath $ReleaseFile)) {
   'Get-StoreCertificate',
   'New-CertificateStoreExporterResult',
   'New-ErrorRecord',
-  'Resolve-ExitCode',
   'Select-ExportableCertificate',
   'Test-CertificateStoreExporterWindows',
   'Write-CertificateBundle'
