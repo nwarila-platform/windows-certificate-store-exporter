@@ -57,6 +57,30 @@ Describe 'New-CertificateStoreExporterResult' {
     }
   }
 
+  It 'uses supplied SHA-256 thumbprints without hashing certificates' {
+    $Certificate = New-TestCertificate -Scenario Valid -Subject 'CN=Result Precomputed'
+    $Thumbprint = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+
+    try {
+      Mock -CommandName Get-CertificateRawDataSha256 -MockWith {
+        throw 'Synthetic hash helper call.'
+      }
+
+      $Result = New-CertificateStoreExporterResult `
+        -Path 'bundle.pem' `
+        -Status WhatIf `
+        -Certificate @($Certificate) `
+        -CertificateThumbprint @($Thumbprint) `
+        -BundleSha256 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+
+      $Result.CertificateCount | Should -Be 1
+      $Result.Thumbprints | Should -Be @($Thumbprint)
+      Should -Invoke -CommandName Get-CertificateRawDataSha256 -Times 0 -Exactly
+    } finally {
+      $Certificate.Dispose()
+    }
+  }
+
   It 'supports every success status and excludes Failed' {
     $Statuses = @('Written', 'Unchanged', 'WhatIf')
 

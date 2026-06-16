@@ -23,7 +23,7 @@ Function Select-ExportableCertificate {
         Select-ExportableCertificate -Certificate $Certificates
 
     .OUTPUTS
-        [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
+        [System.Management.Automation.PSCustomObject]
     #>
   [CmdletBinding(
     ConfirmImpact = 'None',
@@ -33,7 +33,7 @@ Function Select-ExportableCertificate {
     SupportsPaging = $False,
     SupportsShouldProcess = $False
   )]
-  [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
+  [OutputType([PSCustomObject])]
   Param (
     [Parameter(
       DontShow = $False,
@@ -73,15 +73,22 @@ Function Select-ExportableCertificate {
   # Initialize Variable(s)
   [System.String]$Private:CertificateHash = [System.String]::Empty
   [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
-  [System.Boolean]$Private:IsCurrent = $False
+  [System.Int32]$Private:ExcludedDisallowed = 0
+  [System.Int32]$Private:ExcludedDuplicate = 0
+  [System.Int32]$Private:ExcludedExpired = 0
+  [System.Int32]$Private:ExcludedNotYetValid = 0
   [System.DateTime]$Private:NotAfterUtc = [System.DateTime]::MinValue
   [System.DateTime]$Private:NotBeforeUtc = [System.DateTime]::MinValue
   [System.DateTime]$Private:NowUtc = [System.DateTime]::MinValue
-  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:Result = @()
+  [PSCustomObject]$Private:Result = $Null
   [System.Collections.Generic.SortedDictionary[
   System.String,
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]$Private:SelectedByHash = $Null
+  [System.Collections.Generic.List[
+  System.Security.Cryptography.X509Certificates.X509Certificate2
+  ]]$Private:SelectedCertificates = $Null
+  [System.Collections.Generic.List[System.String]]$Private:SelectedThumbprints = $Null
 
   $NowUtc = [System.DateTime]::UtcNow
   $DisallowedSet = [System.Collections.Generic.HashSet[System.String]]::new(
@@ -104,35 +111,53 @@ Function Select-ExportableCertificate {
       Continue
     }
 
-    $IsCurrent = $True
     If ($IncludeExpired.IsPresent -eq $False) {
-      # Export only currently valid certificates unless the caller explicitly requests otherwise.
       $NotBeforeUtc = $CandidateCertificate.NotBefore.ToUniversalTime()
       $NotAfterUtc = $CandidateCertificate.NotAfter.ToUniversalTime()
-      $IsCurrent = [System.Boolean]($NotBeforeUtc -le $NowUtc -and $NotAfterUtc -ge $NowUtc)
-    }
 
-    If ($IsCurrent -eq $False) {
-      Continue
+      If ($NotAfterUtc -lt $NowUtc) {
+        $ExcludedExpired++
+        Continue
+      }
+
+      If ($NotBeforeUtc -gt $NowUtc) {
+        $ExcludedNotYetValid++
+        Continue
+      }
     }
 
     $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
     If ($DisallowedSet.Contains($CertificateHash) -eq $True) {
+      $ExcludedDisallowed++
       Continue
     }
 
     If ($SelectedByHash.ContainsKey($CertificateHash) -eq $False) {
       $SelectedByHash.Add($CertificateHash, $CandidateCertificate)
+    } Else {
+      $ExcludedDuplicate++
     }
   }
 
+  $SelectedCertificates = [System.Collections.Generic.List[
+  System.Security.Cryptography.X509Certificates.X509Certificate2
+  ]]::new()
+  $SelectedThumbprints = [System.Collections.Generic.List[System.String]]::new()
+  $SelectedByHash.GetEnumerator() | ForEach-Object -Process:({
+      $SelectedThumbprints.Add($PSItem.Key)
+      $SelectedCertificates.Add($PSItem.Value)
+    })
+
   # It's always desirable to explicitly set the Result object with its desired class as close
   #   to the soft return to ensure the output is predictable and easily traceable.
-  [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
-    $SelectedByHash.GetEnumerator() | ForEach-Object -Process:({
-        $PSItem.Value
-      })
-  )
+  [PSCustomObject]$Result = [PSCustomObject]@{
+    Selected            = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$SelectedCertificates.ToArray()
+    SelectedThumbprint  = [System.String[]]$SelectedThumbprints.ToArray()
+    ExcludedExpired     = [System.Int32]$ExcludedExpired
+    ExcludedNotYetValid = [System.Int32]$ExcludedNotYetValid
+    ExcludedDisallowed  = [System.Int32]$ExcludedDisallowed
+    ExcludedDuplicate   = [System.Int32]$ExcludedDuplicate
+  }
 
   # Do a  'soft'  return by outputting the result to the pipe without using the return function
   #   which would immediately end the function,  this enables us to have the very last
