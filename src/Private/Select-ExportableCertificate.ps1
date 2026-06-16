@@ -126,11 +126,18 @@ Function Select-ExportableCertificate {
     }
   }
 
+  # It's always desirable to explicitly set the Result object with its desired class as close
+  #   to the soft return to ensure the output is predictable and easily traceable.
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Result = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
     $SelectedByHash.GetEnumerator() | ForEach-Object -Process:({
         $PSItem.Value
       })
   )
+
+  # Do a  'soft'  return by outputting the result to the pipe without using the return function
+  #   which would immediately end the function,  this enables us to have the very last
+  #   executing item be write-debug giving us a valuable breakpoint & enabling better
+  #   debugging functionality and output.
   $Result
   Write-Debug -Message:'[Select-ExportableCertificate] Exiting'
 }
