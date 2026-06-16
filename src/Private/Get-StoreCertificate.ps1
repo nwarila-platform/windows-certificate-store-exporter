@@ -21,9 +21,6 @@ Function Get-StoreCertificate {
     .PARAMETER StoreName
         Logical certificate store name.
 
-    .PARAMETER StoreFactory
-        Internal factory used by tests to force store-open failures.
-
     .EXAMPLE
         Get-StoreCertificate -StoreLocation LocalMachine -StoreName Root
 
@@ -40,41 +37,6 @@ Function Get-StoreCertificate {
   )]
   [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
   Param (
-    [Parameter(
-      DontShow = $True,
-      Mandatory = $False,
-      ParameterSetName = 'default',
-      ValueFromPipeline = $False,
-      ValueFromPipelineByPropertyName = $False
-    )]
-    [ValidateNotNull()]
-    [System.Management.Automation.ScriptBlock]
-    $StoreFactory = {
-      Param (
-        [Parameter(
-          DontShow = $False,
-          Mandatory = $True,
-          ParameterSetName = 'default',
-          ValueFromPipeline = $False,
-          ValueFromPipelineByPropertyName = $False
-        )]
-        [System.String]
-        $Name,
-
-        [Parameter(
-          DontShow = $False,
-          Mandatory = $True,
-          ParameterSetName = 'default',
-          ValueFromPipeline = $False,
-          ValueFromPipelineByPropertyName = $False
-        )]
-        [System.Security.Cryptography.X509Certificates.StoreLocation]
-        $Location
-      )
-
-      [System.Security.Cryptography.X509Certificates.X509Store]::new($Name, $Location)
-    },
-
     [Parameter(
       DontShow = $False,
       Mandatory = $False,
@@ -125,8 +87,7 @@ Function Get-StoreCertificate {
   $TypedStoreLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::$StoreLocation
 
   Try {
-    # StoreFactory exists only so tests can inject store-open failures; it is not a CLI surface.
-    $Store = & $StoreFactory -Name:$StoreName -Location:$TypedStoreLocation
+    $Store = New-X509Store -Name:$StoreName -Location:$TypedStoreLocation
     $Store.Open($OpenFlags)
     $CertificateCollection = $Store.Certificates
     $StoreCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
