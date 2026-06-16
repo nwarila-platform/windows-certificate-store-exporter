@@ -72,28 +72,26 @@ function Test-Syntax {
 
   $Path | ForEach-Object -Process {
     $private:ScriptPath = [System.String]$PSItem
-    if (-not (Test-Path -LiteralPath $ScriptPath)) {
-      return
-    }
+    if (Test-Path -LiteralPath $ScriptPath) {
+      $private:Tokens = $Null
+      $private:ParseErrors = $Null
+      $Null = [System.Management.Automation.Language.Parser]::ParseFile(
+        $ScriptPath,
+        [ref]$Tokens,
+        [ref]$ParseErrors
+      )
 
-    $private:Tokens = $Null
-    $private:ParseErrors = $Null
-    $Null = [System.Management.Automation.Language.Parser]::ParseFile(
-      $ScriptPath,
-      [ref]$Tokens,
-      [ref]$ParseErrors
-    )
-
-    if ($ParseErrors.Count -gt 0) {
-      $ParseErrors | ForEach-Object -Process {
-        $Messages.Add(
-          (
-            '{0}: line {1}: {2}' -f
-            $ScriptPath,
-            $PSItem.Extent.StartLineNumber,
-            $PSItem.Message
+      if ($ParseErrors.Count -gt 0) {
+        $ParseErrors | ForEach-Object -Process {
+          $Messages.Add(
+            (
+              '{0}: line {1}: {2}' -f
+              $ScriptPath,
+              $PSItem.Extent.StartLineNumber,
+              $PSItem.Message
+            )
           )
-        )
+        }
       }
     }
   }
@@ -190,22 +188,20 @@ function Add-FunctionFileContent {
       Sort-Object -Property Name
   )
 
-  if ($FunctionFiles.Count -eq 0) {
-    return
-  }
+  if ($FunctionFiles.Count -gt 0) {
+    $Null = $StringBuilder.AppendLine(('#region {0}' -f $RegionName))
+    $Null = $StringBuilder.AppendLine('')
 
-  $Null = $StringBuilder.AppendLine(('#region {0}' -f $RegionName))
-  $Null = $StringBuilder.AppendLine('')
+    $FunctionFiles | ForEach-Object -Process {
+      $private:Content = (Get-Content -LiteralPath $PSItem.FullName -Raw).Trim()
+      $Content = $Content -replace '(?m)^#Requires[^\r\n]*(\r?\n)?', ''
+      $Null = $StringBuilder.AppendLine($Content.Trim())
+      $Null = $StringBuilder.AppendLine('')
+    }
 
-  $FunctionFiles | ForEach-Object -Process {
-    $private:Content = (Get-Content -LiteralPath $PSItem.FullName -Raw).Trim()
-    $Content = $Content -replace '(?m)^#Requires[^\r\n]*(\r?\n)?', ''
-    $Null = $StringBuilder.AppendLine($Content.Trim())
+    $Null = $StringBuilder.AppendLine('#endregion')
     $Null = $StringBuilder.AppendLine('')
   }
-
-  $Null = $StringBuilder.AppendLine('#endregion')
-  $Null = $StringBuilder.AppendLine('')
 }
 
 function Invoke-SmokeTest {
@@ -231,12 +227,11 @@ function Invoke-SmokeTest {
 
   if ($SmokeFiles.Count -eq 0) {
     Write-Warning -Message 'No smoke tests found.'
-    return
-  }
-
-  $SmokeFiles | ForEach-Object -Process {
-    Write-Information -MessageData ('Smoke: {0}' -f $PSItem.Name) -InformationAction Continue
-    & $PSItem.FullName
+  } else {
+    $SmokeFiles | ForEach-Object -Process {
+      Write-Information -MessageData ('Smoke: {0}' -f $PSItem.Name) -InformationAction Continue
+      & $PSItem.FullName
+    }
   }
 }
 
@@ -344,29 +339,28 @@ function Invoke-Analyze {
   $private:AnalyzerModule = Get-LatestAvailableModule -Name 'PSScriptAnalyzer'
   if ($Null -eq $AnalyzerModule) {
     Write-Warning -Message 'PSScriptAnalyzer is not installed. Syntax validation passed.'
-    return
+  } else {
+    Import-Module -Name $AnalyzerModule.Path -Force
+
+    $private:SettingsFile = Join-Path -Path $ProjectRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
+    $private:Results = @(
+      Invoke-ScriptAnalyzer -Path $OutputFile -Settings $SettingsFile
+      Invoke-ScriptAnalyzer -Path $FunctionsFile -Settings $SettingsFile
+      Invoke-ScriptAnalyzer -Path $AnalyzerRuleFile -Settings $SettingsFile
+      Invoke-ScriptAnalyzer -Path (Join-Path -Path $ProjectRoot -ChildPath 'build.ps1') -Settings $SettingsFile
+    )
+
+    if ($Results.Count -gt 0) {
+      $private:FormattedResults = $Results |
+        Format-Table -Property RuleName, Severity, ScriptName, Line, Message -AutoSize |
+        Out-String
+      Write-Information -MessageData $FormattedResults -InformationAction Continue
+
+      throw ('PSScriptAnalyzer found {0} issue(s).' -f $Results.Count)
+    }
+
+    Write-Information -MessageData 'Analysis passed.' -InformationAction Continue
   }
-
-  Import-Module -Name $AnalyzerModule.Path -Force
-
-  $private:SettingsFile = Join-Path -Path $ProjectRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
-  $private:Results = @(
-    Invoke-ScriptAnalyzer -Path $OutputFile -Settings $SettingsFile
-    Invoke-ScriptAnalyzer -Path $FunctionsFile -Settings $SettingsFile
-    Invoke-ScriptAnalyzer -Path $AnalyzerRuleFile -Settings $SettingsFile
-    Invoke-ScriptAnalyzer -Path (Join-Path -Path $ProjectRoot -ChildPath 'build.ps1') -Settings $SettingsFile
-  )
-
-  if ($Results.Count -gt 0) {
-    $private:FormattedResults = $Results |
-      Format-Table -Property RuleName, Severity, ScriptName, Line, Message -AutoSize |
-      Out-String
-    Write-Information -MessageData $FormattedResults -InformationAction Continue
-
-    throw ('PSScriptAnalyzer found {0} issue(s).' -f $Results.Count)
-  }
-
-  Write-Information -MessageData 'Analysis passed.' -InformationAction Continue
 }
 
 function Invoke-Test {
