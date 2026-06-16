@@ -39,22 +39,46 @@ Function Write-CertificateBundle {
   )]
   [OutputType([PSCustomObject])]
   Param (
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateRange(0, [System.Int32]::MaxValue)]
     [System.Int32]
     $MinimumCertificateCount = 1,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $Path,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowEmptyCollection()]
     [System.String[]]
     $PemBlock = @(),
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.SwitchParameter]
     $WriteManifest
   )

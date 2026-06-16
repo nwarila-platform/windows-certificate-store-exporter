@@ -65,66 +65,144 @@ Function New-CertificateStoreExporterResult {
   )]
   [OutputType([PSCustomObject])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
     [System.String]
     $BundleSha256,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowEmptyCollection()]
     [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
     $Certificate = @(),
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateRange(0, [System.Int32]::MaxValue)]
     [System.Int32]
     $Examined = 0,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateRange(0, [System.Int32]::MaxValue)]
     [System.Int32]
     $ExcludedDisallowed = 0,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateRange(0, [System.Int32]::MaxValue)]
     [System.Int32]
     $ExcludedDuplicate = 0,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateRange(0, [System.Int32]::MaxValue)]
     [System.Int32]
     $ExcludedExpired = 0,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateRange(0, [System.Int32]::MaxValue)]
     [System.Int32]
     $ExcludedNotYetValid = 0,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.DateTime]
     $GeneratedAtUtc = [System.DateTime]::UtcNow,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowNull()]
     [System.String]
     $ManifestPath = $Null,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $Path,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateSet('Written', 'Unchanged', 'WhatIf')]
     [System.String]
     $Status,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateSet('LocalMachine', 'CurrentUser')]
     [System.String]
     $StoreLocation = 'LocalMachine',
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateSet('Root', 'CA')]
     [System.String[]]
     $StoreName = @('Root', 'CA')

@@ -45,29 +45,65 @@ Function New-ErrorRecord {
   )]
   [OutputType([System.Management.Automation.ErrorRecord])]
   Param (
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.ErrorCategory]
     $Category = [System.Management.Automation.ErrorCategory]::InvalidOperation,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ExporterExitCode]
     $ErrorId,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowNull()]
     [System.Exception]
     $Exception = $Null,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.SwitchParameter]
     $IsFatal,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $Message,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowNull()]
     [System.Object]
     $TargetObject = $Null

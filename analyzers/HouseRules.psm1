@@ -11,15 +11,33 @@ Function ConvertTo-HouseRuleDiagnosticRecord {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.IScriptExtent]
     $Extent,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.String]
     $Message,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.String]
     $RuleName
   )
@@ -47,7 +65,13 @@ Function Get-HouseRuleFunctionAst {
   )]
   [OutputType([System.Management.Automation.Language.FunctionDefinitionAst[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -79,11 +103,23 @@ Function Test-HouseRuleAstBelongsToFunction {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.Ast]
     $Ast,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -114,7 +150,13 @@ Function Get-HouseRuleVariableName {
   )]
   [OutputType([System.String])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.VariableExpressionAst]
     $VariableAst
   )
@@ -141,7 +183,13 @@ Function Test-HouseRuleAutomaticVariable {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.String]
     $Name
   )
@@ -214,7 +262,13 @@ Function Get-HouseRuleParameterName {
   )]
   [OutputType([System.String[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -241,7 +295,13 @@ Function Get-HouseRuleIteratorName {
   )]
   [OutputType([System.String[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -316,7 +376,13 @@ Function Get-HouseRuleStaticString {
   )]
   [OutputType([System.String[]])]
   Param (
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowNull()]
     [System.Management.Automation.Language.Ast]
     $Ast
@@ -347,11 +413,23 @@ Function Get-HouseRuleCommandArgument {
   )]
   [OutputType([System.Management.Automation.Language.Ast[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.CommandAst]
     $CommandAst,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.String]
     $ParameterName
   )
@@ -393,11 +471,23 @@ Function Get-HouseRuleCommandArgumentString {
   )]
   [OutputType([System.String[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.CommandAst]
     $CommandAst,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.String]
     $ParameterName
   )
@@ -420,7 +510,13 @@ Function Test-HouseRuleCommandHasPrivateOption {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.CommandAst]
     $CommandAst
   )
@@ -444,7 +540,13 @@ Function Test-HouseRuleCommandUsesNonLocalScope {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.CommandAst]
     $CommandAst
   )
@@ -468,7 +570,13 @@ Function Get-HouseRuleAssignedExpressionVariable {
   )]
   [OutputType([PSCustomObject[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.Ast]
     $Ast
   )
@@ -502,7 +610,13 @@ Function Get-HouseRuleAssignedVariable {
   )]
   [OutputType([PSCustomObject[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -567,11 +681,23 @@ Function Get-HouseRulePrivateDeclarationName {
   )]
   [OutputType([System.String[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowNull()]
     [System.Management.Automation.Language.Ast]
     $SearchAst = $Null
@@ -631,7 +757,13 @@ Function Test-HouseRulePipelineParameter {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -687,7 +819,13 @@ Function Test-HouseRuleNamedBlock {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -712,7 +850,13 @@ Function Get-HouseRuleNamedBlockAst {
   )]
   [OutputType([System.Management.Automation.Language.NamedBlockAst[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -752,12 +896,24 @@ Function Get-HouseRuleFunctionAttribute {
   )]
   [OutputType([System.Management.Automation.Language.AttributeAst[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $AttributeName,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -790,7 +946,13 @@ Function Get-HouseRuleAttributeName {
   )]
   [OutputType([System.String])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.AttributeAst]
     $AttributeAst
   )
@@ -817,7 +979,13 @@ Function Get-HouseRuleParameterAttributeOrderKey {
   )]
   [OutputType([System.String])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.AttributeBaseAst]
     $AttributeAst
   )
@@ -853,7 +1021,13 @@ Function Test-HouseRuleAlphabeticalOrder {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowEmptyCollection()]
     [System.String[]]
     $Value
@@ -882,7 +1056,13 @@ Function Test-HouseRuleNamedArgumentValueIsTrue {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.NamedAttributeArgumentAst]
     $NamedArgument
   )
@@ -916,11 +1096,23 @@ Function Get-HouseRuleNamedAttributeArgument {
   )]
   [OutputType([System.Management.Automation.Language.NamedAttributeArgumentAst])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.String]
     $ArgumentName,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.AttributeAst]
     $AttributeAst
   )
@@ -948,12 +1140,24 @@ Function Test-HouseRuleNamedArgumentValueEqual {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowNull()]
     [System.Object]
     $ExpectedValue,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.NamedAttributeArgumentAst]
     $NamedArgument
   )
@@ -973,6 +1177,133 @@ Function Test-HouseRuleNamedArgumentValueEqual {
 
 }
 
+Function Get-HouseRuleExplicitParameterAttributeDiagnostic {
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+  Param (
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [System.String]
+    $OwnerLabel,
+
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [AllowEmptyCollection()]
+    [System.Management.Automation.Language.ParameterAst[]]
+    $ParameterAst
+  )
+
+  [System.String[]]$Private:RequiredOptionNames = @(
+    'DontShow',
+    'Mandatory',
+    'ParameterSetName',
+    'ValueFromPipeline',
+    'ValueFromPipelineByPropertyName'
+  )
+  [System.Collections.Generic.Dictionary[System.String, System.String]]$Private:ForbiddenReasonByName = (
+    [System.Collections.Generic.Dictionary[System.String, System.String]]::new(
+      [System.StringComparer]::OrdinalIgnoreCase
+    )
+  )
+  $ForbiddenReasonByName.Add(
+    'HelpMessage',
+    'comment-based .PARAMETER help owns help text'
+  )
+  $ForbiddenReasonByName.Add(
+    'Position',
+    'it re-enables positional binding even when CmdletBinding(PositionalBinding = $False)'
+  )
+  $ForbiddenReasonByName.Add(
+    'ValueFromRemainingArguments',
+    'the project does not use remaining-argument capture'
+  )
+
+  ForEach ($Parameter In $ParameterAst) {
+    [System.String]$Private:ParameterName = Get-HouseRuleVariableName -VariableAst $Parameter.Name
+    [System.Management.Automation.Language.AttributeAst[]]$Private:ParameterAttributes = @(
+      $Parameter.Attributes |
+        Where-Object -FilterScript {
+          $PSItem -is [System.Management.Automation.Language.AttributeAst] -and
+          (Get-HouseRuleAttributeName -AttributeAst $PSItem) -ieq 'Parameter'
+        }
+    )
+
+    If ($ParameterAttributes.Count -eq 0) {
+      ConvertTo-HouseRuleDiagnosticRecord `
+        -RuleName 'Measure-ExplicitParameterAttribute' `
+        -Extent $Parameter.Extent `
+        -Message (
+        "{0} parameter '{1}' is missing the Parameter attribute required by SG-7." -f
+        $OwnerLabel,
+        $ParameterName
+      )
+
+      Continue
+    }
+
+    ForEach ($AttributeAst In $ParameterAttributes) {
+      [System.Collections.Generic.HashSet[System.String]]$Private:SeenOptionNames = (
+        [System.Collections.Generic.HashSet[System.String]]::new(
+          [System.StringComparer]::OrdinalIgnoreCase
+        )
+      )
+
+      ForEach ($NamedArgument In $AttributeAst.NamedArguments) {
+        [void]$SeenOptionNames.Add($NamedArgument.ArgumentName)
+
+        If ($ForbiddenReasonByName.ContainsKey($NamedArgument.ArgumentName) -eq $False) {
+          Continue
+        }
+
+        ConvertTo-HouseRuleDiagnosticRecord `
+          -RuleName 'Measure-ExplicitParameterAttribute' `
+          -Extent $NamedArgument.Extent `
+          -Message (
+          "{0} parameter '{1}' must not declare Parameter({2}); {3} (SG-7)." -f
+          $OwnerLabel,
+          $ParameterName,
+          $NamedArgument.ArgumentName,
+          $ForbiddenReasonByName[$NamedArgument.ArgumentName]
+        )
+      }
+
+      ForEach ($RequiredOptionName In $RequiredOptionNames) {
+        If ($SeenOptionNames.Contains($RequiredOptionName) -eq $True) {
+          Continue
+        }
+
+        ConvertTo-HouseRuleDiagnosticRecord `
+          -RuleName 'Measure-ExplicitParameterAttribute' `
+          -Extent $AttributeAst.Extent `
+          -Message (
+          "{0} parameter '{1}' Parameter attribute is missing explicit option '{2}' required by SG-7." -f
+          $OwnerLabel,
+          $ParameterName,
+          $RequiredOptionName
+        )
+      }
+    }
+  }
+
+}
+
 Function Test-HouseRuleParameterAttributeOrder {
   [CmdletBinding(
     ConfirmImpact = 'None',
@@ -984,7 +1315,13 @@ Function Test-HouseRuleParameterAttributeOrder {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ParameterAst]
     $ParameterAst
   )
@@ -1024,7 +1361,13 @@ Function Test-HouseRuleParameterTypeLast {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ParameterAst]
     $ParameterAst
   )
@@ -1061,7 +1404,13 @@ Function Test-HouseRuleParameterOrderGuard {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -1115,7 +1464,13 @@ Function Get-HouseRuleProcessResetVariableName {
   )]
   [OutputType([System.String[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.NamedBlockAst]
     $ProcessBlock
   )
@@ -1180,7 +1535,13 @@ Function Test-HouseRuleEnteringProcessDebugStatement {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.StatementAst]
     $StatementAst
   )
@@ -1216,7 +1577,13 @@ Function Test-HouseRuleExitingDebugStatement {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.StatementAst]
     $StatementAst
   )
@@ -1252,7 +1619,13 @@ Function Test-HouseRuleFunctionDeclaresPrivateResult {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.FunctionDefinitionAst]
     $FunctionAst
   )
@@ -1280,7 +1653,13 @@ Function Test-HouseRuleLastStatementExitingDebug {
   )]
   [OutputType([System.Boolean])]
   Param (
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowNull()]
     [System.Management.Automation.Language.NamedBlockAst]
     $BlockAst
@@ -1312,7 +1691,13 @@ Function Measure-CanonicalAttributeOrder {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -1436,12 +1821,18 @@ Function Measure-CanonicalKeywordCasing {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
 
-  If ($Null -eq $ScriptBlockAst.Parent) {
+  If ($Null -eq $ScriptBlockAst.Parent -and $ScriptBlockAst.Extent.StartOffset -eq 0) {
     $Private:CanonicalKeywords = [System.Collections.Generic.Dictionary[System.String, System.String]]::new(
       [System.StringComparer]::OrdinalIgnoreCase
     )
@@ -1551,7 +1942,13 @@ Function Measure-ExplicitCmdletBinding {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -1650,6 +2047,52 @@ Function Measure-ExplicitCmdletBinding {
 
 }
 
+Function Measure-ExplicitParameterAttribute {
+  <#
+    .SYNOPSIS
+        Flags parameters missing the house explicit Parameter attribute surface.
+    #>
+  [CmdletBinding(
+    ConfirmImpact = 'None',
+    DefaultParameterSetName = 'default',
+    HelpUri = 'https://github.com/NWarila/powershell-template/blob/main/docs/README.md',
+    PositionalBinding = $False,
+    SupportsPaging = $False,
+    SupportsShouldProcess = $False
+  )]
+  [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+  Param (
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [System.Management.Automation.Language.ScriptBlockAst]
+    $ScriptBlockAst
+  )
+
+  If ($Null -eq $ScriptBlockAst.Parent) {
+    If ($Null -ne $ScriptBlockAst.ParamBlock) {
+      Get-HouseRuleExplicitParameterAttributeDiagnostic `
+        -OwnerLabel 'Script' `
+        -ParameterAst $ScriptBlockAst.ParamBlock.Parameters
+    }
+
+    ForEach ($FunctionAst In Get-HouseRuleFunctionAst -ScriptBlockAst $ScriptBlockAst) {
+      If ($Null -eq $FunctionAst.Body.ParamBlock) {
+        Continue
+      }
+
+      Get-HouseRuleExplicitParameterAttributeDiagnostic `
+        -OwnerLabel ("Function '{0}'" -f $FunctionAst.Name) `
+        -ParameterAst $FunctionAst.Body.ParamBlock.Parameters
+    }
+  }
+
+}
+
 Function Measure-PrivateVariableDeclaration {
   <#
     .SYNOPSIS
@@ -1665,7 +2108,13 @@ Function Measure-PrivateVariableDeclaration {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -1729,7 +2178,13 @@ Function Measure-PipelineVariableLifecycle {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -1834,7 +2289,13 @@ Function Measure-FlatNonPipelineFunction {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -1874,7 +2335,13 @@ Function Measure-CanonicalNamedBlock {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -1936,7 +2403,13 @@ Function Measure-NoRemoveVariableCleanup {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -1988,7 +2461,13 @@ Function Measure-NoNewVariableDeclaration {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
@@ -2037,7 +2516,13 @@ Function Measure-SoftReturn {
   )]
   [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.Language.ScriptBlockAst]
     $ScriptBlockAst
   )
