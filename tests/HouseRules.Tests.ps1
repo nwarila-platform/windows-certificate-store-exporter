@@ -1105,3 +1105,98 @@ function New-ThingError {
     $Results | Should -HaveCount 0
   }
 }
+
+Describe 'SG-7 house analyzer rules' {
+  BeforeAll {
+    $script:AnalyzerRulePath = Join-Path -Path $PSScriptRoot -ChildPath '..\analyzers\HouseRules.psm1'
+    if (-not (Get-Module -Name PSScriptAnalyzer)) {
+      Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+    }
+  }
+
+  It 'flags Parameter attributes missing explicit options' {
+    $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [System.String]
+        $Name
+    )
+    $Name
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-ExplicitParameterAttribute'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitParameterAttribute' })
+
+    $Results.RuleName | Should -Contain 'Measure-ExplicitParameterAttribute'
+    [System.String]$MessageText = $Results.Message -join "`n"
+    $MessageText | Should -Match 'DontShow'
+    $MessageText | Should -Match 'ValueFromPipelineByPropertyName'
+  }
+
+  It 'flags Parameter Position because it re-enables positional binding' {
+    $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $False,
+            ParameterSetName = 'default',
+            Position = 0,
+            ValueFromPipeline = $False,
+            ValueFromPipelineByPropertyName = $False
+        )]
+        [System.String]
+        $Name
+    )
+    $Name
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-ExplicitParameterAttribute'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitParameterAttribute' })
+
+    $Results.RuleName | Should -Contain 'Measure-ExplicitParameterAttribute'
+    $Results.Message | Should -Match 're-enables positional binding'
+  }
+
+  It 'accepts the complete explicit Parameter attribute surface' {
+    $ScriptDefinition = @'
+function Get-Thing {
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            DontShow = $False,
+            Mandatory = $False,
+            ParameterSetName = 'default',
+            ValueFromPipeline = $False,
+            ValueFromPipelineByPropertyName = $False
+        )]
+        [System.String]
+        $Name
+    )
+    $Name
+}
+'@
+
+    $Results = Invoke-ScriptAnalyzer `
+      -ScriptDefinition $ScriptDefinition `
+      -CustomRulePath $script:AnalyzerRulePath `
+      -IncludeRule 'Measure-ExplicitParameterAttribute'
+
+    $Results = @($Results | Where-Object -FilterScript { $PSItem.RuleName -eq 'Measure-ExplicitParameterAttribute' })
+
+    $Results | Should -HaveCount 0
+  }
+}

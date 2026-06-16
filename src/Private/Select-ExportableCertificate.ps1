@@ -35,17 +35,35 @@ Function Select-ExportableCertificate {
   )]
   [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
   Param (
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowEmptyCollection()]
     [System.Security.Cryptography.X509Certificates.X509Certificate2[]]
     $Certificate = @(),
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [AllowEmptyCollection()]
     [System.String[]]
     $DisallowedThumbprint = @(),
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Management.Automation.SwitchParameter]
     $IncludeExpired
   )

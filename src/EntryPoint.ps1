@@ -9,45 +9,99 @@
   SupportsShouldProcess = $True
 )]
 Param (
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [ValidatePattern('^\d{3}$')]
   [System.String]
   $DebugLevel = '000',
 
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [System.Management.Automation.SwitchParameter]
   $IncludeExpired,
 
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [ValidatePattern('^\d{7}$')]
   [System.String]
   $LogLevel = '1111111',
 
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [ValidateRange(0, [System.Int32]::MaxValue)]
   [System.Int32]
   $MinimumCertificateCount = 1,
 
-  [Parameter(Mandatory = $True)]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $True,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [ValidateNotNullOrEmpty()]
   [System.String]
   $Path,
 
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [ValidateSet('LocalMachine', 'CurrentUser')]
   [System.String]
   $StoreLocation = 'LocalMachine',
 
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [ValidateSet('Root', 'CA')]
   [System.String[]]
   $StoreName = @('Root', 'CA'),
 
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [System.Management.Automation.SwitchParameter]
   $Trap,
 
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [System.Management.Automation.SwitchParameter]
   $WriteManifest
 )

@@ -29,7 +29,13 @@ Function Resolve-ExitCode {
   )]
   [OutputType([System.Int32])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNull()]
     [System.Management.Automation.ErrorRecord]
     $ErrorRecord

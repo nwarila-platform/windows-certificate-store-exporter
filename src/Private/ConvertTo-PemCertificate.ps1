@@ -33,12 +33,24 @@ Function ConvertTo-PemCertificate {
   )]
   [OutputType([System.String])]
   Param (
-    [Parameter(Mandatory = $True, ValueFromPipeline = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $True,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNull()]
     [System.Security.Cryptography.X509Certificates.X509Certificate2]
     $Certificate,
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateSet('Root', 'CA', 'Disallowed')]
     [System.String]
     $StoreName = 'Root'

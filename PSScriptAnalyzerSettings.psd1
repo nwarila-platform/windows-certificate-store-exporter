@@ -18,6 +18,7 @@
   IncludeRules        = @('*')
 
   ExcludeRules        = @(
+    'PSUseProcessBlockForPipelineCommand'
     'PSUseCorrectCasing'
     'PSUseShouldProcessForStateChangingFunctions'
   )
@@ -78,6 +79,10 @@
     }
 
     'Measure-ExplicitCmdletBinding'      = @{
+      Enable = $true
+    }
+
+    'Measure-ExplicitParameterAttribute' = @{
       Enable = $true
     }
 

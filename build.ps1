@@ -12,7 +12,13 @@
 #>
 [CmdletBinding()]
 Param (
-  [Parameter()]
+  [Parameter(
+    DontShow = $False,
+    Mandatory = $False,
+    ParameterSetName = 'default',
+    ValueFromPipeline = $False,
+    ValueFromPipelineByPropertyName = $False
+  )]
   [ValidateSet('Build', 'Test', 'Analyze', 'Smoke', 'Clean', 'All')]
   [System.String[]]
   $Task = 'Build'
@@ -40,7 +46,13 @@ Function Get-LatestAvailableModule {
   )]
   [OutputType([System.Management.Automation.PSModuleInfo])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $Name
@@ -62,7 +74,13 @@ Function Test-Syntax {
   )]
   [OutputType([System.Void])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String[]]
     $Path
@@ -165,17 +183,35 @@ Function Add-FunctionFileContent {
   )]
   [OutputType([System.Void])]
   Param (
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $Directory,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNullOrEmpty()]
     [System.String]
     $RegionName,
 
-    [Parameter(Mandatory = $True)]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $True,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [System.Text.StringBuilder]
     $StringBuilder
   )

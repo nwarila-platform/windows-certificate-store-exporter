@@ -34,16 +34,34 @@ Function Get-StoreCertificate {
   )]
   [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2[]])]
   Param (
-    [Parameter(DontShow = $True)]
+    [Parameter(
+      DontShow = $True,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateNotNull()]
     [System.Management.Automation.ScriptBlock]
     $StoreFactory = {
       Param (
-        [Parameter(Mandatory = $True)]
+        [Parameter(
+          DontShow = $False,
+          Mandatory = $True,
+          ParameterSetName = 'default',
+          ValueFromPipeline = $False,
+          ValueFromPipelineByPropertyName = $False
+        )]
         [System.String]
         $Name,
 
-        [Parameter(Mandatory = $True)]
+        [Parameter(
+          DontShow = $False,
+          Mandatory = $True,
+          ParameterSetName = 'default',
+          ValueFromPipeline = $False,
+          ValueFromPipelineByPropertyName = $False
+        )]
         [System.Security.Cryptography.X509Certificates.StoreLocation]
         $Location
       )
@@ -51,12 +69,24 @@ Function Get-StoreCertificate {
       [System.Security.Cryptography.X509Certificates.X509Store]::new($Name, $Location)
     },
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateSet('LocalMachine', 'CurrentUser')]
     [System.String]
     $StoreLocation = 'LocalMachine',
 
-    [Parameter()]
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateSet('Root', 'CA', 'Disallowed')]
     [System.String]
     $StoreName = 'Root'
