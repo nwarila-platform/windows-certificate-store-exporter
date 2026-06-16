@@ -1,67 +1,51 @@
-# Report - STEP 21 Canonical Keyword Casing
+# Report - STEP 22 SG-6 Docs
 
 ## Implemented
 
-- Added `Measure-CanonicalKeywordCasing` to `analyzers/HouseRules.psm1`.
-- Enabled the rule in `PSScriptAnalyzerSettings.psd1`.
-- Added Pester coverage in `tests/HouseRules.Tests.ps1`.
-- Retrofitted analyzed PowerShell files to canonical keyword token casing.
-- Included the pre-existing canary change in `src/Private/Get-CertificateRawDataSha256.ps1`.
+- Added SG-6 to `docs/STYLE-GUIDE.md`:
+  - soft return for all output-producing functions;
+  - domain-named computation with final typed `$Private:Result` handoff;
+  - no `Return` / single-exit success flow;
+  - flat and pipeline debug anchor shapes;
+  - conditional-output and throw-only/enum exemptions;
+  - colon-form command parameters with expression-value parentheses;
+  - PascalCase PowerShell keywords;
+  - analyzer notes for `Measure-SoftReturn`, `Measure-CanonicalNamedBlock`,
+    `Measure-CanonicalKeywordCasing`, and disabled `PSUseCorrectCasing`.
+- Refreshed the STYLE-GUIDE examples/prose touched by the new rule so they use
+  canonical named blocks, keyword casing, soft-return anchors, and colon-form
+  `Write-Debug` calls.
+- Added ADR `docs/decision-records/repo/0007-sg6-soft-return-and-canonical-call-syntax.md`.
+- Updated `docs/decision-records/README.md` with the new repo ADR index row.
 
-## Canonical Set
+## Verification
 
-The rule tokenizes the root script text with:
+Command:
 
-`[System.Management.Automation.Language.Parser]::ParseInput($ScriptBlockAst.Extent.Text, [ref]$Tokens, [ref]$ParseErrors)`
-
-It only evaluates tokens whose `TokenKind` has `TokenFlags.Keyword`, then checks exact casing against:
-
-`Assembly Base Begin Break Catch Class Command Configuration Continue Data Define Do DynamicKeyword DynamicParam Else ElseIf End Enum Exit Filter Finally For ForEach From Function Hidden If In InlineScript Interface Module Namespace Param Parallel Private Process Public Return Sequence Static Switch Throw Trap Try Type Until Using Var While Workflow`
-
-This leaves operators such as `-in` and `-and`, strings, comments, identifiers, cmdlets, variables, type names, and member names untouched.
-
-## Retrofit Counts
-
-Parser-token replacements by file:
-
-- `build.ps1`: 51
-- `analyzers/HouseRules.psm1`: 337
-- `src/EntryPoint.ps1`: 12
-- `src/Private/ConvertTo-PemCertificate.ps1`: 19
-- `src/Private/ExporterExitCode.ps1`: 1
-- `src/Private/Get-CertificateRawDataSha256.ps1`: 0 new parser replacements; staged the owner canary `function` to `Function` change already present in the worktree
-- `src/Private/Get-StoreCertificate.ps1`: 5
-- `src/Private/New-CertificateStoreExporterResult.ps1`: 2
-- `src/Private/New-ErrorRecord.ps1`: 5
-- `src/Private/Resolve-ExitCode.ps1`: 2
-- `src/Private/Select-ExportableCertificate.ps1`: 13
-- `src/Private/Test-CertificateStoreExporterWindows.ps1`: 2
-- `src/Private/Write-CertificateBundle.ps1`: 26
-- `src/Public/Export-CertificateStoreBundle.ps1`: 28
-
-## Proof
-
-Sanity probe, not committed:
-
-`powershell -NoProfile -ExecutionPolicy Bypass -Command "<lowercase if probe>"`
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
 
 Result:
 
-`Measure-CanonicalKeywordCasing Line 1 Column 1 Keyword 'if' must be canonical casing 'If'.`
-
-`UniqueCanonicalDiagnostics=1`
-
-Codebase analysis:
-
-- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All`
-- Build OK.
-- Analyze passed with 0 findings across the release artifact, functions artifact, `analyzers/HouseRules.psm1`, and `build.ps1`.
+- Build completed.
+- Analyze passed with 0 findings.
 - Pester passed: 87 passed, 0 failed.
 - Coverage passed: 95.93% / 90%.
-- Six entrypoint exit-code tests passed: Success, Unhandled, BelowMinimumCertificateCount, NotWindows, StoreReadFailure, WriteFailure.
-- Smoke passed: `BuildArtifacts.ps1` and `LiveStoreRead.ps1`.
+- Six entrypoint exit-code tests passed: Success, Unhandled,
+  BelowMinimumCertificateCount, NotWindows, StoreReadFailure, WriteFailure.
+- Smoke phase completed successfully (`BuildArtifacts.ps1`, `LiveStoreRead.ps1`).
+- `git diff --check` passed.
 
-## Notes
+## Scope Check
 
-- The worktree started on `main`, not `codex-kw-casing`; I created and switched to `codex-kw-casing` before implementation.
-- No keyword/operator false positives were observed. The new test suite includes lower-case `-in` and `-and` operator coverage.
+- No `src/**`, analyzer, or settings files were changed.
+- Tracked docs changed: `docs/STYLE-GUIDE.md`,
+  `docs/decision-records/README.md`.
+- New docs file: `docs/decision-records/repo/0007-sg6-soft-return-and-canonical-call-syntax.md`.
+- Handoff report overwritten: `_handoff/REPORT.md`.
+- No push or merge performed.
+
+## Notes / False Premise
+
+- The worktree started on `main`, and no local or remote `codex-sg6-docs` branch
+  existed. I created and switched to local branch `codex-sg6-docs` before the final
+  report and commit.
