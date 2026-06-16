@@ -349,7 +349,8 @@ so diffs and reviews are stable. Four clauses:
 - **(a) `CmdletBinding` options** appear in **alphabetical** order:
   `ConfirmImpact, DefaultParameterSetName, HelpUri, PositionalBinding, SupportsPaging, SupportsShouldProcess`.
 - **(b) `[Parameter(...)]` named arguments** appear in **alphabetical** order
-  (`Mandatory, Position?, ValueFromPipeline, ValueFromPipelineByPropertyName, …`).
+  (`DontShow, Mandatory, ParameterSetName, ValueFromPipeline,
+  ValueFromPipelineByPropertyName` per SG-7).
 - **(c) Attributes on a parameter** appear in this canonical order:
   `[Parameter(...)]` → `[Alias(...)]` → validation/transformation attributes
   (`[Validate*]`, etc., **alphabetical** among themselves) → **the type literal** →
@@ -508,4 +509,91 @@ Process {
 
   Write-Debug -Message:'[ConvertTo-Thing] Exiting Process'
 }
+```
+
+---
+
+## SG-7 — Explicit parameter surface **[mechanical — analyzer-enforced]**
+
+See [ADR-repo/0008](decision-records/repo/0008-sg7-explicit-parameter-surface.md)
+for the accepted rationale and Microsoft-source references.
+
+**Rule.** Every parameter declares exactly one `[Parameter(...)]` attribute with
+exactly five named arguments, in SG-5 alphabetical order:
+
+1. `DontShow`
+2. `Mandatory`
+3. `ParameterSetName`
+4. `ValueFromPipeline`
+5. `ValueFromPipelineByPropertyName`
+
+Values are **per-parameter** and behavior-preserving: `Mandatory`,
+`ValueFromPipeline`, and `ValueFromPipelineByPropertyName` are `$True` only where the
+parameter actually has that binding contract; otherwise they are explicitly
+`$False`. `ParameterSetName` is `'default'` for the current single-set house model.
+`DontShow` is `$False` except for a deliberately hidden test seam.
+
+**Forbidden.** Do not declare `Position`, `HelpMessage`, or
+`ValueFromRemainingArguments` in `[Parameter(...)]`.
+
+**Exempt.** The `$StoreFactory` test seam in `Get-StoreCertificate` uses
+`DontShow = $True` because it exists only for deterministic tests and is not a CLI
+surface. The seam still declares the other four SG-7 options explicitly.
+
+**Why.** The explicit five-option surface is an auditability house preference.
+Declaring a Boolean option at its default value is binding-equivalent to omitting it,
+so `Mandatory = $False`, `ValueFromPipeline = $False`, and
+`ValueFromPipelineByPropertyName = $False` are not behavior changes. In this
+single-parameter-set project, `ParameterSetName = 'default'` makes the house set
+visible without adding an alternate binding path.
+
+The forbid-list is correctness, not taste:
+
+- `Position` is prohibited because it overrides `CmdletBinding(PositionalBinding =
+  $False)`: any declared parameter position re-enables positional binding for that
+  parameter.
+- `ValueFromPipelineByPropertyName` is a per-parameter choice. Blanket `$True`
+  accepts matching object properties or aliases by name, which can silently bind a
+  property the function did not intend to consume.
+- `HelpMessage` duplicates the comment-based `.PARAMETER` help used by this repo and
+  only adds interactive value at the mandatory-parameter `!?` prompt.
+- `ValueFromRemainingArguments` is a catch-all positional capture mechanism, and this
+  project has no remaining-argument surface.
+
+**Enforced by:**
+
+- custom rule `Measure-ExplicitParameterAttribute` (Warning) — every parameter must
+  have `[Parameter(...)]`, must declare the five SG-7 options, and must not declare
+  the SG-7 forbid-list;
+- custom rule `Measure-CanonicalAttributeOrder` (Warning) — the five options must
+  stay in SG-5 alphabetical order.
+
+### Example
+
+```powershell
+[Parameter(
+  DontShow = $False,
+  Mandatory = $True,
+  ParameterSetName = 'default',
+  ValueFromPipeline = $False,
+  ValueFromPipelineByPropertyName = $False
+)]
+[ValidateNotNullOrEmpty()]
+[System.String]
+$Path
+```
+
+### Example (hidden test seam)
+
+```powershell
+[Parameter(
+  DontShow = $True,
+  Mandatory = $False,
+  ParameterSetName = 'default',
+  ValueFromPipeline = $False,
+  ValueFromPipelineByPropertyName = $False
+)]
+[ValidateNotNull()]
+[System.Management.Automation.ScriptBlock]
+$StoreFactory
 ```

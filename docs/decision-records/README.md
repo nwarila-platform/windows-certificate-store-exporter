@@ -42,6 +42,7 @@ MADR 4.0-aligned format.
 | [repo/0005](repo/0005-summary-and-manifest-output.md) | Return a Typed Summary and an Opt-In SHA-256 Manifest | Accepted | 2026-06-12 | Soft-return summary object with hashes; opt-in `-WriteManifest` sidecar. |
 | [repo/0006](repo/0006-script-structure-and-test-seam.md) | Use the Build Model and Mocked Read Seam | Accepted | 2026-06-12 | Build-model source split with a functions-only coverage artifact; mock the read seam for deterministic tests. |
 | [repo/0007](repo/0007-sg6-soft-return-and-canonical-call-syntax.md) | Adopt SG-6 Soft Return and Canonical Call Syntax | Accepted | 2026-06-15 | Soft-return output functions; colon-form command parameters; PascalCase PowerShell keywords. |
+| [repo/0008](repo/0008-sg7-explicit-parameter-surface.md) | Adopt SG-7 Explicit Parameter Surface | Accepted | 2026-06-16 | Explicit five-option `[Parameter(...)]` surface; forbid positional, prompt-help, and catch-all argument options. |
 
 ## Authoring Rules
 
