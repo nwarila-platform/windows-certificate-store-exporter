@@ -164,4 +164,34 @@ Describe 'Select-ExportableCertificate' {
       $First.Dispose()
     }
   }
+
+  It 'uses aligned precomputed SHA-256 identities without recomputing certificate hashes' {
+    $First = New-TestCertificate -Scenario Valid -Subject 'CN=Selection Precomputed First'
+    $Second = New-TestCertificate -Scenario Valid -Subject 'CN=Selection Precomputed Second'
+    $FirstHash = 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+    $SecondHash = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+
+    Mock -CommandName Get-CertificateRawDataSha256 -MockWith {
+      Throw 'Select-ExportableCertificate should not recompute aligned certificate hashes.'
+    }
+
+    try {
+      $Result = Select-ExportableCertificate `
+        -Certificate @($First, $Second) `
+        -CertificateThumbprint @($FirstHash, $SecondHash)
+
+      @($Result.Selected) | Should -HaveCount 2
+      $Result.Selected[0] | Should -Be $Second
+      $Result.Selected[1] | Should -Be $First
+      $Result.SelectedThumbprint | Should -Be @($SecondHash, $FirstHash)
+      $Result.ExcludedExpired | Should -Be 0
+      $Result.ExcludedNotYetValid | Should -Be 0
+      $Result.ExcludedDisallowed | Should -Be 0
+      $Result.ExcludedDuplicate | Should -Be 0
+      Should -Invoke -CommandName Get-CertificateRawDataSha256 -Times 0 -Exactly
+    } finally {
+      $Second.Dispose()
+      $First.Dispose()
+    }
+  }
 }

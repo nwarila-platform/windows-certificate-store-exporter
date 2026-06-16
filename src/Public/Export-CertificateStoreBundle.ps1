@@ -118,6 +118,7 @@ Function Export-CertificateStoreBundle {
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]$Private:CandidateCertificates = $Null
   [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$Private:CandidateCertificateArray = @()
+  [System.Collections.Generic.List[System.String]]$Private:CandidateThumbprints = $Null
   [System.Int32]$Private:CertificateIndex = 0
   [System.String]$Private:CertificateHash = [System.String]::Empty
   [System.String]$Private:DefaultSourceStore = [System.String]::Empty
@@ -139,6 +140,7 @@ Function Export-CertificateStoreBundle {
   $CandidateCertificates = [System.Collections.Generic.List[
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]::new()
+  $CandidateThumbprints = [System.Collections.Generic.List[System.String]]::new()
   # Track the first source store for each certificate identity so PEM blocks can be labelled with
   # the store that originally contributed the certificate.
   $FirstSourceStoreByHash = [System.Collections.Generic.Dictionary[
@@ -158,6 +160,7 @@ Function Export-CertificateStoreBundle {
 
       $CandidateCertificates.Add($StoreCertificate)
       $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$StoreCertificate
+      $CandidateThumbprints.Add($CertificateHash)
 
       If ($FirstSourceStoreByHash.ContainsKey($CertificateHash) -eq $False) {
         $FirstSourceStoreByHash.Add($CertificateHash, $RequestedStoreName)
@@ -185,6 +188,7 @@ Function Export-CertificateStoreBundle {
   $CandidateCertificateArray = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$CandidateCertificates.ToArray()
   $SelectionResult = Select-ExportableCertificate `
     -Certificate:$CandidateCertificateArray `
+    -CertificateThumbprint:([System.String[]]$CandidateThumbprints.ToArray()) `
     -DisallowedThumbprint:$DisallowedThumbprints `
     -IncludeExpired:$IncludeExpired.IsPresent
   $SelectedCertificates = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]$SelectionResult.Selected
@@ -211,6 +215,7 @@ Function Export-CertificateStoreBundle {
       (
         ConvertTo-PemCertificate `
           -Certificate:$SelectedCertificate `
+          -Sha256:$CertificateHash `
           -StoreName:$SourceStore
       )
     )

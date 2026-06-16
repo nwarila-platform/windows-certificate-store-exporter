@@ -55,6 +55,17 @@ Function Select-ExportableCertificate {
     )]
     [AllowEmptyCollection()]
     [System.String[]]
+    $CertificateThumbprint = @(),
+
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
+    [AllowEmptyCollection()]
+    [System.String[]]
     $DisallowedThumbprint = @(),
 
     [Parameter(
@@ -71,7 +82,11 @@ Function Select-ExportableCertificate {
   Write-Debug -Message:'[Select-ExportableCertificate] Entering'
 
   # Initialize Variable(s)
+  [System.Security.Cryptography.X509Certificates.X509Certificate2]$Private:CandidateCertificate = $Null
+  [System.Int32]$Private:CertificateCount = 0
   [System.String]$Private:CertificateHash = [System.String]::Empty
+  [System.Int32]$Private:CertificateIndex = 0
+  [System.Int32]$Private:CertificateThumbprintCount = 0
   [System.Collections.Generic.HashSet[System.String]]$Private:DisallowedSet = $Null
   [System.Int32]$Private:ExcludedDisallowed = 0
   [System.Int32]$Private:ExcludedDuplicate = 0
@@ -89,8 +104,18 @@ Function Select-ExportableCertificate {
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]$Private:SelectedCertificates = $Null
   [System.Collections.Generic.List[System.String]]$Private:SelectedThumbprints = $Null
+  [System.Boolean]$Private:UsePrecomputedThumbprint = $False
 
   $NowUtc = [System.DateTime]::UtcNow
+  If ($Null -ne $Certificate) {
+    $CertificateCount = $Certificate.Count
+  }
+
+  If ($Null -ne $CertificateThumbprint) {
+    $CertificateThumbprintCount = $CertificateThumbprint.Count
+  }
+
+  $UsePrecomputedThumbprint = $CertificateThumbprintCount -eq $CertificateCount
   $DisallowedSet = [System.Collections.Generic.HashSet[System.String]]::new(
     [System.StringComparer]::OrdinalIgnoreCase
   )
@@ -106,7 +131,9 @@ Function Select-ExportableCertificate {
   System.Security.Cryptography.X509Certificates.X509Certificate2
   ]]::new([System.StringComparer]::Ordinal)
 
-  ForEach ($CandidateCertificate In $Certificate) {
+  For ($CertificateIndex = 0; $CertificateIndex -lt $CertificateCount; $CertificateIndex++) {
+    $CandidateCertificate = $Certificate[$CertificateIndex]
+
     If ($Null -eq $CandidateCertificate) {
       Continue
     }
@@ -126,7 +153,12 @@ Function Select-ExportableCertificate {
       }
     }
 
-    $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
+    If ($UsePrecomputedThumbprint -eq $True) {
+      $CertificateHash = [System.String]$CertificateThumbprint[$CertificateIndex]
+    } Else {
+      $CertificateHash = Get-CertificateRawDataSha256 -Certificate:$CandidateCertificate
+    }
+
     If ($DisallowedSet.Contains($CertificateHash) -eq $True) {
       $ExcludedDisallowed++
       Continue

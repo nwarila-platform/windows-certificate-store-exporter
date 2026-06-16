@@ -277,6 +277,82 @@ function Export-CertificateStoreBundle {
     $SecondResult.Thumbprints | Should -Be $ExpectedThumbprints
   }
 
+  It 'hashes each candidate once and passes precomputed identities downstream' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'single-hash.pem'
+    $Script:HashByObjectId = @{}
+    $Script:HashCallCountByObjectId = @{}
+
+    $ObjectHashes = @(
+      @{
+        Certificate = $Script:RootExpired
+        Hash        = 'EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE'
+      }
+      @{
+        Certificate = $Script:RootValid
+        Hash        = '1111111111111111111111111111111111111111111111111111111111111111'
+      }
+      @{
+        Certificate = $Script:RootDuplicate
+        Hash        = '1111111111111111111111111111111111111111111111111111111111111111'
+      }
+      @{
+        Certificate = $Script:RootDisallowed
+        Hash        = '2222222222222222222222222222222222222222222222222222222222222222'
+      }
+      @{
+        Certificate = $Script:CaFuture
+        Hash        = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+      }
+      @{
+        Certificate = $Script:CaNoBasic
+        Hash        = '3333333333333333333333333333333333333333333333333333333333333333'
+      }
+      @{
+        Certificate = $Script:CaValid
+        Hash        = '4444444444444444444444444444444444444444444444444444444444444444'
+      }
+      @{
+        Certificate = $Script:DisallowedSource
+        Hash        = '2222222222222222222222222222222222222222222222222222222222222222'
+      }
+    )
+
+    foreach ($ObjectHash in $ObjectHashes) {
+      $ObjectId = [System.Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($ObjectHash.Certificate)
+      $Script:HashByObjectId[$ObjectId] = [System.String]$ObjectHash.Hash
+      $Script:HashCallCountByObjectId[$ObjectId] = 0
+    }
+
+    Mock -CommandName Get-CertificateRawDataSha256 -MockWith {
+      param (
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]
+        $Certificate
+      )
+
+      $ObjectId = [System.Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($Certificate)
+      $Script:HashCallCountByObjectId[$ObjectId]++
+      $Script:HashByObjectId[$ObjectId]
+    }
+
+    $Result = Export-CertificateStoreBundle -Path $Path
+
+    $Result.Thumbprints | Should -Be @(
+      '1111111111111111111111111111111111111111111111111111111111111111',
+      '3333333333333333333333333333333333333333333333333333333333333333',
+      '4444444444444444444444444444444444444444444444444444444444444444'
+    )
+    $Result.Excluded.Expired | Should -Be 1
+    $Result.Excluded.NotYetValid | Should -Be 1
+    $Result.Excluded.Disallowed | Should -Be 1
+    $Result.Excluded.Duplicate | Should -Be 1
+    Should -Invoke -CommandName Get-CertificateRawDataSha256 -Times 8 -Exactly
+
+    foreach ($ObjectHash in $ObjectHashes) {
+      $ObjectId = [System.Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($ObjectHash.Certificate)
+      $Script:HashCallCountByObjectId[$ObjectId] | Should -Be 1
+    }
+  }
+
   It 'honors WhatIf through the writer without writing bundle or manifest files' {
     $Path = Join-Path -Path $TestRoot -ChildPath 'whatif.pem'
 
