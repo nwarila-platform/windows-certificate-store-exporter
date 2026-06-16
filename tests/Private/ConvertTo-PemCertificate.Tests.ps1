@@ -103,4 +103,26 @@ Describe 'ConvertTo-PemCertificate' {
       $Certificate.Dispose()
     }
   }
+
+  It 'uses a supplied SHA-256 comment without recomputing the certificate hash' {
+    $Certificate = New-TestCertificate -Scenario Valid -Subject 'CN=PEM Precomputed Hash'
+    $PrecomputedHash = '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'
+
+    Mock -CommandName Get-CertificateRawDataSha256 -MockWith {
+      Throw 'ConvertTo-PemCertificate should not recompute a supplied SHA-256 value.'
+    }
+
+    try {
+      $Result = ConvertTo-PemCertificate `
+        -Certificate $Certificate `
+        -Sha256 $PrecomputedHash `
+        -StoreName Root
+      $Lines = [System.String[]]($Result -split "`n")
+
+      $Lines[3] | Should -Be ('# SHA-256: {0}' -f $PrecomputedHash)
+      Should -Invoke -CommandName Get-CertificateRawDataSha256 -Times 0 -Exactly
+    } finally {
+      $Certificate.Dispose()
+    }
+  }
 }

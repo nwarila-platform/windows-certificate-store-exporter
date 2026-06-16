@@ -51,6 +51,16 @@ Function ConvertTo-PemCertificate {
       ValueFromPipeline = $False,
       ValueFromPipelineByPropertyName = $False
     )]
+    [System.String]
+    $Sha256 = [System.String]::Empty,
+
+    [Parameter(
+      DontShow = $False,
+      Mandatory = $False,
+      ParameterSetName = 'default',
+      ValueFromPipeline = $False,
+      ValueFromPipelineByPropertyName = $False
+    )]
     [ValidateSet('Root', 'CA', 'Disallowed')]
     [System.String]
     $StoreName = 'Root'
@@ -65,12 +75,12 @@ Function ConvertTo-PemCertificate {
     [System.Int32]$Private:CharacterCode = 0
     [System.Text.StringBuilder]$Private:EscapedIssuerBuilder = $Null
     [System.Text.StringBuilder]$Private:EscapedSubjectBuilder = $Null
+    [System.String]$Private:EffectiveSha256 = [System.String]::Empty
     [System.String]$Private:Issuer = [System.String]::Empty
     [System.Collections.Generic.List[System.String]]$Private:Lines = $Null
     [System.String]$Private:NotAfter = [System.String]::Empty
     [System.String]$Private:NotBefore = [System.String]::Empty
     [System.String]$Private:Result = [System.String]::Empty
-    [System.String]$Private:Sha256 = [System.String]::Empty
     [System.String]$Private:Subject = [System.String]::Empty
 
     Write-Debug -Message:'[ConvertTo-PemCertificate] Exiting Begin'
@@ -83,12 +93,12 @@ Function ConvertTo-PemCertificate {
     $CharacterCode = 0
     $EscapedIssuerBuilder = $Null
     $EscapedSubjectBuilder = $Null
+    $EffectiveSha256 = [System.String]::Empty
     $Issuer = [System.String]::Empty
     $Lines = $Null
     $NotAfter = [System.String]::Empty
     $NotBefore = [System.String]::Empty
     $Result = [System.String]::Empty
-    $Sha256 = [System.String]::Empty
     $Subject = [System.String]::Empty
 
     # PEM metadata comments stay ASCII so bundle diffs and consumers do not depend on locale.
@@ -134,7 +144,10 @@ Function ConvertTo-PemCertificate {
 
     $Subject = $EscapedSubjectBuilder.ToString()
     $Issuer = $EscapedIssuerBuilder.ToString()
-    $Sha256 = Get-CertificateRawDataSha256 -Certificate:$Certificate
+    $EffectiveSha256 = [System.String]$Sha256
+    If ([System.String]::IsNullOrEmpty($EffectiveSha256) -eq $True) {
+      $EffectiveSha256 = Get-CertificateRawDataSha256 -Certificate:$Certificate
+    }
     $NotBefore = $Certificate.NotBefore.ToUniversalTime().ToString(
       'yyyy-MM-ddTHH:mm:ssZ',
       [System.Globalization.CultureInfo]::InvariantCulture
@@ -149,7 +162,7 @@ Function ConvertTo-PemCertificate {
     [void]$Lines.Add(('# Subject: {0}' -f $Subject))
     [void]$Lines.Add(('# Issuer: {0}' -f $Issuer))
     [void]$Lines.Add(('# Serial: {0}' -f $Certificate.SerialNumber))
-    [void]$Lines.Add(('# SHA-256: {0}' -f $Sha256))
+    [void]$Lines.Add(('# SHA-256: {0}' -f $EffectiveSha256))
     [void]$Lines.Add(('# NotBefore: {0}' -f $NotBefore))
     [void]$Lines.Add(('# NotAfter: {0}' -f $NotAfter))
     [void]$Lines.Add(('# Source: {0}' -f $StoreName))
