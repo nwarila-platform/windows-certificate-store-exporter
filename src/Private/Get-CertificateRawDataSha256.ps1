@@ -1,5 +1,11 @@
 #Requires -Version 5.1
 
+# Message(s)
+$Script:Message += @{
+  'Get-CertificateRawDataSha256.NoRawData'   = 'Certificate has no RawData (DER bytes) to hash; subject: {0}.'
+  'Get-CertificateRawDataSha256.HashFailure' = 'Failed to compute SHA-256 identity for certificate {0}: {1}'
+}
+
 Function Get-CertificateRawDataSha256 {
   <#
     .SYNOPSIS
@@ -67,7 +73,7 @@ Function Get-CertificateRawDataSha256 {
         -Category:([System.Management.Automation.ErrorCategory]::InvalidData) `
         -ErrorId:([ExporterExitCode]::Unhandled) `
         -IsFatal:$True `
-        -Message:('Certificate has no RawData (DER bytes) to hash; subject: {0}.' -f $Certificate.Subject) `
+        -Message:($Script:Message['Get-CertificateRawDataSha256.NoRawData'] -f $Certificate.Subject) `
         -TargetObject:$Certificate
     }
 
@@ -86,7 +92,7 @@ Function Get-CertificateRawDataSha256 {
         -ErrorId:([ExporterExitCode]::Unhandled)                                `
         -Exception:$PSItem.Exception                                            `
         -IsFatal:$True                                                          `
-        -Message:('Failed to compute SHA-256 identity for certificate {0}: {1}' -f $Certificate.Subject, $PSItem.Exception.Message) `
+        -Message:($Script:Message['Get-CertificateRawDataSha256.HashFailure'] -f $Certificate.Subject, $PSItem.Exception.Message) `
         -TargetObject:$Certificate
     } Finally {
       # Dispose in Finally so the SHA256 provider's unmanaged crypto resources are released on

@@ -291,6 +291,10 @@ Function Invoke-Build {
   $private:FunctionBuilder = [System.Text.StringBuilder]::new(32768)
   $Null = $FunctionBuilder.AppendLine('#Requires -Version 5.1')
   $Null = $FunctionBuilder.AppendLine('')
+  $Null = $FunctionBuilder.AppendLine('#region Message Table')
+  $Null = $FunctionBuilder.AppendLine('[System.Collections.Hashtable]$Script:Message = @{}')
+  $Null = $FunctionBuilder.AppendLine('#endregion')
+  $Null = $FunctionBuilder.AppendLine('')
 
   Add-FunctionFileContent `
     -StringBuilder $FunctionBuilder `
