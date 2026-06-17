@@ -1,37 +1,24 @@
-# REPORT - Single-hash candidate SHA-256 threading
+# REPORT - CLI minimum certificate floor
 
 ## Completed
 
-- Added optional `-Sha256` to `ConvertTo-PemCertificate`.
-  - Non-empty caller values are used directly for the PEM `# SHA-256:` comment.
-  - Empty or omitted values fall back to `Get-CertificateRawDataSha256`, preserving standalone callers.
-  - The fallback is held in a per-item `EffectiveSha256` local so pipeline use cannot reuse a computed hash from a prior item.
-- Added optional `-CertificateThumbprint` to `Select-ExportableCertificate`.
-  - Aligned arrays are used as certificate identities for Disallowed subtraction, deduplication, and sorted output.
-  - Count mismatches, including explicit null inputs, fall back to internal hashing.
-- Updated `Export-CertificateStoreBundle`.
-  - The existing read-loop hash is captured in a parallel `CandidateThumbprints` list.
-  - The aligned list is passed to `Select-ExportableCertificate`.
-  - The selected hash is passed to `ConvertTo-PemCertificate -Sha256`.
+- `src/EntryPoint.ps1` now validates `MinimumCertificateCount` with `ValidateRange(1, [System.Int32]::MaxValue)`.
+- Default remains `1`, matching `Export-CertificateStoreBundle` and `Write-CertificateBundle`.
+- Subprocess assertion exists: the built EntryPoint rejects `-MinimumCertificateCount 0` at parameter binding.
 
-## Hashing Proof
+## Grep
 
-- New focused tests prove the no-recompute paths:
-  - `ConvertTo-PemCertificate` throws if `Get-CertificateRawDataSha256` is called when `-Sha256` is supplied.
-  - `Select-ExportableCertificate` throws if hashing is called when aligned `-CertificateThumbprint` values are supplied.
-  - `Export-CertificateStoreBundle` mocks hashing and proves exactly 8 calls: 7 candidates plus 1 Disallowed certificate. Each candidate object and the Disallowed object were called once.
-- Disallowed certificate hashing remains separate, as requested.
-- The bundle ASCII scan in `Write-CertificateBundle` was not changed.
+- Ran `rg -n "MinimumCertificateCount" src tests`.
+- No smoke or success-path EntryPoint invocation passes `0`.
+- The only test-side `0` is the intentional negative assertion: `Argument @('-MinimumCertificateCount', '0')`.
+- `tests/Smoke/LiveStoreRead.ps1` passes `-MinimumCertificateCount 1`.
 
-## Byte-Identity Sanity
+## Direct CLI Check
 
-- Compared a `main` build from a temporary detached worktree against this branch for the same live store input.
-- Whole PEM bytes: identical.
-- Bundle SHA-256:
-  - `main`: `0C02BF3283396F172570EF929ED746B079366BCAC2BECB277A3D7785CC646C3E`
-  - branch: `0C02BF3283396F172570EF929ED746B079366BCAC2BECB277A3D7785CC646C3E`
-- PEM `# SHA-256:` comment lines: identical, 41 lines.
-- Byte count: 81560.
+- Command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File .\build\Export-CertificateStoreBundle.ps1 -Path <temp>\cert-store-cli-min-floor-*.pem -MinimumCertificateCount 0 -WhatIf`
+- Result: exit code `1`.
+- Error: parameter binding rejects `0` because it is below the minimum allowed range of `1`.
 
 ## Verification
 
@@ -40,9 +27,9 @@
 - Result: passed.
 - Build: OK.
 - Analyze: 0 findings.
-- Pester: 92 passed, 0 failed.
+- Pester: 93 passed, 0 failed.
 - Coverage: 96.27% / 90%.
-- Six subprocess exit codes proven:
+- Six subprocess exit codes still proven:
   - Success: `0`
   - Unhandled: `1`
   - BelowMinimumCertificateCount: `2`
@@ -53,14 +40,10 @@
   - `BuildArtifacts.ps1`
   - `LiveStoreRead.ps1`
 
-## Notes / False Premises
-
-- No behavioral false premise found.
-- Alignment edge case is explicit: `Select-ExportableCertificate` only trusts supplied thumbprints when `CertificateThumbprint.Count -eq Certificate.Count`; otherwise it computes internally as before.
-- `_handoff` and `build` are ignored by the repo default-deny `.gitignore`; the signed commit contains the tracked implementation and tests, while this report is a local handoff artifact.
-
 ## Git
 
-- Branch: `codex-single-hash`.
-- Signed local commit: `Thread certificate SHA-256 through export`.
+- Branch: `codex-cli-min-floor`.
+- Implementation commit: `4ce7de6 Enforce CLI minimum certificate floor`.
+- Commit signatures verified as good for `33955773+NWarila@users.noreply.github.com`.
+- Worktree clean after verification.
 - Not pushed or merged.
