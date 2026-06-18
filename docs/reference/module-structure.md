@@ -5,12 +5,13 @@ build.ps1
 src/
   EntryPoint.ps1
   Private/
-    Constants.ps1
     ConvertTo-PemCertificate.ps1
+    ExporterExitCode.ps1
     Get-CertificateRawDataSha256.ps1
     Get-StoreCertificate.ps1
     New-CertificateStoreExporterResult.ps1
     New-ErrorRecord.ps1
+    New-X509Store.ps1
     Select-ExportableCertificate.ps1
     Test-CertificateStoreExporterWindows.ps1
     Write-CertificateBundle.ps1
@@ -45,9 +46,10 @@ The `build/` directory is ignored. Do not edit generated artifacts directly.
 | --- | --- |
 | `Build` | Assemble generated artifacts and syntax-check them. |
 | `Analyze` | Run PSScriptAnalyzer over the release script, functions-only artifact, and `build.ps1` using the house settings. |
-| `Test` | Run smoke tests and Pester with the 90 percent coverage gate. |
+| `Test` | Run Pester with the 90 percent coverage gate. |
+| `Smoke` | Run the smoke tests under `tests/Smoke/`. |
 | `Clean` | Remove `build/`. |
-| `All` | Run `Clean`, `Build`, `Analyze`, and `Test`. |
+| `All` | Run `Clean`, `Build`, `Analyze`, `Test`, and `Smoke`. |
 
 ## Release Workflow
 

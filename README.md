@@ -59,7 +59,7 @@ a result object.
 | `-StoreLocation` | `LocalMachine`, `CurrentUser` | `LocalMachine` | Windows logical certificate-store location. |
 | `-StoreName` | `Root`, `CA` | `Root,CA` | Stores to export. `Disallowed` is always read separately and subtracted. |
 | `-IncludeExpired` | Switch | Off | Retains expired and not-yet-valid certificates. |
-| `-MinimumCertificateCount` | Integer `0` or greater | `1` | Fail-closed floor before any write occurs. |
+| `-MinimumCertificateCount` | Integer `1` or greater | `1` | Fail-closed floor before any write occurs. |
 | `-WriteManifest` | Switch | Off | Writes `<bundle>.sha256` next to the bundle. |
 | `-LogLevel` | Seven digits | `1111111` | Accepted by the entry script for ScriptTemplate runtime context. |
 | `-DebugLevel` | Three digits | `000` | Accepted by the entry script for ScriptTemplate runtime context. |
