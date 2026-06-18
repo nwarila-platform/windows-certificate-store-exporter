@@ -44,7 +44,7 @@ Builds the `CertificateStoreExporter.Result` success object emitted by the publi
 orchestrator.
 
 ```powershell
-New-CertificateStoreExporterResult -Path <string> -Status <Written|Unchanged|WhatIf> -BundleSha256 <string> [-Certificate <X509Certificate2[]>] [-Examined <int>] [-ExcludedExpired <int>] [-ExcludedNotYetValid <int>] [-ExcludedDisallowed <int>] [-ExcludedDuplicate <int>] [-StoreLocation <LocalMachine|CurrentUser>] [-StoreName <Root|CA[]>] [-ManifestPath <string>] [-GeneratedAtUtc <datetime>]
+New-CertificateStoreExporterResult -Path <string> -Status <Written|Unchanged|WhatIf> -BundleSha256 <string> [-Certificate <X509Certificate2[]>] [-CertificateThumbprint <string[]>] [-Examined <int>] [-ExcludedExpired <int>] [-ExcludedNotYetValid <int>] [-ExcludedDisallowed <int>] [-ExcludedDuplicate <int>] [-StoreLocation <LocalMachine|CurrentUser>] [-StoreName <Root|CA[]>] [-ManifestPath <string>] [-GeneratedAtUtc <datetime>]
 ```
 
 ## New-ErrorRecord
@@ -56,13 +56,22 @@ ErrorId.
 New-ErrorRecord -Message <string> -ErrorId <ExporterExitCode> [-Exception <Exception>] [-Category <ErrorCategory>] [-TargetObject <object>] [-IsFatal]
 ```
 
+## New-X509Store
+
+Wraps the `X509Store` constructor behind a mockable private seam — the single
+store-creation point used by `Get-StoreCertificate`.
+
+```powershell
+New-X509Store -Name <string> -Location <LocalMachine|CurrentUser>
+```
+
 ## Select-ExportableCertificate
 
 Filters certificates by validity, subtracts Disallowed hashes, de-duplicates by
 SHA-256 DER identity, and returns deterministic hash order.
 
 ```powershell
-Select-ExportableCertificate [-Certificate <X509Certificate2[]>] [-DisallowedThumbprint <string[]>] [-IncludeExpired]
+Select-ExportableCertificate [-Certificate <X509Certificate2[]>] [-CertificateThumbprint <string[]>] [-DisallowedThumbprint <string[]>] [-IncludeExpired]
 ```
 
 ## Test-CertificateStoreExporterWindows
