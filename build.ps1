@@ -429,6 +429,7 @@ Function Invoke-Test {
   $private:PesterConfig = [PesterConfiguration]::Default
   $PesterConfig.Run.Path = $TestRoot
   $PesterConfig.Run.Throw = $True
+  $PesterConfig.Run.PassThru = $True
   $PesterConfig.Output.Verbosity = 'Detailed'
   $PesterConfig.TestResult.Enabled = $True
   $PesterConfig.TestResult.OutputFormat = 'NUnitXml'
@@ -439,7 +440,22 @@ Function Invoke-Test {
   $PesterConfig.CodeCoverage.OutputPath = Join-Path -Path $BuildRoot -ChildPath 'coverage.xml'
   $PesterConfig.CodeCoverage.CoveragePercentTarget = 90
 
-  Invoke-Pester -Configuration $PesterConfig
+  $private:PesterResult = Invoke-Pester -Configuration $PesterConfig
+
+  [System.Double]$private:CoverageTarget = $PesterConfig.CodeCoverage.CoveragePercentTarget.Value
+  [System.Double]$private:CoveragePercent = $PesterResult.CodeCoverage.CoveragePercent
+
+  If ($CoveragePercent -lt $CoverageTarget) {
+    Throw (
+      'Code coverage {0:N2} percent is below the required {1:N0} percent gate.' -f
+      $CoveragePercent, $CoverageTarget
+    )
+  }
+
+  Write-Information -MessageData (
+    'Code coverage {0:N2} percent meets the {1:N0} percent gate.' -f
+    $CoveragePercent, $CoverageTarget
+  ) -InformationAction Continue
 }
 
 Function Invoke-Smoke {
