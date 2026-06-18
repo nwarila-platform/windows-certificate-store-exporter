@@ -1,6 +1,7 @@
 # windows-certificate-store-exporter
 
 [![CI](https://github.com/nwarila-platform/windows-certificate-store-exporter/actions/workflows/ci.yaml/badge.svg)](https://github.com/nwarila-platform/windows-certificate-store-exporter/actions/workflows/ci.yaml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/nwarila-platform/windows-certificate-store-exporter/badge)](https://scorecard.dev/viewer/?uri=github.com/nwarila-platform/windows-certificate-store-exporter)
 [![Windows PowerShell 5.1](https://img.shields.io/badge/Windows%20PowerShell-5.1-5391FE?logo=powershell&logoColor=white)](https://learn.microsoft.com/powershell/)
 [![PSScriptAnalyzer](https://img.shields.io/badge/lint-house%20PSScriptAnalyzer-blue)](PSScriptAnalyzerSettings.psd1)
 [![Tested with Pester](https://img.shields.io/badge/tested%20with-Pester%20v5-green)](https://pester.dev/)
