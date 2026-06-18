@@ -11,7 +11,7 @@ by `build.ps1`. It is not a module command you import.
 | `-StoreLocation` | `System.String` | `LocalMachine` | `LocalMachine`, `CurrentUser` | Windows logical certificate-store location. |
 | `-StoreName` | `System.String[]` | `Root,CA` | `Root`, `CA` | One or more stores to export. `Disallowed` is always read separately and subtracted. |
 | `-IncludeExpired` | Switch | Off | Present or absent | Includes expired and not-yet-valid certificates instead of filtering them out. |
-| `-MinimumCertificateCount` | `System.Int32` | `1` | `0` through `Int32::MaxValue` | Minimum surviving certificate count. If the bundle would contain fewer certificates, the script throws before writing. |
+| `-MinimumCertificateCount` | `System.Int32` | `1` | `1` through `Int32::MaxValue` | Minimum surviving certificate count. If the bundle would contain fewer certificates, the script throws before writing. |
 | `-WriteManifest` | Switch | Off | Present or absent | Writes `<bundle>.sha256` beside the bundle. |
 | `-LogLevel` | `System.String` | `1111111` | Seven digits | Accepted by the entry script for ScriptTemplate runtime context. |
 | `-DebugLevel` | `System.String` | `000` | Three digits | Accepted by the entry script for ScriptTemplate runtime context. |
