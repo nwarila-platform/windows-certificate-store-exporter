@@ -173,7 +173,7 @@ jobs:
     # semantic version tag (@vX.Y.Z). slsa-verifier resolves/trusts the builder by that tag; a commit
     # SHA (or truncated @v2 / @v2.1) makes verification FAIL. This is the deliberate, documented
     # exception to the house "pin every action by commit SHA" rule. Renovate must preserve @vX.Y.Z.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses] SLSA verifier requires the builder's semantic version tag.
     with:
       base64-subjects: ${{ needs.release.outputs.hashes }}
       provenance-name: Export-CertificateStoreBundle.ps1.intoto.jsonl

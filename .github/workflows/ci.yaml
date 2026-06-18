@@ -36,6 +36,26 @@ jobs:
           fail_level: error
           reporter: github-check
 
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
+        with:
+          inputs: .github/workflows/
+          version: v1.25.2
+          advanced-security: false
+          annotations: true
+
   repo-hygiene:
     name: repo hygiene
     runs-on: ubuntu-latest
