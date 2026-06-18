@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: release
@@ -15,6 +19,8 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write
+    outputs:
+      hashes: ${{ steps.subjects.outputs.hashes }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -50,6 +56,18 @@ jobs:
           )
 
           Get-Content -Path $SidecarPath
+
+      - name: Compute SLSA base64 subjects
+        id: subjects
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ArtifactPath = Join-Path -Path $PWD -ChildPath 'build\Export-CertificateStoreBundle.ps1'
+          $ArtifactName = Split-Path -Path $ArtifactPath -Leaf
+          $HashLower = (Get-FileHash -Algorithm SHA256 -Path $ArtifactPath).Hash.ToLowerInvariant()
+          $Subject = '{0}  {1}{2}' -f $HashLower, $ArtifactName, "`n"
+          $Base64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Subject))
+          "hashes=$Base64" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Create GitHub Release
         shell: powershell
@@ -143,3 +161,21 @@ jobs:
               -ContentType 'application/octet-stream' `
               -InFile $AssetPath
           }
+
+  provenance:
+    name: provenance
+    needs: release
+    permissions:
+      id-token: write   # OIDC identity for keyless Sigstore/Fulcio signing
+      contents: write   # attach the .intoto.jsonl provenance to the release
+      actions: read     # the generator reads this workflow run
+    # SLSA REQUIREMENT - do NOT SHA-pin this one: the trusted builder MUST be referenced by a full
+    # semantic version tag (@vX.Y.Z). slsa-verifier resolves/trusts the builder by that tag; a commit
+    # SHA (or truncated @v2 / @v2.1) makes verification FAIL. This is the deliberate, documented
+    # exception to the house "pin every action by commit SHA" rule. Renovate must preserve @vX.Y.Z.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: ${{ needs.release.outputs.hashes }}
+      provenance-name: Export-CertificateStoreBundle.ps1.intoto.jsonl
+      upload-assets: true
+      upload-tag-name: ${{ github.ref_name }}
