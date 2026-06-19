@@ -1,0 +1,352 @@
+name: CI
+
+# Windows-only tool: validate on Windows PowerShell 5.1.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
+        with:
+          fail_level: error
+          reporter: github-check
+
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
+        with:
+          inputs: .github/workflows/
+          version: v1.25.2
+          advanced-security: false
+          annotations: true
+
+  repo-hygiene:
+    name: repo hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Guard handoff files are untracked
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tracked="$(git ls-files -- _handoff/)"
+          if [ -n "$tracked" ]; then
+            echo "::error::_handoff/ is untracked by design but these files are committed:"
+            echo "$tracked"
+            exit 1
+          fi
+
+          echo "OK: no _handoff/ paths are tracked."
+
+  secret-scan:
+    name: secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_ARCHIVE_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pinned gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          checksums="gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          base_url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          install_dir="${RUNNER_TEMP}/gitleaks"
+
+          curl --fail --location --show-error --silent --remote-name "${base_url}/${archive}"
+          curl --fail --location --show-error --silent --remote-name "${base_url}/${checksums}"
+
+          expected_line="${GITLEAKS_ARCHIVE_SHA256}  ${archive}"
+          grep --fixed-strings --line-regexp -- "${expected_line}" "${checksums}"
+          printf '%s  %s\n' "${GITLEAKS_ARCHIVE_SHA256}" "${archive}" | sha256sum --check --strict
+
+          mkdir -p "${install_dir}"
+          tar -xzf "${archive}" -C "${install_dir}" gitleaks
+          chmod 0755 "${install_dir}/gitleaks"
+          echo "${install_dir}" >> "${GITHUB_PATH}"
+
+      - name: Run gitleaks
+        shell: bash
+        run: gitleaks detect --source . --redact --exit-code 1 --no-banner
+
+  sast:
+    name: sast
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install analyzers
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -ErrorAction Stop
+          Install-Module -Name ConvertToSARIF -RequiredVersion 1.0.0 -Scope CurrentUser -Force -ErrorAction Stop
+
+      - name: Run PSScriptAnalyzer and emit SARIF
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module PSScriptAnalyzer
+          Import-Module ConvertToSARIF
+          $Settings = Join-Path -Path $PWD -ChildPath 'PSScriptAnalyzerSettings.psd1'
+          $Targets = @('src', 'build.ps1', 'analyzers')
+          $Results = @(
+            $Targets | ForEach-Object -Process {
+              Invoke-ScriptAnalyzer -Path $PSItem -Recurse -Settings $Settings
+            }
+          )
+          # ConvertTo-SARIF must still emit a valid (possibly empty) SARIF so the upload succeeds.
+          $Results | ConvertTo-SARIF -FilePath results.sarif
+          Write-Information -MessageData ('PSScriptAnalyzer SAST findings: {0}' -f $Results.Count) -InformationAction Continue
+
+      - name: Upload SARIF to code-scanning
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          sarif_file: results.sarif
+
+  build:
+    name: build (windows-powershell51)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install PowerShell test modules (Windows PowerShell)
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -ErrorAction Stop
+
+      - name: Run build (Windows PowerShell)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pester-results-windows-powershell51
+          path: |
+            build/testResults.xml
+            build/coverage.xml
+          if-no-files-found: ignore
+
+  benchmark:
+    name: raw PSGallery benchmark (non-gating)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install PSScriptAnalyzer (Windows PowerShell)
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -ErrorAction Stop
+
+      - name: Build benchmark artifact
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task Build
+
+      - name: Report raw PSGallery findings
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Format-MarkdownCell {
+            param (
+              [AllowNull()]
+              [System.Object]
+              $Value
+            )
+
+            if ($null -eq $Value) {
+              return ''
+            }
+
+            $Text = [System.String]$Value
+            $Text = $Text -replace '\r?\n', '<br>'
+            $Text = $Text.Replace('|', '\|')
+            return $Text
+          }
+
+          function Get-FunctionLocation {
+            param (
+              [Parameter(Mandatory = $true)]
+              [System.Object]
+              $Diagnostic,
+
+              [Parameter(Mandatory = $true)]
+              [System.Management.Automation.Language.FunctionDefinitionAst[]]
+              $FunctionAst
+            )
+
+            $Line = [System.Int32]$Diagnostic.Line
+            $Function = $FunctionAst |
+              Where-Object { $_.Extent.StartLineNumber -le $Line -and $_.Extent.EndLineNumber -ge $Line } |
+              Sort-Object -Property @{ Expression = { $_.Extent.StartLineNumber }; Descending = $true } |
+              Select-Object -First 1
+
+            if ($null -ne $Function) {
+              return ('{0}:{1}' -f $Function.Name, $Line)
+            }
+
+            return ('line {0}' -f $Line)
+          }
+
+          $SummaryLines = [System.Collections.Generic.List[System.String]]::new()
+
+          try {
+            $BenchmarkPath = '.\build\Export-CertificateStoreBundle.Functions.ps1'
+            $DocUrl = '{0}/{1}/blob/{2}/docs/explanation/psgallery-benchmark.md' -f $env:GITHUB_SERVER_URL, $env:GITHUB_REPOSITORY, $env:GITHUB_SHA
+
+            $SummaryLines.Add('## Raw PSGallery benchmark')
+            $SummaryLines.Add(('Raw PSGallery PSScriptAnalyzer findings against `build/Export-CertificateStoreBundle.Functions.ps1`, using the default ruleset; the house intentionally excludes `PSUseShouldProcessForStateChangingFunctions` for factory functions ([justification]({0})).' -f $DocUrl))
+            $SummaryLines.Add('')
+
+            Import-Module -Name PSScriptAnalyzer -ErrorAction Stop
+            $Tokens = $null
+            $ParseErrors = $null
+            $Ast = [System.Management.Automation.Language.Parser]::ParseFile($BenchmarkPath, [ref]$Tokens, [ref]$ParseErrors)
+            $Functions = @(
+              $Ast.FindAll(
+                {
+                  param ($Node)
+                  $Node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+                },
+                $true
+              )
+            )
+            $Results = @(Invoke-ScriptAnalyzer -Path $BenchmarkPath -ErrorAction Stop)
+
+            if ($Results.Count -eq 0) {
+              $SummaryLines.Add('No raw PSGallery findings.')
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $SummaryLines -ErrorAction Stop
+              exit 0
+            }
+
+            $SummaryLines.Add('| RuleName | Function/line | Message |')
+            $SummaryLines.Add('| --- | --- | --- |')
+
+            $Results |
+              Sort-Object -Property RuleName, Line |
+              ForEach-Object -Process {
+                $RuleCell = Format-MarkdownCell -Value $PSItem.RuleName
+                $LocationCell = Format-MarkdownCell -Value (Get-FunctionLocation -Diagnostic $PSItem -FunctionAst $Functions)
+                $MessageCell = Format-MarkdownCell -Value $PSItem.Message
+                $SummaryLines.Add('| ' + (@($RuleCell, $LocationCell, $MessageCell) -join ' | ') + ' |')
+              }
+
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $SummaryLines -ErrorAction Stop
+          } catch {
+            try {
+              if ($SummaryLines.Count -eq 0) {
+                $SummaryLines.Add('## Raw PSGallery benchmark')
+              }
+
+              $SummaryLines.Add(('Benchmark could not complete: `{0}`' -f (Format-MarkdownCell -Value $_.Exception.Message)))
+
+              if (-not [System.String]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $SummaryLines -ErrorAction SilentlyContinue
+              }
+            } catch {
+            }
+          }
+
+          exit 0
