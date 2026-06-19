@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Nicholas Warila
+# SPDX-License-Identifier: MIT
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
 

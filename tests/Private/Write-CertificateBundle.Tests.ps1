@@ -1,4 +1,6 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
+# SPDX-FileCopyrightText: 2026 Nicholas Warila
+# SPDX-License-Identifier: MIT
 
 Describe 'Write-CertificateBundle' {
   BeforeAll {
