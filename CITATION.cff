@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: windows-certificate-store-exporter
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - family-names: Warila
+    given-names: Nicholas
+repository-code: "https://github.com/nwarila-platform/windows-certificate-store-exporter"
+license: MIT
