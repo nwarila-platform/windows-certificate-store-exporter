@@ -13,8 +13,3 @@
 
 LICENSE   text eol=lf
 
-.github/        export-ignore
-.gitignore      export-ignore
-.gitattributes  export-ignore
-SECURITY.md     export-ignore
-renovate.json5  export-ignore
