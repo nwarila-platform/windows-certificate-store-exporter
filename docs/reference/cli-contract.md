@@ -13,9 +13,6 @@ by `build.ps1`. It is not a module command you import.
 | `-IncludeExpired` | Switch | Off | Present or absent | Includes expired and not-yet-valid certificates instead of filtering them out. |
 | `-MinimumCertificateCount` | `System.Int32` | `1` | `1` through `Int32::MaxValue` | Minimum surviving certificate count. If the bundle would contain fewer certificates, the script throws before writing. |
 | `-WriteManifest` | Switch | Off | Present or absent | Writes `<bundle>.sha256` beside the bundle. |
-| `-LogLevel` | `System.String` | `1111111` | Seven digits | Accepted by the entry script for ScriptTemplate runtime context. |
-| `-DebugLevel` | `System.String` | `000` | Three digits | Accepted by the entry script for ScriptTemplate runtime context. |
-| `-Trap` | Switch | Off | Present or absent | Re-emits known errors before exiting with their mapped code. |
 
 The script has `SupportsShouldProcess`, so PowerShell common parameters such as
 `-WhatIf` and `-Confirm` are honored by the write step.

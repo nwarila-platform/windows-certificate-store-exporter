@@ -18,30 +18,8 @@ Param (
     ValueFromPipeline = $False,
     ValueFromPipelineByPropertyName = $False
   )]
-  [ValidatePattern('^\d{3}$')]
-  [System.String]
-  $DebugLevel = '000',
-
-  [Parameter(
-    DontShow = $False,
-    Mandatory = $False,
-    ParameterSetName = 'default',
-    ValueFromPipeline = $False,
-    ValueFromPipelineByPropertyName = $False
-  )]
   [System.Management.Automation.SwitchParameter]
   $IncludeExpired,
-
-  [Parameter(
-    DontShow = $False,
-    Mandatory = $False,
-    ParameterSetName = 'default',
-    ValueFromPipeline = $False,
-    ValueFromPipelineByPropertyName = $False
-  )]
-  [ValidatePattern('^\d{7}$')]
-  [System.String]
-  $LogLevel = '1111111',
 
   [Parameter(
     DontShow = $False,
@@ -95,16 +73,6 @@ Param (
     ValueFromPipelineByPropertyName = $False
   )]
   [System.Management.Automation.SwitchParameter]
-  $Trap,
-
-  [Parameter(
-    DontShow = $False,
-    Mandatory = $False,
-    ParameterSetName = 'default',
-    ValueFromPipeline = $False,
-    ValueFromPipelineByPropertyName = $False
-  )]
-  [System.Management.Automation.SwitchParameter]
   $WriteManifest
 )
 
@@ -113,10 +81,7 @@ Param (
 
 Trap {
   $Script:ExitCode = 1
-
-  If ($Script:TrapEnabled -eq $True) {
-    Write-Error -ErrorRecord $PSItem -ErrorAction Continue
-  }
+  Write-Error -ErrorRecord $PSItem -ErrorAction Continue
 
   Exit ([System.Int32]$Script:ExitCode)
 }
@@ -126,13 +91,10 @@ Trap {
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $Script:ExitCode = 0
-$Script:TrapEnabled = [System.Boolean]$Trap.IsPresent
 
 $EnvironmentContext = [PSCustomObject]@{
-  DebugLevel = $DebugLevel
-  LogLevel   = $LogLevel
-  Platform   = [System.Environment]::OSVersion.Platform.ToString()
-  PSVersion  = $PSVersionTable.PSVersion.ToString()
+  Platform  = [System.Environment]::OSVersion.Platform.ToString()
+  PSVersion = $PSVersionTable.PSVersion.ToString()
 }
 
 Write-Debug -Message:(
@@ -181,11 +143,7 @@ Try {
 
   If ($Null -ne $ResolvedExitCode) {
     $Script:ExitCode = [System.Int32]$ResolvedExitCode
-
-    If ($Script:TrapEnabled -eq $True) {
-      Write-Error -ErrorRecord $PSItem -ErrorAction Continue
-    }
-
+    Write-Error -ErrorRecord $PSItem -ErrorAction Continue
     Exit ([System.Int32]$Script:ExitCode)
   }
 
