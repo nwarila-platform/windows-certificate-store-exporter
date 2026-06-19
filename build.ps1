@@ -1,4 +1,6 @@
 #Requires -Version 5.1
+# SPDX-FileCopyrightText: 2026 Nicholas Warila
+# SPDX-License-Identifier: MIT
 
 <#
 .SYNOPSIS
@@ -231,6 +233,8 @@ Function Add-FunctionFileContent {
     $FunctionFiles | ForEach-Object -Process {
       $private:Content = (Get-Content -LiteralPath $PSItem.FullName -Raw).Trim()
       $Content = $Content -replace '(?m)^#Requires[^\r\n]*(\r?\n)?', ''
+      $Content = $Content -replace '(?m)^# SPDX-FileCopyrightText:[^\r\n]*(\r?\n)?', ''
+      $Content = $Content -replace '(?m)^# SPDX-License-Identifier:[^\r\n]*(\r?\n)?', ''
       $Null = $StringBuilder.AppendLine($Content.Trim())
       $Null = $StringBuilder.AppendLine('')
     }
@@ -290,6 +294,8 @@ Function Invoke-Build {
   $private:EntryPoint = Get-EntryPointContent
   $private:FunctionBuilder = [System.Text.StringBuilder]::new(32768)
   $Null = $FunctionBuilder.AppendLine('#Requires -Version 5.1')
+  $Null = $FunctionBuilder.AppendLine('# SPDX-FileCopyrightText: 2026 Nicholas Warila')
+  $Null = $FunctionBuilder.AppendLine('# SPDX-License-Identifier: MIT')
   $Null = $FunctionBuilder.AppendLine('')
   $Null = $FunctionBuilder.AppendLine('#region Message Table')
   $Null = $FunctionBuilder.AppendLine('[System.Collections.Hashtable]$Script:Message = @{}')
@@ -315,6 +321,8 @@ Function Invoke-Build {
 
   $private:FullBuilder = [System.Text.StringBuilder]::new(32768)
   $Null = $FullBuilder.AppendLine('#Requires -Version 5.1')
+  $Null = $FullBuilder.AppendLine('# SPDX-FileCopyrightText: 2026 Nicholas Warila')
+  $Null = $FullBuilder.AppendLine('# SPDX-License-Identifier: MIT')
   $Null = $FullBuilder.AppendLine('')
 
   For ($Index = 0; $Index -le $EntryPoint.ParamEnd; $Index++) {
@@ -323,11 +331,18 @@ Function Invoke-Build {
       Continue
     }
 
+    If ($Line.Trim() -match '^# SPDX-(FileCopyrightText|License-Identifier):') {
+      Continue
+    }
+
     $Null = $FullBuilder.AppendLine($Line)
   }
 
   $Null = $FullBuilder.AppendLine('')
-  $private:FunctionBody = $FunctionsContent -replace '(?s)^#Requires[^\r\n]*\r?\n\r?\n', ''
+  $private:FunctionBody = $FunctionsContent -replace '(?m)^#Requires[^\r\n]*(\r?\n)?', ''
+  $FunctionBody = $FunctionBody -replace '(?m)^# SPDX-FileCopyrightText:[^\r\n]*(\r?\n)?', ''
+  $FunctionBody = $FunctionBody -replace '(?m)^# SPDX-License-Identifier:[^\r\n]*(\r?\n)?', ''
+  $FunctionBody = $FunctionBody.TrimStart()
   $Null = $FullBuilder.Append($FunctionBody)
   $Null = $FullBuilder.AppendLine('#region Entry Point')
   $Null = $FullBuilder.AppendLine('')

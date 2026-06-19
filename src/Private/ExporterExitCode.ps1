@@ -1,4 +1,6 @@
 #Requires -Version 5.1
+# SPDX-FileCopyrightText: 2026 Nicholas Warila
+# SPDX-License-Identifier: MIT
 
 Enum ExporterExitCode {
   Success = 0
