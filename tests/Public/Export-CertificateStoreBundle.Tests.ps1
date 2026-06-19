@@ -186,6 +186,7 @@ function Export-CertificateStoreBundle {
 
       if ($PassThru) {
         [PSCustomObject]@{
+          Error    = $ErrorText
           ExitCode = $ExitCode
           Output   = [System.String]::Join(
             [System.Environment]::NewLine,
@@ -481,6 +482,17 @@ function Export-CertificateStoreBundle {
 
     Invoke-TestEntryPointHarness -Scenario $Scenario -Directory $TestRoot |
       Should -Be $ExpectedExitCode
+  }
+
+  It 'emits mapped EntryPoint failures to stderr without an opt-in flag' {
+    $Result = Invoke-TestEntryPointHarness `
+      -Scenario BelowMinimumCertificateCount `
+      -Directory $TestRoot `
+      -PassThru
+
+    $Result.ExitCode | Should -Be 2
+    $Result.Error | Should -Not -BeNullOrEmpty
+    $Result.Error | Should -Match 'Synthetic mapped entrypoint failure.'
   }
 
   It 'rejects MinimumCertificateCount below the CLI floor' {

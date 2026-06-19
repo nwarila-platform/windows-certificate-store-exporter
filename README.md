@@ -62,9 +62,6 @@ a result object.
 | `-IncludeExpired` | Switch | Off | Retains expired and not-yet-valid certificates. |
 | `-MinimumCertificateCount` | Integer `1` or greater | `1` | Fail-closed floor before any write occurs. |
 | `-WriteManifest` | Switch | Off | Writes `<bundle>.sha256` next to the bundle. |
-| `-LogLevel` | Seven digits | `1111111` | Accepted by the entry script for ScriptTemplate runtime context. |
-| `-DebugLevel` | Three digits | `000` | Accepted by the entry script for ScriptTemplate runtime context. |
-| `-Trap` | Switch | Off | Re-emits known errors before exiting with their mapped code. |
 
 The script also honors common `SupportsShouldProcess` parameters such as
 `-WhatIf` and `-Confirm`.
