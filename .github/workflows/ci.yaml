@@ -143,6 +143,49 @@ jobs:
         shell: bash
         run: gitleaks detect --source . --redact --exit-code 1 --no-banner
 
+  sast:
+    name: sast
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install analyzers
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -ErrorAction Stop
+          Install-Module -Name ConvertToSARIF -RequiredVersion 1.0.0 -Scope CurrentUser -Force -ErrorAction Stop
+
+      - name: Run PSScriptAnalyzer and emit SARIF
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module PSScriptAnalyzer
+          Import-Module ConvertToSARIF
+          $Settings = Join-Path -Path $PWD -ChildPath 'PSScriptAnalyzerSettings.psd1'
+          $Targets = @('src', 'build.ps1', 'analyzers')
+          $Results = @(
+            $Targets | ForEach-Object -Process {
+              Invoke-ScriptAnalyzer -Path $PSItem -Recurse -Settings $Settings
+            }
+          )
+          # ConvertTo-SARIF must still emit a valid (possibly empty) SARIF so the upload succeeds.
+          $Results | ConvertTo-SARIF -FilePath results.sarif
+          Write-Information -MessageData ('PSScriptAnalyzer SAST findings: {0}' -f $Results.Count) -InformationAction Continue
+
+      - name: Upload SARIF to code-scanning
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
+        with:
+          sarif_file: results.sarif
+
   build:
     name: build (windows-powershell51)
     runs-on: windows-latest
