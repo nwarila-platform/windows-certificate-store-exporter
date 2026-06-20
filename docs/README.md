@@ -15,6 +15,8 @@ This repository follows the Diataxis documentation framework.
 
 - [CLI contract](reference/cli-contract.md)
 - [Module structure](reference/module-structure.md)
+- [Roadmap](reference/roadmap.md)
+- [Security assurance case](reference/security-assurance-case.md)
 
 ## Explanation
 
