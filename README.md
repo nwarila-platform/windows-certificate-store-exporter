@@ -49,6 +49,50 @@ The success stream returns one `CertificateStoreExporter.Result` object. Known
 failures throw structured errors and map to process exit codes; they do not emit
 a result object.
 
+## Install / Uninstall
+
+Download `Export-CertificateStoreBundle.ps1` and its sidecars from the
+[latest GitHub Release](https://github.com/nwarila-platform/windows-certificate-store-exporter/releases/latest):
+`Export-CertificateStoreBundle.ps1.sha256` and
+`Export-CertificateStoreBundle.ps1.intoto.jsonl`. Verify the release asset
+before installing it: use the SLSA steps in
+[Verify build provenance](#verify-build-provenance-recommended) and the
+sidecar steps in [Quick offline integrity](#quick-offline-integrity-sha-256-sidecar).
+
+Place the script where your automation expects it, for example:
+
+```powershell
+New-Item -ItemType Directory -Path C:\ProgramData\NWarila\bin -Force
+Copy-Item .\Export-CertificateStoreBundle.ps1 C:\ProgramData\NWarila\bin\
+```
+
+If Windows marks the downloaded file as remote content, unblock it after
+verification:
+
+```powershell
+Unblock-File C:\ProgramData\NWarila\bin\Export-CertificateStoreBundle.ps1
+```
+
+If your host policy does not allow local scripts, set an execution policy that
+fits your environment. A per-process example is:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+Run the installed script with the required `-Path` parameter:
+
+```powershell
+C:\ProgramData\NWarila\bin\Export-CertificateStoreBundle.ps1 `
+    -Path C:\ProgramData\NWarila\ca-bundle.pem `
+    -WriteManifest
+```
+
+To update, download the newer release assets, verify them again, and replace the
+installed script. To uninstall, delete the installed script and any downloaded
+release sidecars (`.sha256` and `.intoto.jsonl`). The exporter does not install a
+module, write registry keys, or maintain global state.
+
 ## Usage
 
 ```powershell
