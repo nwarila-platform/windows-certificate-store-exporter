@@ -62,6 +62,9 @@ Chosen: option 1.
 - **Fail closed** — when surviving certs `< -MinimumCertificateCount`
   (default 1), throw a structured error record and write nothing, preserving any existing
   bundle. Operators may raise the floor to assert a known invariant.
+- **Reparse paths** - the writer does not special-case symlinks, junctions,
+  or other reparse points; it follows the operator-specified `-Path` and keeps
+  same-directory temp/swap behavior atomic on the resolved target.
 - **Produce-only** — emit no consumer-specific wiring; do not mutate the
   environment or client configuration.
 
