@@ -103,13 +103,18 @@ module, write registry keys, or maintain global state.
 | --- | --- | --- | --- |
 | `-Path` | Non-empty string | Required | Bundle destination path. |
 | `-StoreLocation` | `LocalMachine`, `CurrentUser` | `LocalMachine` | Windows logical certificate-store location. |
-| `-StoreName` | `Root`, `CA` | `Root,CA` | Stores to export. `Disallowed` is always read separately and subtracted. |
+| `-StoreName` | `Root`, `CA` | `Root` | Stores to export. `CA` also exports intermediates and emits a trust-expansion warning. `Disallowed` is always read separately and subtracted. |
 | `-IncludeExpired` | Switch | Off | Retains expired and not-yet-valid certificates. |
 | `-MinimumCertificateCount` | Integer `1` or greater | `1` | Fail-closed floor before any write occurs. |
 | `-WriteManifest` | Switch | Off | Writes `<bundle>.sha256` next to the bundle. |
 
 The script also honors common `SupportsShouldProcess` parameters such as
 `-WhatIf` and `-Confirm`.
+
+The default `-StoreName Root` export is intentionally root-only. Request
+`-StoreName CA` or `-StoreName Root,CA` only when you intend to include
+intermediate CA certificates as additional trust anchors for clients that
+perform partial-chain validation.
 
 ## Using the Bundle
 

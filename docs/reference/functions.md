@@ -15,7 +15,8 @@ ConvertTo-PemCertificate -Certificate <X509Certificate2> [-StoreName <Root|CA|Di
 ## Export-CertificateStoreBundle
 
 Reads the requested Windows certificate stores, subtracts Disallowed, writes the
-bundle, and returns the success result object.
+bundle, and returns the success result object. Defaults to `Root`; `CA` is a
+warned opt-in for exporting intermediates.
 
 ```powershell
 Export-CertificateStoreBundle -Path <string> [-StoreLocation <LocalMachine|CurrentUser>] [-StoreName <Root|CA[]>] [-IncludeExpired] [-MinimumCertificateCount <int>] [-WriteManifest]
