@@ -65,6 +65,14 @@ Describe 'release workflow shape' {
     $Publish | Should -Not -Match '(?m)^\s*run:\s+powershell .*build\.ps1'
   }
 
+  It 'keeps byte equality checks out of nondeterministic provenance finalization' {
+    $Publish = Get-WorkflowJobBlock -Name 'publish'
+    $Finalize = Get-WorkflowJobBlock -Name 'finalize'
+
+    $Publish | Should -Match 'Release asset already exists with different bytes'
+    $Finalize | Should -Not -Match 'Release asset already exists with different bytes'
+  }
+
   It 'uploads release candidates only from seal' {
     $Seal = Get-WorkflowJobBlock -Name 'seal'
 

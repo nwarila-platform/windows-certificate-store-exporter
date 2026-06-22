@@ -394,36 +394,9 @@ jobs:
             Select-Object -First 1
 
           if ($Null -ne $ExistingAsset) {
-            $TemporaryPath = [System.IO.Path]::GetTempFileName()
-            try {
-              $DownloadHeaders = @{}
-              foreach ($HeaderName in $Headers.Keys) {
-                $DownloadHeaders[$HeaderName] = $Headers[$HeaderName]
-              }
-
-              $DownloadHeaders['Accept'] = 'application/octet-stream'
-
-              Invoke-WebRequest `
-                -Uri $ExistingAsset.url `
-                -Headers $DownloadHeaders `
-                -Method Get `
-                -OutFile $TemporaryPath `
-                -UseBasicParsing
-
-              $ExistingHash = (Get-FileHash -Algorithm SHA256 -Path $TemporaryPath).Hash.ToLowerInvariant()
-              $LocalHash = (Get-FileHash -Algorithm SHA256 -Path $AssetPath).Hash.ToLowerInvariant()
-
-              if ($ExistingHash -ne $LocalHash) {
-                throw ('Release asset already exists with different bytes for tag {0}: {1}' -f $TagName, $AssetName)
-              }
-
-              Write-Host ('Release asset already exists with identical bytes: {0}' -f $AssetName)
-            }
-            finally {
-              if (Test-Path -LiteralPath $TemporaryPath) {
-                Remove-Item -LiteralPath $TemporaryPath -Force
-              }
-            }
+            # Sigstore keyless provenance re-signs with a fresh Fulcio certificate and Rekor entry every run.
+            # Existing provenance is valid but byte-nondeterministic, so reruns are idempotent by presence.
+            Write-Host ('Provenance already attached: {0}' -f $AssetName)
           }
           else {
             $UploadUri = (
