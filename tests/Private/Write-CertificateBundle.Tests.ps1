@@ -127,6 +127,104 @@ Describe 'Write-CertificateBundle' {
     Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
   }
 
+  It 'fails closed instead of leaving a stale sidecar when changed content omits WriteManifest' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    $Null = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:FirstPemBlock) `
+      -WriteManifest
+    $OriginalBundleBytes = [System.IO.File]::ReadAllBytes($Path)
+    $OriginalManifestBytes = [System.IO.File]::ReadAllBytes($ManifestPath)
+
+    {
+      Write-CertificateBundle -Path $Path -PemBlock @($Script:SecondPemBlock)
+    } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord' -ExpectedMessage '*existing .sha256 sidecar would become stale*'
+
+    [System.IO.File]::ReadAllBytes($Path) | Should -Be $OriginalBundleBytes
+    [System.IO.File]::ReadAllBytes($ManifestPath) | Should -Be $OriginalManifestBytes
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'fails closed when the first bundle write would orphan an existing sidecar' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+    $ManifestText = 'stale sidecar'
+    [System.IO.File]::WriteAllText($ManifestPath, $ManifestText, [System.Text.UTF8Encoding]::new($False))
+    $OriginalManifestBytes = [System.IO.File]::ReadAllBytes($ManifestPath)
+
+    {
+      Write-CertificateBundle -Path $Path -PemBlock @($Script:FirstPemBlock)
+    } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord' -ExpectedMessage '*existing .sha256 sidecar would become stale*'
+
+    Test-Path -LiteralPath $Path | Should -BeFalse
+    [System.IO.File]::ReadAllBytes($ManifestPath) | Should -Be $OriginalManifestBytes
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'fails closed under WhatIf when changed content would leave a stale sidecar' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    $Null = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:FirstPemBlock) `
+      -WriteManifest
+    $OriginalBundleBytes = [System.IO.File]::ReadAllBytes($Path)
+    $OriginalManifestBytes = [System.IO.File]::ReadAllBytes($ManifestPath)
+
+    {
+      Write-CertificateBundle `
+        -Path $Path `
+        -PemBlock @($Script:SecondPemBlock) `
+        -WhatIf
+    } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord' -ExpectedMessage '*existing .sha256 sidecar would become stale*'
+
+    [System.IO.File]::ReadAllBytes($Path) | Should -Be $OriginalBundleBytes
+    [System.IO.File]::ReadAllBytes($ManifestPath) | Should -Be $OriginalManifestBytes
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'keeps the unchanged no-manifest path valid when a sidecar already exists' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    $Null = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:FirstPemBlock) `
+      -WriteManifest
+    $OriginalBundleBytes = [System.IO.File]::ReadAllBytes($Path)
+    $OriginalManifestBytes = [System.IO.File]::ReadAllBytes($ManifestPath)
+
+    $Result = Write-CertificateBundle -Path $Path -PemBlock @($Script:FirstPemBlock)
+
+    $Result.Status | Should -Be 'Unchanged'
+    $Result.ManifestPath | Should -BeNullOrEmpty
+    [System.IO.File]::ReadAllBytes($Path) | Should -Be $OriginalBundleBytes
+    [System.IO.File]::ReadAllBytes($ManifestPath) | Should -Be $OriginalManifestBytes
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'writes changed content without a manifest when no sidecar exists' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    $Null = Write-CertificateBundle -Path $Path -PemBlock @($Script:FirstPemBlock)
+    $Result = Write-CertificateBundle -Path $Path -PemBlock @($Script:SecondPemBlock)
+
+    $Result.Status | Should -Be 'Written'
+    $Result.ManifestPath | Should -BeNullOrEmpty
+    [System.IO.File]::ReadAllText($Path) | Should -Be $Script:SecondPemBlock
+    Test-Path -LiteralPath $ManifestPath | Should -BeFalse
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
   It 'throws below the minimum count and leaves an existing bundle intact' {
     $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
     $ExistingText = 'existing bundle'

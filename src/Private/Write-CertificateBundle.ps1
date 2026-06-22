@@ -7,6 +7,7 @@ $Script:Message += @{
   'Write-CertificateBundle.BelowMinimum'      = 'Certificate bundle has {0} certificate(s), below the required minimum of {1}.'
   'Write-CertificateBundle.NonAscii'          = 'Certificate bundle content must be ASCII.'
   'Write-CertificateBundle.NonFileSystemPath' = 'Certificate bundle path must resolve to the FileSystem provider: {0}'
+  'Write-CertificateBundle.StaleManifest'     = 'Refusing to write certificate bundle because -WriteManifest is absent and an existing .sha256 sidecar would become stale for {0}. Re-run with -WriteManifest to refresh the sidecar atomically alongside the bundle, or remove the .sha256 sidecar manually.'
   'Write-CertificateBundle.WriteFailure'      = 'Failed to write certificate bundle: {0}'
 }
 
@@ -185,9 +186,10 @@ Function Write-CertificateBundle {
       )
     }
 
+    $ManifestFullPath = '{0}.sha256' -f $FullPath
+
     If ($WriteManifest.IsPresent -eq $True) {
       $ManifestPath = '{0}.sha256' -f $Path
-      $ManifestFullPath = '{0}.sha256' -f $FullPath
       # sha256sum-compatible sidecars are "<hex><two spaces><leaf><LF>" for portable verification.
       $ManifestText = '{0}  {1}{2}' -f $BundleSha256, $PathLeaf, "`n"
       $ManifestBytes = $Encoding.GetBytes($ManifestText)
@@ -208,6 +210,19 @@ Function Write-CertificateBundle {
       }
     } Else {
       $ManifestUnchanged = $True
+    }
+
+    If (
+      $WriteManifest.IsPresent -eq $False -and
+      $BundleUnchanged -eq $False -and
+      [System.IO.File]::Exists($ManifestFullPath) -eq $True
+    ) {
+      New-ErrorRecord `
+        -Category:([System.Management.Automation.ErrorCategory]::WriteError) `
+        -ErrorId:([ExporterExitCode]::WriteFailure) `
+        -IsFatal:$True `
+        -Message:($Script:Message['Write-CertificateBundle.StaleManifest'] -f $FullPath) `
+        -TargetObject:$Path
     }
 
     If ($BundleUnchanged -eq $True -and $ManifestUnchanged -eq $True) {
