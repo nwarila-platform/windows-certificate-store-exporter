@@ -36,6 +36,22 @@ Describe 'Write-CertificateBundle' {
       ($Bytes | Where-Object -FilterScript { $PSItem -gt 0x7F }) | Should -HaveCount 0
       [System.Text.Encoding]::ASCII.GetString($Bytes).Contains("`r") | Should -BeFalse
     }
+
+    function Get-TestAtomicArtifact {
+      param (
+        [Parameter(Mandatory = $True)]
+        [System.String]
+        $Path
+      )
+
+      @(
+        Get-ChildItem -LiteralPath $Path -Force -File |
+          Where-Object -FilterScript {
+            $PSItem.Name -like '*.tmp' -or
+            $PSItem.Name -like '*.bak'
+          }
+      )
+    }
   }
 
   BeforeEach {
@@ -97,6 +113,43 @@ Describe 'Write-CertificateBundle' {
     }
   }
 
+  It 'follows a junctioned output directory and keeps atomic artifacts on the resolved target' {
+    $TargetDirectory = Join-Path -Path $TestRoot -ChildPath 'target'
+    $JunctionPath = Join-Path -Path $TestRoot -ChildPath 'junction'
+    $Null = New-Item -Path $TargetDirectory -ItemType Directory
+
+    try {
+      $Null = New-Item -Path $JunctionPath -ItemType Junction -Target $TargetDirectory -ErrorAction Stop
+    } catch {
+      Set-ItResult -Skipped -Because ('Unable to create a junction for the reparse-point test: {0}' -f $PSItem.Exception.Message)
+      return
+    }
+
+    $Path = Join-Path -Path $JunctionPath -ChildPath 'bundle.pem'
+    $TargetPath = Join-Path -Path $TargetDirectory -ChildPath 'bundle.pem'
+    $FixedTime = [System.DateTime]::SpecifyKind(
+      [System.DateTime]::Parse('2026-01-01T00:00:00Z'),
+      [System.DateTimeKind]::Utc
+    )
+
+    $FirstResult = Write-CertificateBundle -Path $Path -PemBlock @($Script:FirstPemBlock)
+    [System.IO.File]::SetLastWriteTimeUtc($TargetPath, $FixedTime)
+    $SecondResult = Write-CertificateBundle -Path $Path -PemBlock @($Script:FirstPemBlock)
+    $UnchangedWriteTime = [System.IO.File]::GetLastWriteTimeUtc($TargetPath)
+    $ThirdResult = Write-CertificateBundle -Path $Path -PemBlock @($Script:SecondPemBlock)
+    $Bytes = [System.IO.File]::ReadAllBytes($TargetPath)
+
+    $FirstResult.Path | Should -Be $Path
+    $FirstResult.Status | Should -Be 'Written'
+    $SecondResult.Status | Should -Be 'Unchanged'
+    $UnchangedWriteTime | Should -Be $FixedTime
+    $ThirdResult.Status | Should -Be 'Written'
+    [System.IO.File]::GetLastWriteTimeUtc($TargetPath) | Should -Not -Be $FixedTime
+    [System.Text.Encoding]::ASCII.GetString($Bytes) | Should -Be $Script:SecondPemBlock
+    Assert-TestBundleByte -Bytes $Bytes
+    Get-TestAtomicArtifact -Path $TargetDirectory | Should -HaveCount 0
+  }
+
   It 'returns Unchanged and preserves bytes and mtime for identical content' {
     $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
     $FixedTime = [System.DateTime]::SpecifyKind(
@@ -125,6 +178,99 @@ Describe 'Write-CertificateBundle' {
     $Result.Status | Should -Be 'Written'
     [System.IO.File]::ReadAllText($Path) | Should -Be $Script:SecondPemBlock
     Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+  }
+
+  It 'leaves one complete bundle after concurrent replacements' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $GatePath = Join-Path -Path $TestRoot -ChildPath 'start.gate'
+    $InitialPemBlock = "-----BEGIN CERTIFICATE-----`nR0hJ`n-----END CERTIFICATE-----"
+    $FunctionPath = Join-Path -Path $PSScriptRoot -ChildPath '..\..\build\Export-CertificateStoreBundle.Functions.ps1'
+    $ExpectedText = @($Script:FirstPemBlock, $Script:SecondPemBlock)
+    $Jobs = @()
+
+    $Null = Write-CertificateBundle -Path $Path -PemBlock @($InitialPemBlock)
+
+    try {
+      $Writer = {
+        param (
+          [Parameter(Mandatory = $True)]
+          [System.String]
+          $FunctionPath,
+
+          [Parameter(Mandatory = $True)]
+          [System.String]
+          $Path,
+
+          [Parameter(Mandatory = $True)]
+          [System.String]
+          $PemBlock,
+
+          [Parameter(Mandatory = $True)]
+          [System.String]
+          $GatePath,
+
+          [Parameter(Mandatory = $True)]
+          [System.Int32]
+          $DelayMilliseconds
+        )
+
+        $ErrorActionPreference = 'Stop'
+        . $FunctionPath
+
+        $Deadline = [System.DateTime]::UtcNow.AddSeconds(10)
+        while ([System.IO.File]::Exists($GatePath) -eq $False) {
+          if ([System.DateTime]::UtcNow -gt $Deadline) {
+            throw 'Timed out waiting for the concurrent writer gate.'
+          }
+
+          Start-Sleep -Milliseconds 10
+        }
+
+        if ($DelayMilliseconds -gt 0) {
+          Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+
+        try {
+          $Result = Write-CertificateBundle -Path $Path -PemBlock @($PemBlock)
+
+          [PSCustomObject]@{
+            ErrorId      = $Null
+            Status       = $Result.Status
+            Succeeded    = $True
+            BundleSha256 = $Result.BundleSha256
+          }
+        } catch {
+          [PSCustomObject]@{
+            ErrorId      = $PSItem.FullyQualifiedErrorId
+            Status       = 'Failed'
+            Succeeded    = $False
+            BundleSha256 = $Null
+          }
+        }
+      }
+
+      $Jobs += Start-Job -ScriptBlock $Writer -ArgumentList $FunctionPath, $Path, $Script:FirstPemBlock, $GatePath, 0
+      $Jobs += Start-Job -ScriptBlock $Writer -ArgumentList $FunctionPath, $Path, $Script:SecondPemBlock, $GatePath, 250
+
+      Start-Sleep -Milliseconds 500
+      [System.IO.File]::WriteAllText($GatePath, 'go', [System.Text.UTF8Encoding]::new($False))
+
+      $CompletedJobs = Wait-Job -Job $Jobs -Timeout 30
+      $CompletedJobs | Should -HaveCount 2
+      $JobResults = @($Jobs | Receive-Job -ErrorAction Stop)
+    } finally {
+      $Jobs | Remove-Job -Force
+    }
+
+    $Bytes = [System.IO.File]::ReadAllBytes($Path)
+    $FinalText = [System.Text.Encoding]::ASCII.GetString($Bytes)
+
+    $JobResults | Should -HaveCount 2
+    ($JobResults | Where-Object -FilterScript { $PSItem.Succeeded -ne $True }) | Should -HaveCount 0
+    ($JobResults | Where-Object -FilterScript { $PSItem.Status -ne 'Written' }) | Should -HaveCount 0
+    $ExpectedText | Should -Contain $FinalText
+    Assert-TestBundleByte -Bytes $Bytes
+    Get-TestAtomicArtifact -Path $TestRoot | Should -HaveCount 0
   }
 
   It 'fails closed instead of leaving a stale sidecar when changed content omits WriteManifest' {
