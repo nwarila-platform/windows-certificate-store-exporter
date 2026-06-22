@@ -13,12 +13,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: release
+  build:
+    name: build
     runs-on: windows-latest
     timeout-minutes: 20
     permissions:
-      contents: write
+      contents: read
     outputs:
       hashes: ${{ steps.subjects.outputs.hashes }}
     steps:
@@ -68,6 +68,29 @@ jobs:
           $Subject = '{0}  {1}{2}' -f $HashLower, $ArtifactName, "`n"
           $Base64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Subject))
           "hashes=$Base64" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-assets
+          path: |
+            build/Export-CertificateStoreBundle.ps1
+            build/Export-CertificateStoreBundle.ps1.sha256
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-assets
+          path: build
 
       - name: Create GitHub Release
         shell: powershell
@@ -138,15 +161,13 @@ jobs:
 
           foreach ($AssetPath in $AssetPaths) {
             $AssetName = Split-Path -Path $AssetPath -Leaf
-
-            $ExistingAssets |
+            $ExistingAsset = $ExistingAssets |
               Where-Object -FilterScript { $PSItem.name -eq $AssetName } |
-              ForEach-Object -Process {
-                Invoke-RestMethod `
-                  -Uri ('{0}/repos/{1}/releases/assets/{2}' -f $ApiBase, $Repository, $PSItem.id) `
-                  -Headers $Headers `
-                  -Method Delete
-              }
+              Select-Object -First 1
+
+            if ($Null -ne $ExistingAsset) {
+              throw ('Release asset already exists for tag {0}: {1}' -f $TagName, $AssetName)
+            }
 
             $UploadUri = (
               '{0}/repos/{1}/releases/{2}/assets?name={3}' -f
@@ -166,7 +187,7 @@ jobs:
 
   provenance:
     name: provenance
-    needs: release
+    needs: [build, publish]
     permissions:
       id-token: write   # OIDC identity for keyless Sigstore/Fulcio signing
       contents: write   # attach the .intoto.jsonl provenance to the release
@@ -177,7 +198,7 @@ jobs:
     # exception to the house "pin every action by commit SHA" rule. Renovate must preserve @vX.Y.Z.
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses] SLSA verifier requires the builder's semantic version tag.
     with:
-      base64-subjects: ${{ needs.release.outputs.hashes }}
+      base64-subjects: ${{ needs.build.outputs.hashes }}
       provenance-name: Export-CertificateStoreBundle.ps1.intoto.jsonl
       upload-assets: true
       upload-tag-name: ${{ github.ref_name }}
