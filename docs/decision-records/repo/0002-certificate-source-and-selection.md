@@ -11,6 +11,8 @@
 | Reversibility  | Medium                                                       |
 | Review-by      | N/A (Accepted)                                               |
 
+> **Amended by [ADR-repo/0010](0010-root-only-default-trust-anchors.md) (2026-06-22):** the default store set is now `Root` only; `CA` is a warned opt-in.
+
 ## TL;DR
 
 Read CA certificates from the **logical `LocalMachine` stores** (the

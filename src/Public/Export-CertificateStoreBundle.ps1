@@ -2,6 +2,11 @@
 # SPDX-FileCopyrightText: 2026 Nicholas Warila
 # SPDX-License-Identifier: MIT
 
+# Message(s)
+$Script:Message += @{
+  'Export-CertificateStoreBundle.CaTrustExpansion' = "Requested store 'CA' exports intermediate CA certificates. Consumers that use partial-chain validation (Python 3.13+ default context, curl 7.68+) treat each exported intermediate as a standalone trust anchor; the issuing root is not required. Export 'CA' only when you intend that trust expansion."
+}
+
 Function Export-CertificateStoreBundle {
   <#
     .SYNOPSIS
@@ -19,8 +24,9 @@ Function Export-CertificateStoreBundle {
         Logical certificate store location: LocalMachine or CurrentUser.
 
     .PARAMETER StoreName
-        Logical certificate store names to export: Root, CA, or both.
-        Disallowed is always read separately and subtracted.
+        Logical certificate store names to export. The default is Root, which
+        exports trust anchors. CA is a warned opt-in that also exports
+        intermediates; Disallowed is always read separately and subtracted.
 
     .PARAMETER IncludeExpired
         Includes expired and not-yet-valid certificates in the candidate set.
@@ -99,7 +105,7 @@ Function Export-CertificateStoreBundle {
     )]
     [ValidateSet('Root', 'CA')]
     [System.String[]]
-    $StoreName = @('Root', 'CA'),
+    $StoreName = @('Root'),
 
     [Parameter(
       DontShow = $False,
@@ -149,6 +155,10 @@ Function Export-CertificateStoreBundle {
   System.String,
   System.String
   ]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+  If ('CA' -in $StoreName) {
+    Write-Warning -Message:$Script:Message['Export-CertificateStoreBundle.CaTrustExpansion']
+  }
 
   ForEach ($RequestedStoreName In $StoreName) {
     $StoreCertificates = Get-StoreCertificate `

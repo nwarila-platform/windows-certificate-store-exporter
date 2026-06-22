@@ -56,10 +56,11 @@ $Result = .\build\Export-CertificateStoreBundle.ps1 `
 $Result | Format-List *
 ```
 
-The default export reads `LocalMachine\Root` and `LocalMachine\CA`, always reads
+The default export reads `LocalMachine\Root`, always reads
 `LocalMachine\Disallowed`, subtracts any matching certificates by SHA-256 over
 their DER bytes, and writes the surviving certificates in deterministic SHA-256
-order.
+order. Add `-StoreName CA` or `-StoreName Root,CA` only when you intentionally
+want intermediates in the bundle; that opt-in emits a trust-expansion warning.
 
 ## Read the Result Object
 

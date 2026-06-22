@@ -63,7 +63,7 @@ Param (
   )]
   [ValidateSet('Root', 'CA')]
   [System.String[]]
-  $StoreName = @('Root', 'CA'),
+  $StoreName = @('Root'),
 
   [Parameter(
     DontShow = $False,

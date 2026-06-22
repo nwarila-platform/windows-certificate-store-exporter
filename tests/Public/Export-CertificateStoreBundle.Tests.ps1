@@ -70,7 +70,7 @@ function Export-CertificateStoreBundle {
 
         [Parameter()]
         [System.String[]]
-        `$StoreName = @('Root', 'CA'),
+        `$StoreName = @('Root'),
 
         [Parameter()]
         [System.Management.Automation.SwitchParameter]
@@ -277,14 +277,17 @@ function Export-CertificateStoreBundle {
   It 'writes the full result contract for requested stores plus Disallowed accounting' {
     $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
     $ExpectedSelected = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
-      $Script:RootValid,
-      $Script:CaNoBasic,
-      $Script:CaValid
+      $Script:RootValid
     )
     $ExpectedThumbprints = Get-TestCertificateSha256 -Certificate $ExpectedSelected |
       Sort-Object
+    $Warning = @()
 
-    $Result = Export-CertificateStoreBundle -Path $Path -WriteManifest
+    $Result = Export-CertificateStoreBundle `
+      -Path $Path `
+      -WarningAction SilentlyContinue `
+      -WarningVariable Warning `
+      -WriteManifest
 
     $BundleBytes = [System.IO.File]::ReadAllBytes($Path)
     $BundleText = [System.IO.File]::ReadAllText($Path)
@@ -292,37 +295,74 @@ function Export-CertificateStoreBundle {
     $Result.PSTypeNames[0] | Should -Be 'CertificateStoreExporter.Result'
     $Result.Path | Should -Be $Path
     $Result.Status | Should -Be 'Written'
-    $Result.CertificateCount | Should -Be 3
+    $Result.CertificateCount | Should -Be 1
     $Result.Thumbprints | Should -Be $ExpectedThumbprints
     $Result.BundleSha256 | Should -Be (Get-TestSha256Hex -Bytes $BundleBytes)
-    $Result.Examined | Should -Be 7
+    $Result.Examined | Should -Be 4
     $Result.Excluded.Expired | Should -Be 1
-    $Result.Excluded.NotYetValid | Should -Be 1
+    $Result.Excluded.NotYetValid | Should -Be 0
     $Result.Excluded.Disallowed | Should -Be 1
     $Result.Excluded.Duplicate | Should -Be 1
     $Result.StoreLocation | Should -Be 'LocalMachine'
-    $Result.StoreNames | Should -Be @('Root', 'CA')
+    $Result.StoreNames | Should -Be @('Root')
     $Result.ManifestPath | Should -Be ('{0}.sha256' -f $Path)
     $Result.GeneratedAtUtc.Kind | Should -Be ([System.DateTimeKind]::Utc)
     Test-Path -LiteralPath $Result.ManifestPath | Should -BeTrue
     $BundleText | Should -Match '# Source: Root'
-    $BundleText | Should -Match '# Source: CA'
+    $BundleText | Should -Not -Match '# Source: CA'
+    $Warning | Should -BeNullOrEmpty
 
     Should -Invoke -CommandName Get-StoreCertificate -Times 1 -Exactly -ParameterFilter {
       $StoreName -eq 'Root'
     }
-    Should -Invoke -CommandName Get-StoreCertificate -Times 1 -Exactly -ParameterFilter {
+    Should -Invoke -CommandName Get-StoreCertificate -Times 0 -Exactly -ParameterFilter {
       $StoreName -eq 'CA'
     }
     Should -Invoke -CommandName Get-StoreCertificate -Times 1 -Exactly -ParameterFilter {
       $StoreName -eq 'Disallowed'
     }
 
-    $SecondResult = Export-CertificateStoreBundle -Path $Path -WriteManifest
+    $SecondResult = Export-CertificateStoreBundle `
+      -Path $Path `
+      -WarningAction SilentlyContinue `
+      -WriteManifest
 
     $SecondResult.Status | Should -Be 'Unchanged'
     $SecondResult.BundleSha256 | Should -Be $Result.BundleSha256
     $SecondResult.Thumbprints | Should -Be $ExpectedThumbprints
+  }
+
+  It 'includes CA certificates only when explicitly requested and emits a trust warning' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'ca-opt-in.pem'
+    $ExpectedSelected = [System.Security.Cryptography.X509Certificates.X509Certificate2[]]@(
+      $Script:RootValid,
+      $Script:CaNoBasic,
+      $Script:CaValid
+    )
+    $ExpectedThumbprints = Get-TestCertificateSha256 -Certificate $ExpectedSelected |
+      Sort-Object
+    $Warning = @()
+
+    $Result = Export-CertificateStoreBundle `
+      -Path $Path `
+      -StoreName Root, CA `
+      -WarningAction SilentlyContinue `
+      -WarningVariable Warning
+    $BundleText = [System.IO.File]::ReadAllText($Path)
+
+    $Result.CertificateCount | Should -Be 3
+    $Result.Thumbprints | Should -Be $ExpectedThumbprints
+    $Result.Examined | Should -Be 7
+    $Result.Excluded.NotYetValid | Should -Be 1
+    $Result.StoreNames | Should -Be @('Root', 'CA')
+    $BundleText | Should -Match '# Source: CA'
+    $Warning.Count | Should -Be 1
+    [System.String]$Warning[0] | Should -Match 'partial-chain validation'
+    [System.String]$Warning[0] | Should -Match 'standalone trust anchor'
+
+    Should -Invoke -CommandName Get-StoreCertificate -Times 1 -Exactly -ParameterFilter {
+      $StoreName -eq 'CA'
+    }
   }
 
   It 'hashes each candidate once and passes precomputed identities downstream' {
@@ -382,7 +422,10 @@ function Export-CertificateStoreBundle {
       $Script:HashByObjectId[$ObjectId]
     }
 
-    $Result = Export-CertificateStoreBundle -Path $Path
+    $Result = Export-CertificateStoreBundle `
+      -Path $Path `
+      -StoreName Root, CA `
+      -WarningAction SilentlyContinue
 
     $Result.Thumbprints | Should -Be @(
       '1111111111111111111111111111111111111111111111111111111111111111',
@@ -407,7 +450,7 @@ function Export-CertificateStoreBundle {
     $Result = Export-CertificateStoreBundle -Path $Path -WriteManifest -WhatIf
 
     $Result.Status | Should -Be 'WhatIf'
-    $Result.CertificateCount | Should -Be 3
+    $Result.CertificateCount | Should -Be 1
     $Result.ManifestPath | Should -Be ('{0}.sha256' -f $Path)
     Test-Path -LiteralPath $Path | Should -BeFalse
     Test-Path -LiteralPath $Result.ManifestPath | Should -BeFalse

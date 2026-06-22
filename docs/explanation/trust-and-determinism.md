@@ -7,14 +7,20 @@ deterministic, fail-closed behavior.
 
 ## Logical Store Sourcing
 
-By default, the script reads `LocalMachine\Root` and `LocalMachine\CA`. Operators
-can choose `CurrentUser` and can narrow `-StoreName` to `Root` or `CA`.
+By default, the script reads `LocalMachine\Root` only. Operators can choose
+`CurrentUser` and can explicitly add `CA` with `-StoreName` when they intend
+to export intermediates.
 
 The logical Windows store view is intentionally simple and matches normal
 PowerShell/.NET certificate-store access. It may include Microsoft-shipped public
 roots as well as enterprise or GPO-provided certificates. The decision and its
 trade-offs are recorded in
 [ADR-repo/0002](../decision-records/repo/0002-certificate-source-and-selection.md).
+
+Partial-chain consumers can treat an intermediate certificate in a flat trust
+bundle as a standalone trust anchor. `CA` is therefore a warned opt-in rather
+than part of the default. The amendment is recorded in
+[ADR-repo/0010](../decision-records/repo/0010-root-only-default-trust-anchors.md).
 
 ## Disallowed Is Always Subtracted
 
