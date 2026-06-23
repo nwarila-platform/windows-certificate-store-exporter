@@ -106,6 +106,41 @@ Describe 'ConvertTo-PemCertificate' {
     }
   }
 
+  It 'escapes non-BMP distinguished-name characters as full UTF-8 scalars' {
+    $Emoji = [System.Char]::ConvertFromUtf32(0x1F600)
+    $NonBmpSubject = 'CN=Emoji ' + $Emoji
+    $Certificate = New-TestCertificate -Scenario Valid -Subject $NonBmpSubject
+
+    try {
+      $Result = ConvertTo-PemCertificate -Certificate $Certificate -StoreName Root
+      $Bytes = Get-TestAsciiByte -Text $Result
+      $Lines = [System.String[]]($Result -split "`n")
+
+      ($Bytes | Where-Object -FilterScript { $PSItem -gt 0x7F }) | Should -HaveCount 0
+      $Result | Should -Match '\\xF0\\x9F\\x98\\x80'
+      $Result | Should -Not -Match '\\xEF\\xBF\\xBD'
+      $Lines[0] | Should -Be '# Subject: CN=Emoji \xF0\x9F\x98\x80'
+      $Lines[1] | Should -Be '# Issuer: CN=Emoji \xF0\x9F\x98\x80'
+    } finally {
+      $Certificate.Dispose()
+    }
+  }
+
+  It 'doubles literal backslashes in distinguished-name values' {
+    $Certificate = New-TestCertificate -Scenario Valid -Subject 'CN="Back\slash"'
+
+    try {
+      $Result = ConvertTo-PemCertificate -Certificate $Certificate -StoreName Root
+      $Lines = [System.String[]]($Result -split "`n")
+
+      $Certificate.Subject | Should -Be 'CN=Back\slash'
+      $Lines[0] | Should -Be '# Subject: CN=Back\\slash'
+      $Lines[1] | Should -Be '# Issuer: CN=Back\\slash'
+    } finally {
+      $Certificate.Dispose()
+    }
+  }
+
   It 'uses a supplied SHA-256 comment without recomputing the certificate hash' {
     $Certificate = New-TestCertificate -Scenario Valid -Subject 'CN=PEM Precomputed Hash'
     $PrecomputedHash = '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'

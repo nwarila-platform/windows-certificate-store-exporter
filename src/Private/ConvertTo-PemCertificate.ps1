@@ -104,9 +104,25 @@ Function ConvertTo-PemCertificate {
     $Subject = [System.String]::Empty
 
     # PEM metadata comments stay ASCII so bundle diffs and consumers do not depend on locale.
+    # Index-based iteration combines valid surrogate pairs into the single non-BMP scalar before
+    #   UTF-8 encoding; encoding each surrogate half alone would emit the U+FFFD replacement bytes.
+    $Subject = [System.String]$Certificate.Subject
     $EscapedSubjectBuilder = [System.Text.StringBuilder]::new()
-    ForEach ($Character In $Certificate.Subject.ToCharArray()) {
-      $CharacterCode = [System.Int32]$Character
+    For ($Index = 0; $Index -lt $Subject.Length; $Index++) {
+      If (
+        [System.Char]::IsHighSurrogate($Subject[$Index]) -eq $True -and
+        ($Index + 1) -lt $Subject.Length -and
+        [System.Char]::IsLowSurrogate($Subject[$Index + 1]) -eq $True
+      ) {
+        $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes($Subject.Substring($Index, 2))
+        ForEach ($CharacterByte In $CharacterBytes) {
+          [void]$EscapedSubjectBuilder.Append(('\x{0:X2}' -f $CharacterByte))
+        }
+        $Index++
+        Continue
+      }
+
+      $CharacterCode = [System.Int32]$Subject[$Index]
 
       If ($CharacterCode -eq 0x5C) {
         [void]$EscapedSubjectBuilder.Append('\\')
@@ -114,19 +130,33 @@ Function ConvertTo-PemCertificate {
       }
 
       If ($CharacterCode -ge 0x20 -and $CharacterCode -le 0x7E) {
-        [void]$EscapedSubjectBuilder.Append($Character)
+        [void]$EscapedSubjectBuilder.Append($Subject[$Index])
         Continue
       }
 
-      $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes([System.String]$Character)
+      $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes([System.String]$Subject[$Index])
       ForEach ($CharacterByte In $CharacterBytes) {
         [void]$EscapedSubjectBuilder.Append(('\x{0:X2}' -f $CharacterByte))
       }
     }
 
+    $Issuer = [System.String]$Certificate.Issuer
     $EscapedIssuerBuilder = [System.Text.StringBuilder]::new()
-    ForEach ($Character In $Certificate.Issuer.ToCharArray()) {
-      $CharacterCode = [System.Int32]$Character
+    For ($Index = 0; $Index -lt $Issuer.Length; $Index++) {
+      If (
+        [System.Char]::IsHighSurrogate($Issuer[$Index]) -eq $True -and
+        ($Index + 1) -lt $Issuer.Length -and
+        [System.Char]::IsLowSurrogate($Issuer[$Index + 1]) -eq $True
+      ) {
+        $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes($Issuer.Substring($Index, 2))
+        ForEach ($CharacterByte In $CharacterBytes) {
+          [void]$EscapedIssuerBuilder.Append(('\x{0:X2}' -f $CharacterByte))
+        }
+        $Index++
+        Continue
+      }
+
+      $CharacterCode = [System.Int32]$Issuer[$Index]
 
       If ($CharacterCode -eq 0x5C) {
         [void]$EscapedIssuerBuilder.Append('\\')
@@ -134,11 +164,11 @@ Function ConvertTo-PemCertificate {
       }
 
       If ($CharacterCode -ge 0x20 -and $CharacterCode -le 0x7E) {
-        [void]$EscapedIssuerBuilder.Append($Character)
+        [void]$EscapedIssuerBuilder.Append($Issuer[$Index])
         Continue
       }
 
-      $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes([System.String]$Character)
+      $CharacterBytes = [System.Text.Encoding]::UTF8.GetBytes([System.String]$Issuer[$Index])
       ForEach ($CharacterByte In $CharacterBytes) {
         [void]$EscapedIssuerBuilder.Append(('\x{0:X2}' -f $CharacterByte))
       }
