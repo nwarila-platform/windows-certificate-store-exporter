@@ -98,6 +98,7 @@ Function Write-CertificateBundle {
 
   # Initialize Variable(s)
   [System.String]$Private:BundleBackupPath = [System.String]::Empty
+  [System.Boolean]$Private:BundleFirstWritten = $False
   [System.String]$Private:BundleSha256 = [System.String]::Empty
   [System.Byte[]]$Private:BundleBytes = [System.Byte[]]@()
   [System.IO.FileStream]$Private:BundleTempStream = $Null
@@ -121,6 +122,7 @@ Function Write-CertificateBundle {
   [System.String]$Private:OperationTarget = [System.String]::Empty
   [System.String]$Private:PathLeaf = [System.String]::Empty
   [System.Management.Automation.ProviderInfo]$Private:Provider = $Null
+  [System.String]$Private:RestoreDiscardPath = [System.String]::Empty
   [PSCustomObject]$Private:Result = $Null
   [System.Security.Cryptography.SHA256]$Private:Sha256 = $Null
   [System.String]$Private:Status = [System.String]::Empty
@@ -262,13 +264,15 @@ Function Write-CertificateBundle {
             }
 
             If ([System.IO.File]::Exists($FullPath) -eq $True) {
+              # Retain the prior bundle as a backup through BOTH swaps so a later manifest-swap
+              #   failure can roll this bundle back to the prior on-disk pair.
               $BundleBackupPath = Join-Path `
                 -Path:$DirectoryPath `
                 -ChildPath:('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
               [System.IO.File]::Replace($BundleTempPath, $FullPath, $BundleBackupPath)
-              [System.IO.File]::Delete($BundleBackupPath)
             } Else {
               [System.IO.File]::Move($BundleTempPath, $FullPath)
+              $BundleFirstWritten = $True
             }
           }
 
@@ -292,45 +296,135 @@ Function Write-CertificateBundle {
             }
 
             If ([System.IO.File]::Exists($ManifestFullPath) -eq $True) {
+              # Retain the prior manifest as a backup through the commit point as well.
               $ManifestBackupPath = Join-Path `
                 -Path:$DirectoryPath `
                 -ChildPath:('.{0}.sha256.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
               [System.IO.File]::Replace($ManifestTempPath, $ManifestFullPath, $ManifestBackupPath)
-              [System.IO.File]::Delete($ManifestBackupPath)
             } Else {
               [System.IO.File]::Move($ManifestTempPath, $ManifestFullPath)
             }
           }
 
           $Status = 'Written'
-        } Catch {
-          # Failed atomic swaps can leave temp or backup artifacts; remove them so retry is clean.
-          If (
-            [System.String]::IsNullOrEmpty($BundleTempPath) -eq $False -and
-            [System.IO.File]::Exists($BundleTempPath) -eq $True
-          ) {
-            [System.IO.File]::Delete($BundleTempPath)
-          }
 
+          # Both swaps committed; the retained backups are now safe to discard. Deleting a backup
+          #   here can never corrupt the committed pair, so isolate each so a delete failure can
+          #   never surface as a write failure or trigger a rollback of a good pair.
           If (
             [System.String]::IsNullOrEmpty($BundleBackupPath) -eq $False -and
             [System.IO.File]::Exists($BundleBackupPath) -eq $True
           ) {
-            [System.IO.File]::Delete($BundleBackupPath)
-          }
-
-          If (
-            [System.String]::IsNullOrEmpty($ManifestTempPath) -eq $False -and
-            [System.IO.File]::Exists($ManifestTempPath) -eq $True
-          ) {
-            [System.IO.File]::Delete($ManifestTempPath)
+            Try {
+              [System.IO.File]::Delete($BundleBackupPath)
+            } Catch {
+              Write-Debug -Message:('[Write-CertificateBundle] Committed bundle backup cleanup failed: {0}' -f $PSItem.Exception.Message)
+            }
           }
 
           If (
             [System.String]::IsNullOrEmpty($ManifestBackupPath) -eq $False -and
             [System.IO.File]::Exists($ManifestBackupPath) -eq $True
           ) {
-            [System.IO.File]::Delete($ManifestBackupPath)
+            Try {
+              [System.IO.File]::Delete($ManifestBackupPath)
+            } Catch {
+              Write-Debug -Message:('[Write-CertificateBundle] Committed manifest backup cleanup failed: {0}' -f $PSItem.Exception.Message)
+            }
+          }
+        } Catch {
+          # Roll the on-disk pair back to its prior state, then always surface the failure. The
+          #   bundle is the FIRST swap, so it is the only file needing an active rollback; the
+          #   manifest is last, so a manifest-swap failure self-rolls-back (its prior version is
+          #   left in place). Every file operation is isolated in its own swallowing Try so a
+          #   rollback or cleanup fault can never stop the terminal WriteFailure throw that drives
+          #   the exit-5 mapping.
+          If ($Status -ne 'Written') {
+            If (
+              [System.String]::IsNullOrEmpty($BundleBackupPath) -eq $False -and
+              [System.IO.File]::Exists($BundleBackupPath) -eq $True
+            ) {
+              # The bundle Replace committed, so $FullPath holds the NEW bytes. Put the prior
+              #   bundle back with a SINGLE atomic File.Replace (old-or-new, never missing); a
+              #   Delete($FullPath) + Move(backup) restore would leave $FullPath absent if the Move
+              #   threw after the Delete.
+              Try {
+                $RestoreDiscardPath = Join-Path `
+                  -Path:$DirectoryPath `
+                  -ChildPath:('.{0}.{1}.bak' -f $PathLeaf, [System.Guid]::NewGuid())
+                [System.IO.File]::Replace($BundleBackupPath, $FullPath, $RestoreDiscardPath)
+              } Catch {
+                Write-Debug -Message:('[Write-CertificateBundle] Bundle rollback failed; pair may be mismatched but never missing: {0}' -f $PSItem.Exception.Message)
+              }
+
+              If (
+                [System.String]::IsNullOrEmpty($RestoreDiscardPath) -eq $False -and
+                [System.IO.File]::Exists($RestoreDiscardPath) -eq $True
+              ) {
+                Try {
+                  [System.IO.File]::Delete($RestoreDiscardPath)
+                } Catch {
+                  Write-Debug -Message:('[Write-CertificateBundle] Rollback discard cleanup failed: {0}' -f $PSItem.Exception.Message)
+                }
+              }
+            } ElseIf (
+              $BundleFirstWritten -eq $True -and
+              [System.IO.File]::Exists($FullPath) -eq $True
+            ) {
+              # A first-write bundle orphaned by a later manifest failure: restore the prior
+              #   absent state with a single Delete.
+              Try {
+                [System.IO.File]::Delete($FullPath)
+              } Catch {
+                Write-Debug -Message:('[Write-CertificateBundle] First-write bundle rollback failed: {0}' -f $PSItem.Exception.Message)
+              }
+            }
+          }
+
+          # Remove any temp or backup artifact a failed swap left behind so a retry starts clean.
+          #   Each delete is isolated so a stranded-artifact failure cannot mask the WriteFailure.
+          If (
+            [System.String]::IsNullOrEmpty($BundleTempPath) -eq $False -and
+            [System.IO.File]::Exists($BundleTempPath) -eq $True
+          ) {
+            Try {
+              [System.IO.File]::Delete($BundleTempPath)
+            } Catch {
+              Write-Debug -Message:('[Write-CertificateBundle] Bundle temp cleanup failed: {0}' -f $PSItem.Exception.Message)
+            }
+          }
+
+          If (
+            [System.String]::IsNullOrEmpty($ManifestTempPath) -eq $False -and
+            [System.IO.File]::Exists($ManifestTempPath) -eq $True
+          ) {
+            Try {
+              [System.IO.File]::Delete($ManifestTempPath)
+            } Catch {
+              Write-Debug -Message:('[Write-CertificateBundle] Manifest temp cleanup failed: {0}' -f $PSItem.Exception.Message)
+            }
+          }
+
+          If (
+            [System.String]::IsNullOrEmpty($BundleBackupPath) -eq $False -and
+            [System.IO.File]::Exists($BundleBackupPath) -eq $True
+          ) {
+            Try {
+              [System.IO.File]::Delete($BundleBackupPath)
+            } Catch {
+              Write-Debug -Message:('[Write-CertificateBundle] Bundle backup cleanup failed: {0}' -f $PSItem.Exception.Message)
+            }
+          }
+
+          If (
+            [System.String]::IsNullOrEmpty($ManifestBackupPath) -eq $False -and
+            [System.IO.File]::Exists($ManifestBackupPath) -eq $True
+          ) {
+            Try {
+              [System.IO.File]::Delete($ManifestBackupPath)
+            } Catch {
+              Write-Debug -Message:('[Write-CertificateBundle] Manifest backup cleanup failed: {0}' -f $PSItem.Exception.Message)
+            }
           }
 
           New-ErrorRecord `

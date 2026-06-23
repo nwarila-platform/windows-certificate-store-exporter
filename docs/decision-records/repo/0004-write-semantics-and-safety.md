@@ -65,6 +65,21 @@ Chosen: option 1.
 - **Reparse paths** - the writer does not special-case symlinks, junctions,
   or other reparse points; it follows the operator-specified `-Path` and keeps
   same-directory temp/swap behavior atomic on the resolved target.
+- **Transactional bundle + manifest pair** — within a single invocation the
+  bundle and its `.sha256` manifest are written transactionally: both are swapped
+  via same-directory temp files, both prior versions are retained as backups until
+  BOTH swaps succeed, and a manifest-swap failure rolls the bundle back with an
+  atomic `File.Replace` (old-or-new, never missing) so the on-disk pair is never a
+  new-bundle/stale-manifest mismatch. Deliberately un-mitigated residuals (lean —
+  no mutex or journal; the GPO/scheduled-task/Ansible deployment model serializes
+  writers):
+  - **Not cross-process** — two concurrent writers against the same `-Path` with
+    `-WriteManifest` can still interleave into a mismatched pair.
+  - **Not crash-atomic** — abrupt termination between the two swaps can leave a
+    stale manifest or a leftover temp/backup artifact.
+  - **Restore-failure** — if the in-process atomic restore itself fails, the pair
+    may be left mismatched but is NEVER missing.
+  All three self-correct on the next successful run (idempotent skip-if-unchanged).
 - **Produce-only** — emit no consumer-specific wiring; do not mutate the
   environment or client configuration.
 
