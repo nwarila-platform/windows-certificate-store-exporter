@@ -52,6 +52,28 @@ Describe 'Write-CertificateBundle' {
           }
       )
     }
+
+    function Get-TestLockedStream {
+      param (
+        [Parameter(Mandatory = $True)]
+        [System.String]
+        $Path,
+
+        [Parameter(Mandatory = $True)]
+        [System.IO.FileShare]
+        $Share
+      )
+
+      # A held open handle is the deterministic fault-injection primitive: File.Replace throws while
+      #   the share mode denies it the delete/rename access it needs, and FileShare.Read still lets
+      #   the writer take its pre-swap ReadAllBytes snapshot.
+      [System.IO.FileStream]::new(
+        $Path,
+        [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read,
+        $Share
+      )
+    }
   }
 
   BeforeEach {
@@ -478,5 +500,187 @@ Describe 'Write-CertificateBundle' {
     $ThirdResult.Status | Should -Be 'Written'
     [System.IO.File]::ReadAllText($ManifestPath) | Should -Be $ChangedManifest
     Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+  }
+
+  It 'rolls the prior pair back to disk when the manifest swap fails after the bundle swap' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    $Null = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:FirstPemBlock) `
+      -WriteManifest
+    $OriginalBundleBytes = [System.IO.File]::ReadAllBytes($Path)
+    $OriginalManifestBytes = [System.IO.File]::ReadAllBytes($ManifestPath)
+
+    # Lock only the existing manifest: the bundle swap commits, then the manifest swap File.Replace
+    #   throws, forcing the bundle rollback to run (and succeed) back to the prior pair.
+    $ManifestHandle = Get-TestLockedStream -Path $ManifestPath -Share ([System.IO.FileShare]::Read)
+
+    try {
+      {
+        Write-CertificateBundle `
+          -Path $Path `
+          -PemBlock @($Script:SecondPemBlock) `
+          -WriteManifest
+      } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord'
+    } finally {
+      $ManifestHandle.Dispose()
+    }
+
+    # Fault fired: the new bytes are NOT on disk; the exact prior pair survives.
+    [System.IO.File]::ReadAllBytes($Path) | Should -Be $OriginalBundleBytes
+    [System.IO.File]::ReadAllBytes($ManifestPath) | Should -Be $OriginalManifestBytes
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'leaves the bundle present (never missing) when the rollback itself fails' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    $Null = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:FirstPemBlock) `
+      -WriteManifest
+
+    # Lock the bundle Read+Delete so its swap commits (the prior bundle is renamed to the retained
+    #   backup, carrying this handle) but the rollback File.Replace on that backup throws; lock the
+    #   manifest Read so its swap throws and forces the rollback to run.
+    $BundleHandle = Get-TestLockedStream `
+      -Path $Path `
+      -Share ([System.IO.FileShare]::Read -bor [System.IO.FileShare]::Delete)
+    $ManifestHandle = Get-TestLockedStream -Path $ManifestPath -Share ([System.IO.FileShare]::Read)
+
+    try {
+      {
+        Write-CertificateBundle `
+          -Path $Path `
+          -PemBlock @($Script:SecondPemBlock) `
+          -WriteManifest
+      } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord'
+
+      # Fault fired: the rollback failed, so the bundle is present but holds the NEW bytes (the
+      #   documented mismatched-but-never-missing residual) rather than the prior bytes or nothing.
+      Test-Path -LiteralPath $Path | Should -BeTrue
+      [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($Path)) |
+        Should -Be $Script:SecondPemBlock
+    } finally {
+      $BundleHandle.Dispose()
+      $ManifestHandle.Dispose()
+    }
+
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'deletes a first-written bundle when the manifest swap fails so no orphan remains' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    # A directory at the manifest path keeps File.Exists False (the writer takes the first-write
+    #   Move branch) while the Move itself throws, orphaning the just-written bundle.
+    $Null = New-Item -Path $ManifestPath -ItemType Directory
+
+    {
+      Write-CertificateBundle `
+        -Path $Path `
+        -PemBlock @($Script:FirstPemBlock) `
+        -WriteManifest
+    } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord'
+
+    # Fault fired: the orphaned first-write bundle is deleted and no manifest file is left behind.
+    Test-Path -LiteralPath $Path | Should -BeFalse
+    Test-Path -LiteralPath $ManifestPath -PathType Leaf | Should -BeFalse
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'leaves the existing bundle untouched when the bundle swap fails' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+
+    $Null = Write-CertificateBundle -Path $Path -PemBlock @($Script:FirstPemBlock)
+    $OriginalBundleBytes = [System.IO.File]::ReadAllBytes($Path)
+
+    # Lock the existing bundle Read so its swap File.Replace throws before any backup is taken.
+    $BundleHandle = Get-TestLockedStream -Path $Path -Share ([System.IO.FileShare]::Read)
+
+    try {
+      {
+        Write-CertificateBundle -Path $Path -PemBlock @($Script:SecondPemBlock)
+      } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord'
+    } finally {
+      $BundleHandle.Dispose()
+    }
+
+    # Fault fired: the new bytes never reached the bundle; the original is intact.
+    [System.IO.File]::ReadAllBytes($Path) | Should -Be $OriginalBundleBytes
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'never touches an unchanged bundle when only the manifest swap fails' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+    $FixedTime = [System.DateTime]::SpecifyKind(
+      [System.DateTime]::Parse('2026-01-01T00:00:00Z'),
+      [System.DateTimeKind]::Utc
+    )
+
+    $Null = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:FirstPemBlock) `
+      -WriteManifest
+    $OriginalBundleBytes = [System.IO.File]::ReadAllBytes($Path)
+    [System.IO.File]::SetLastWriteTimeUtc($Path, $FixedTime)
+
+    # Corrupt the sidecar so the bundle stays byte-identical (its swap is skipped) but the manifest
+    #   must be rewritten, then lock the manifest so that lone swap throws.
+    [System.IO.File]::WriteAllText($ManifestPath, 'stale sidecar', [System.Text.UTF8Encoding]::new($False))
+    $ManifestHandle = Get-TestLockedStream -Path $ManifestPath -Share ([System.IO.FileShare]::Read)
+
+    try {
+      {
+        Write-CertificateBundle `
+          -Path $Path `
+          -PemBlock @($Script:FirstPemBlock) `
+          -WriteManifest
+      } | Should -Throw -ErrorId 'WriteFailure,New-ErrorRecord'
+    } finally {
+      $ManifestHandle.Dispose()
+    }
+
+    # Fault fired: the unchanged bundle's bytes and mtime are untouched (no swap, no rollback).
+    [System.IO.File]::ReadAllBytes($Path) | Should -Be $OriginalBundleBytes
+    [System.IO.File]::GetLastWriteTimeUtc($Path) | Should -Be $FixedTime
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
+  }
+
+  It 'writes a new bundle and manifest and deletes both backups at commit' {
+    $Path = Join-Path -Path $TestRoot -ChildPath 'bundle.pem'
+    $ManifestPath = '{0}.sha256' -f $Path
+
+    $Null = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:FirstPemBlock) `
+      -WriteManifest
+
+    $Result = Write-CertificateBundle `
+      -Path $Path `
+      -PemBlock @($Script:SecondPemBlock) `
+      -WriteManifest
+    $BundleBytes = [System.IO.File]::ReadAllBytes($Path)
+    $ExpectedManifest = '{0}  {1}{2}' -f
+    (Get-TestSha256Hex -Bytes $BundleBytes),
+    [System.IO.Path]::GetFileName($Path),
+    "`n"
+
+    $Result.Status | Should -Be 'Written'
+    [System.IO.File]::ReadAllText($Path) | Should -Be $Script:SecondPemBlock
+    [System.IO.File]::ReadAllText($ManifestPath) | Should -Be $ExpectedManifest
+    # 0 leftover .bak proves both retained backups are discarded at the commit point.
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.tmp' | Should -HaveCount 0
+    Get-ChildItem -LiteralPath $TestRoot -Filter '*.bak' | Should -HaveCount 0
   }
 }
