@@ -13,31 +13,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: build
+  seal:
+    name: seal
     runs-on: windows-latest
     timeout-minutes: 20
     permissions:
       contents: read
     outputs:
       hashes: ${{ steps.subjects.outputs.hashes }}
+      digest: ${{ steps.digest.outputs.digest }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Install PowerShell test modules (Windows PowerShell)
+      - name: Run sealed build (Windows PowerShell)
         shell: powershell
-        run: |
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-          Install-Module -Name Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop
-          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -ErrorAction Stop
-
-      - name: Run build (Windows PowerShell)
-        shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task All
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task Build
 
       - name: Create SHA-256 sidecar
         shell: powershell
@@ -69,30 +62,115 @@ jobs:
           $Base64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Subject))
           "hashes=$Base64" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Upload release assets
+      - name: Compute sealed digest
+        id: digest
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ArtifactPath = Join-Path -Path $PWD -ChildPath 'build\Export-CertificateStoreBundle.ps1'
+          $FunctionsPath = Join-Path -Path $PWD -ChildPath 'build\Export-CertificateStoreBundle.Functions.ps1'
+
+          foreach ($RequiredPath in @($ArtifactPath, $FunctionsPath)) {
+            if (-not (Test-Path -LiteralPath $RequiredPath -PathType Leaf)) {
+              throw ('Required build artifact missing before sealing: {0}' -f $RequiredPath)
+            }
+          }
+
+          $Digest = (Get-FileHash -Algorithm SHA256 -Path $ArtifactPath).Hash.ToLowerInvariant()
+          & .\.github\scripts\Assert-SealedDigest.ps1 -Path $ArtifactPath -ExpectedDigest $Digest
+          "digest=$Digest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload release candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: release-assets
+          name: release-candidate
           path: |
             build/Export-CertificateStoreBundle.ps1
             build/Export-CertificateStoreBundle.ps1.sha256
+            build/Export-CertificateStoreBundle.Functions.ps1
           if-no-files-found: error
+
+  validate:
+    name: validate
+    needs: seal
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download release candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-candidate
+          path: build
+
+      - name: Verify sealed digest before validation
+        shell: powershell
+        env:
+          SEALED_DIGEST: ${{ needs.seal.outputs.digest }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\.github\scripts\Assert-SealedDigest.ps1 `
+            -Path (Join-Path -Path $PWD -ChildPath 'build\Export-CertificateStoreBundle.ps1') `
+            -ExpectedDigest $env:SEALED_DIGEST
+
+      - name: Install PowerShell test modules (Windows PowerShell)
+        shell: powershell
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force -ErrorAction Stop
+
+      - name: Analyze sealed artifact
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task Analyze
+
+      - name: Test sealed artifact
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task Test
+
+      - name: Smoke sealed artifact
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Task Smoke
 
   publish:
     name: publish
-    needs: build
+    needs: [seal, validate]
     runs-on: windows-latest
     timeout-minutes: 20
     permissions:
       contents: write
     steps:
-      - name: Download release assets
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download release candidate
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: release-assets
+          name: release-candidate
           path: build
 
-      - name: Create GitHub Release
+      - name: Verify sealed digest before upload
+        shell: powershell
+        env:
+          SEALED_DIGEST: ${{ needs.seal.outputs.digest }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Binding-critical guard: validate proves the candidate works, but only this
+          # publish-side recheck binds the bytes being uploaded to the sealed digest.
+          & .\.github\scripts\Assert-SealedDigest.ps1 `
+            -Path (Join-Path -Path $PWD -ChildPath 'build\Export-CertificateStoreBundle.ps1') `
+            -ExpectedDigest $env:SEALED_DIGEST
+
+      - name: Create draft GitHub Release
         shell: powershell
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -114,7 +192,7 @@ jobs:
             'X-GitHub-Api-Version' = '2022-11-28'
           }
           $ReleaseNotes = @(
-            'Release assets are generated by .\build.ps1 -Task All on Windows PowerShell 5.1.'
+            'Release assets are generated by .\build.ps1 -Task Build on Windows PowerShell 5.1, validated with Analyze/Test/Smoke, and published only after SLSA provenance is attached.'
             ''
             'SLSA build provenance (Export-CertificateStoreBundle.ps1.intoto.jsonl) is attached and signed via Sigstore; verify with slsa-verifier (see the README Releases section). The SHA-256 sidecar is a quick offline integrity check. Authenticode publisher signing is deferred.'
             ''
@@ -124,7 +202,7 @@ jobs:
             tag_name   = $TagName
             name       = $TagName
             body       = $ReleaseNotes.Trim()
-            draft      = $False
+            draft      = $True
             prerelease = $False
           } | ConvertTo-Json
 
@@ -154,6 +232,59 @@ jobs:
               -Headers $Headers `
               -Method Get
           )
+
+          Function Assert-ReleaseAsset {
+            Param (
+              [Parameter(Mandatory = $True)]
+              [System.String]
+              $AssetPath,
+
+              [Parameter(Mandatory = $True)]
+              [System.Object[]]
+              $ExistingAssets
+            )
+
+            $AssetName = Split-Path -Path $AssetPath -Leaf
+            $ExistingAsset = $ExistingAssets |
+              Where-Object -FilterScript { $PSItem.name -eq $AssetName } |
+              Select-Object -First 1
+
+            if ($Null -eq $ExistingAsset) {
+              return
+            }
+
+            $TemporaryPath = [System.IO.Path]::GetTempFileName()
+            try {
+              $DownloadHeaders = @{}
+              foreach ($HeaderName in $Headers.Keys) {
+                $DownloadHeaders[$HeaderName] = $Headers[$HeaderName]
+              }
+
+              $DownloadHeaders['Accept'] = 'application/octet-stream'
+
+              Invoke-WebRequest `
+                -Uri $ExistingAsset.url `
+                -Headers $DownloadHeaders `
+                -Method Get `
+                -OutFile $TemporaryPath `
+                -UseBasicParsing
+
+              $ExistingHash = (Get-FileHash -Algorithm SHA256 -Path $TemporaryPath).Hash.ToLowerInvariant()
+              $LocalHash = (Get-FileHash -Algorithm SHA256 -Path $AssetPath).Hash.ToLowerInvariant()
+
+              if ($ExistingHash -ne $LocalHash) {
+                throw ('Release asset already exists with different bytes for tag {0}: {1}' -f $TagName, $AssetName)
+              }
+
+              Write-Host ('Release asset already exists with identical bytes: {0}' -f $AssetName)
+            }
+            finally {
+              if (Test-Path -LiteralPath $TemporaryPath) {
+                Remove-Item -LiteralPath $TemporaryPath -Force
+              }
+            }
+          }
+
           $AssetPaths = @(
             (Join-Path -Path $PWD -ChildPath 'build\Export-CertificateStoreBundle.ps1'),
             (Join-Path -Path $PWD -ChildPath 'build\Export-CertificateStoreBundle.ps1.sha256')
@@ -165,8 +296,10 @@ jobs:
               Where-Object -FilterScript { $PSItem.name -eq $AssetName } |
               Select-Object -First 1
 
+            Assert-ReleaseAsset -AssetPath $AssetPath -ExistingAssets $ExistingAssets
+
             if ($Null -ne $ExistingAsset) {
-              throw ('Release asset already exists for tag {0}: {1}' -f $TagName, $AssetName)
+              continue
             }
 
             $UploadUri = (
@@ -187,10 +320,9 @@ jobs:
 
   provenance:
     name: provenance
-    needs: [build, publish]
+    needs: [seal, publish]
     permissions:
       id-token: write   # OIDC identity for keyless Sigstore/Fulcio signing
-      contents: write   # attach the .intoto.jsonl provenance to the release
       actions: read     # the generator reads this workflow run
     # SLSA REQUIREMENT - do NOT SHA-pin this one: the trusted builder MUST be referenced by a full
     # semantic version tag (@vX.Y.Z). slsa-verifier resolves/trusts the builder by that tag; a commit
@@ -198,7 +330,103 @@ jobs:
     # exception to the house "pin every action by commit SHA" rule. Renovate must preserve @vX.Y.Z.
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses] SLSA verifier requires the builder's semantic version tag.
     with:
-      base64-subjects: ${{ needs.build.outputs.hashes }}
+      base64-subjects: ${{ needs.seal.outputs.hashes }}
       provenance-name: Export-CertificateStoreBundle.ps1.intoto.jsonl
-      upload-assets: true
-      upload-tag-name: ${{ github.ref_name }}
+      upload-assets: false
+
+  finalize:
+    name: finalize
+    needs: [publish, provenance]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Download provenance artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.provenance.outputs.provenance-name }}
+          path: provenance
+
+      - name: Attach provenance and publish release
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+          PROVENANCE_NAME: ${{ needs.provenance.outputs.provenance-name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+
+          $ApiBase = 'https://api.github.com'
+          $UploadBase = 'https://uploads.github.com'
+          $TagName = $env:TAG_NAME
+          $Repository = $env:REPOSITORY
+          $EscapedTagName = [System.Uri]::EscapeDataString($TagName)
+          $Headers = @{
+            Accept                 = 'application/vnd.github+json'
+            Authorization          = 'Bearer {0}' -f $env:GITHUB_TOKEN
+            'User-Agent'           = 'windows-certificate-store-exporter-release-workflow'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+
+          $Release = Invoke-RestMethod `
+            -Uri ('{0}/repos/{1}/releases/tags/{2}' -f $ApiBase, $Repository, $EscapedTagName) `
+            -Headers $Headers `
+            -Method Get
+
+          $ExistingAssets = @(
+            Invoke-RestMethod `
+              -Uri $Release.assets_url `
+              -Headers $Headers `
+              -Method Get
+          )
+
+          $AssetPath = Join-Path -Path $PWD -ChildPath ('provenance\{0}' -f $env:PROVENANCE_NAME)
+          $AssetName = Split-Path -Path $AssetPath -Leaf
+          if (-not (Test-Path -LiteralPath $AssetPath -PathType Leaf)) {
+            throw ('Provenance artifact missing after download: {0}' -f $AssetPath)
+          }
+
+          $ExistingAsset = $ExistingAssets |
+            Where-Object -FilterScript { $PSItem.name -eq $AssetName } |
+            Select-Object -First 1
+
+          if ($Null -ne $ExistingAsset) {
+            # Sigstore keyless provenance re-signs with a fresh Fulcio certificate and Rekor entry every run.
+            # Existing provenance is valid but byte-nondeterministic, so reruns are idempotent by presence.
+            Write-Host ('Provenance already attached: {0}' -f $AssetName)
+          }
+          else {
+            $UploadUri = (
+              '{0}/repos/{1}/releases/{2}/assets?name={3}' -f
+              $UploadBase,
+              $Repository,
+              $Release.id,
+              [System.Uri]::EscapeDataString($AssetName)
+            )
+
+            Invoke-RestMethod `
+              -Uri $UploadUri `
+              -Headers $Headers `
+              -Method Post `
+              -ContentType 'application/octet-stream' `
+              -InFile $AssetPath
+          }
+
+          if ($Release.draft -eq $True) {
+            $PatchRequest = @{
+              draft = $False
+            } | ConvertTo-Json
+
+            Invoke-RestMethod `
+              -Uri ('{0}/repos/{1}/releases/{2}' -f $ApiBase, $Repository, $Release.id) `
+              -Headers $Headers `
+              -Method Patch `
+              -Body $PatchRequest `
+              -ContentType 'application/json'
+          }
+          else {
+            Write-Host ('Release {0} is already public.' -f $TagName)
+          }

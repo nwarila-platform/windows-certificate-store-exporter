@@ -134,8 +134,10 @@ Choose the wiring supported by the client that will verify TLS with the bundle.
 
 ## Releases
 
-Tags matching `v*` create a GitHub Release after `.\build.ps1 -Task All` passes
-on `windows-latest` with Windows PowerShell 5.1. Each release publishes:
+Tags matching `v*` create a GitHub Release from a sealed `.\build.ps1 -Task Build`
+artifact after Analyze/Test/Smoke validates that sealed copy on `windows-latest`
+with Windows PowerShell 5.1. The release is published only after all assets are
+attached. Each release publishes:
 
 - `Export-CertificateStoreBundle.ps1`
 - `Export-CertificateStoreBundle.ps1.sha256`

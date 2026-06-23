@@ -22,6 +22,8 @@
 !/.github/workflows/
 !/.github/workflows/*.yaml
 !/.github/workflows/*.yml
+!/.github/scripts/
+!/.github/scripts/*.ps1
 
 # Analyzer rules
 !/analyzers/
