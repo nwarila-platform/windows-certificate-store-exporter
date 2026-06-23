@@ -106,6 +106,18 @@ Describe 'release workflow shape' {
     $Provenance | Should -Match 'contents:\s+write'
   }
 
+  It 'locates the draft release by id so finalize can find a draft' {
+    # GET /releases/tags/{tag} never returns drafts, so publish must list-or-create the
+    # draft and hand finalize its id; finalize then looks it up by id, never by tag.
+    $Publish = Get-WorkflowJobBlock -Name 'publish'
+    $Finalize = Get-WorkflowJobBlock -Name 'finalize'
+
+    $Publish | Should -Match 'release_id:\s+\$\{\{\s*steps\.release\.outputs\.release_id\s*\}\}'
+    $Publish | Should -Match 'release_id=\$\(\$Release\.id\)'
+    $Finalize | Should -Match 'RELEASE_ID:\s+\$\{\{\s*needs\.publish\.outputs\.release_id\s*\}\}'
+    $Finalize | Should -Not -Match 'releases/tags/'
+  }
+
   It 'keeps the public release flip in finalize after provenance' {
     $Finalize = Get-WorkflowJobBlock -Name 'finalize'
 
