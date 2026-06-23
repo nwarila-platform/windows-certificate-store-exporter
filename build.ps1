@@ -393,29 +393,29 @@ Function Invoke-Analyze {
 
   $private:AnalyzerModule = Get-LatestAvailableModule -Name 'PSScriptAnalyzer'
   If ($Null -eq $AnalyzerModule) {
-    Write-Warning -Message 'PSScriptAnalyzer is not installed. Syntax validation passed.'
-  } Else {
-    Import-Module -Name $AnalyzerModule.Path -Force
-
-    $private:SettingsFile = Join-Path -Path $ProjectRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
-    $private:Results = @(
-      Invoke-ScriptAnalyzer -Path $OutputFile -Settings $SettingsFile
-      Invoke-ScriptAnalyzer -Path $FunctionsFile -Settings $SettingsFile
-      Invoke-ScriptAnalyzer -Path $AnalyzerRuleFile -Settings $SettingsFile
-      Invoke-ScriptAnalyzer -Path (Join-Path -Path $ProjectRoot -ChildPath 'build.ps1') -Settings $SettingsFile
-    )
-
-    If ($Results.Count -gt 0) {
-      $private:FormattedResults = $Results |
-        Format-Table -Property RuleName, Severity, ScriptName, Line, Message -AutoSize |
-        Out-String
-      Write-Information -MessageData $FormattedResults -InformationAction Continue
-
-      Throw ('PSScriptAnalyzer found {0} issue(s).' -f $Results.Count)
-    }
-
-    Write-Information -MessageData 'Analysis passed.' -InformationAction Continue
+    Throw 'PSScriptAnalyzer is required for analysis. Install PSScriptAnalyzer 1.25.0.'
   }
+
+  Import-Module -Name $AnalyzerModule.Path -Force
+
+  $private:SettingsFile = Join-Path -Path $ProjectRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
+  $private:Results = @(
+    Invoke-ScriptAnalyzer -Path $OutputFile -Settings $SettingsFile
+    Invoke-ScriptAnalyzer -Path $FunctionsFile -Settings $SettingsFile
+    Invoke-ScriptAnalyzer -Path $AnalyzerRuleFile -Settings $SettingsFile
+    Invoke-ScriptAnalyzer -Path (Join-Path -Path $ProjectRoot -ChildPath 'build.ps1') -Settings $SettingsFile
+  )
+
+  If ($Results.Count -gt 0) {
+    $private:FormattedResults = $Results |
+      Format-Table -Property RuleName, Severity, ScriptName, Line, Message -AutoSize |
+      Out-String
+    Write-Information -MessageData $FormattedResults -InformationAction Continue
+
+    Throw ('PSScriptAnalyzer found {0} issue(s).' -f $Results.Count)
+  }
+
+  Write-Information -MessageData 'Analysis passed.' -InformationAction Continue
 }
 
 Function Invoke-Test {

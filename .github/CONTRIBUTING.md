@@ -7,8 +7,15 @@ well-tested, and aligned with the published command-line contract.
 ## Before You Start
 
 - Use Windows PowerShell 5.1 for local validation.
-- The build installs Pester 5.7.1 and PSScriptAnalyzer 1.25.0 when they are not
-  already available.
+- Install the pinned tooling before building:
+
+  ```powershell
+  Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser
+  Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser
+  ```
+
+  `build.ps1` does not install them. `-Task Analyze` and `-Task Test` fail
+  closed if PSScriptAnalyzer or Pester is absent.
 - Read the project documentation at [docs/README.md](../docs/README.md).
 - Behaviour changes must stay consistent with the
   [CLI contract](../docs/reference/cli-contract.md).
@@ -22,7 +29,8 @@ Run the full build before opening a pull request:
 .\build.ps1 -Task All
 ```
 
-The `All` task runs Build, Analyze, Test, and Smoke. Analysis must report 0
+The `All` task runs Build, Analyze, Test, and Smoke. Analyze requires
+PSScriptAnalyzer (it fails closed when the module is absent) and must report 0
 findings, and Pester enforces the configured coverage gate of at least 90%.
 
 ## Commits
