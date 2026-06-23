@@ -74,22 +74,21 @@ Describe 'release workflow shape' {
     (Get-WorkflowJobBlock -Name 'provenance') | Should -Match 'needs:\s+\[seal,\s*release\]'
   }
 
-  It 'publishes a non-draft release bound to the sealed digest via SHA-pinned softprops' {
+  It 'publishes a non-draft release bound to the sealed digest via the gh CLI' {
     $Release = Get-WorkflowJobBlock -Name 'release'
 
-    # softprops/action-gh-release create-or-updates the tag's release idempotently; SHA-pinned
-    # (Renovate manages the pin), publishing non-draft so GET-by-tag is never needed.
-    $Release | Should -Match 'softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda'
-    $Release | Should -Match 'draft:\s+false'
-    $Release | Should -Not -Match 'draft:\s+true'
-    $Release | Should -Match 'fail_on_unmatched_files:\s+true'
+    # The runner's built-in gh CLI publishes the release (zizmor rejects third-party release
+    # actions when gh suffices); gh release create publishes non-draft by default.
+    $Release | Should -Match 'gh release create'
+    $Release | Should -Not -Match 'softprops/action-gh-release'
+    $Release | Should -Not -Match '--draft'
 
     # The release job re-verifies the sealed digest before publishing the bytes it uploads.
     $Release | Should -Match 'Assert-SealedDigest\.ps1'
     $Release | Should -Match 'needs\.seal\.outputs\.digest'
 
-    $Release | Should -Match 'build/Export-CertificateStoreBundle\.ps1'
-    $Release | Should -Match 'build/Export-CertificateStoreBundle\.ps1\.sha256'
+    $Release | Should -Match 'build\\Export-CertificateStoreBundle\.ps1'
+    $Release | Should -Match 'build\\Export-CertificateStoreBundle\.ps1\.sha256'
   }
 
   It 'lets the generator attach provenance to the published release' {
