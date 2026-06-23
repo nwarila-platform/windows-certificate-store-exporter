@@ -74,21 +74,24 @@ Describe 'release workflow shape' {
     (Get-WorkflowJobBlock -Name 'provenance') | Should -Match 'needs:\s+\[seal,\s*release\]'
   }
 
-  It 'publishes a non-draft release bound to the sealed digest via the gh CLI' {
+  It 'publishes a non-draft release on ubuntu via native gh bound to the sealed digest' {
     $Release = Get-WorkflowJobBlock -Name 'release'
 
-    # The runner's built-in gh CLI publishes the release (zizmor rejects third-party release
-    # actions when gh suffices); gh release create publishes non-draft by default.
+    # The release job does no Windows work (download + verify + publish), so it runs on ubuntu
+    # with bash and the native gh CLI -- the PowerShell wrapper was what crashed gh's stderr probe.
+    $Release | Should -Match 'runs-on:\s+ubuntu-latest'
+    $Release | Should -Match 'set -euo pipefail'
     $Release | Should -Match 'gh release create'
     $Release | Should -Not -Match 'softprops/action-gh-release'
     $Release | Should -Not -Match '--draft'
 
-    # The release job re-verifies the sealed digest before publishing the bytes it uploads.
-    $Release | Should -Match 'Assert-SealedDigest\.ps1'
+    # The sealed-digest binding is preserved natively: sha256sum -c against the seal's digest.
+    $Release | Should -Match 'sha256sum -c'
+    $Release | Should -Match 'SEALED_DIGEST'
     $Release | Should -Match 'needs\.seal\.outputs\.digest'
 
-    $Release | Should -Match 'build\\Export-CertificateStoreBundle\.ps1'
-    $Release | Should -Match 'build\\Export-CertificateStoreBundle\.ps1\.sha256'
+    $Release | Should -Match 'build/Export-CertificateStoreBundle\.ps1'
+    $Release | Should -Match 'build/Export-CertificateStoreBundle\.ps1\.sha256'
   }
 
   It 'lets the generator attach provenance to the published release' {
