@@ -7,7 +7,7 @@ Describe 'release workflow shape' {
     $script:ProjectRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $script:WorkflowPath = Join-Path -Path $script:ProjectRoot -ChildPath '.github\workflows\release.yaml'
     $script:WorkflowText = Get-Content -LiteralPath $script:WorkflowPath -Raw
-    $script:JobNames = [System.String[]]@('seal', 'validate', 'publish', 'provenance', 'finalize')
+    $script:JobNames = [System.String[]]@('seal', 'validate', 'release', 'provenance')
 
     Function script:Get-WorkflowJobBlock {
       Param (
@@ -47,30 +47,14 @@ Describe 'release workflow shape' {
     $JobsWithInstall[0] | Should -Be 'validate'
   }
 
-  It 'keeps validation and publication on downloaded release candidates' {
+  It 'keeps validation and release on downloaded release candidates' {
     $Validate = Get-WorkflowJobBlock -Name 'validate'
-    $Publish = Get-WorkflowJobBlock -Name 'publish'
+    $Release = Get-WorkflowJobBlock -Name 'release'
 
     $Validate | Should -Match 'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093'
     $Validate | Should -Match 'name:\s+release-candidate'
-    $Publish | Should -Match 'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093'
-    $Publish | Should -Match 'name:\s+release-candidate'
-  }
-
-  It 'keeps publish bound to the sealed digest output' {
-    $Publish = Get-WorkflowJobBlock -Name 'publish'
-
-    $Publish | Should -Match 'Assert-SealedDigest\.ps1'
-    $Publish | Should -Match 'needs\.seal\.outputs\.digest'
-    $Publish | Should -Not -Match '(?m)^\s*run:\s+powershell .*build\.ps1'
-  }
-
-  It 'keeps byte equality checks out of nondeterministic provenance finalization' {
-    $Publish = Get-WorkflowJobBlock -Name 'publish'
-    $Finalize = Get-WorkflowJobBlock -Name 'finalize'
-
-    $Publish | Should -Match 'Release asset already exists with different bytes'
-    $Finalize | Should -Not -Match 'Release asset already exists with different bytes'
+    $Release | Should -Match 'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093'
+    $Release | Should -Match 'name:\s+release-candidate'
   }
 
   It 'uploads release candidates only from seal' {
@@ -79,54 +63,47 @@ Describe 'release workflow shape' {
     $Seal | Should -Match 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
     $Seal | Should -Match 'name:\s+release-candidate'
 
-    foreach ($JobName in @('validate', 'publish', 'finalize')) {
+    foreach ($JobName in @('validate', 'release')) {
       (Get-WorkflowJobBlock -Name $JobName) | Should -Not -Match 'actions/upload-artifact@'
     }
   }
 
   It 'keeps the load-bearing job graph' {
     (Get-WorkflowJobBlock -Name 'validate') | Should -Match 'needs:\s+seal'
-    (Get-WorkflowJobBlock -Name 'publish') | Should -Match 'needs:\s+\[seal,\s*validate\]'
-    (Get-WorkflowJobBlock -Name 'provenance') | Should -Match 'needs:\s+\[seal,\s*publish\]'
-    (Get-WorkflowJobBlock -Name 'finalize') | Should -Match 'needs:\s+\[publish,\s*provenance\]'
+    (Get-WorkflowJobBlock -Name 'release') | Should -Match 'needs:\s+\[seal,\s*validate\]'
+    (Get-WorkflowJobBlock -Name 'provenance') | Should -Match 'needs:\s+\[seal,\s*release\]'
   }
 
-  It 'keeps provenance in artifact mode with the generator-required startup permission' {
-    # The SLSA generator (generator_generic_slsa3.yml) declares contents read/write across its
-    # internal jobs, and GitHub validates reusable-workflow caller permissions AT STARTUP, so the
-    # provenance caller MUST grant contents: write or the whole run is a startup_failure. With
-    # upload-assets: false the generator's release-attaching job is if-skipped, so the grant stays
-    # unused and finalize remains the sole asset attacher + draft->public flip (AUD-08 Option A).
+  It 'publishes a non-draft release bound to the sealed digest via SHA-pinned softprops' {
+    $Release = Get-WorkflowJobBlock -Name 'release'
+
+    # softprops/action-gh-release create-or-updates the tag's release idempotently; SHA-pinned
+    # (Renovate manages the pin), publishing non-draft so GET-by-tag is never needed.
+    $Release | Should -Match 'softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda'
+    $Release | Should -Match 'draft:\s+false'
+    $Release | Should -Not -Match 'draft:\s+true'
+    $Release | Should -Match 'fail_on_unmatched_files:\s+true'
+
+    # The release job re-verifies the sealed digest before publishing the bytes it uploads.
+    $Release | Should -Match 'Assert-SealedDigest\.ps1'
+    $Release | Should -Match 'needs\.seal\.outputs\.digest'
+
+    $Release | Should -Match 'build/Export-CertificateStoreBundle\.ps1'
+    $Release | Should -Match 'build/Export-CertificateStoreBundle\.ps1\.sha256'
+  }
+
+  It 'lets the generator attach provenance to the published release' {
+    # With upload-assets: true + upload-tag-name the SLSA generator's own softprops step attaches
+    # the .intoto.jsonl to the tag's release (already published by the release job) without
+    # clobbering the notes or the .ps1/.sha256, so no bespoke finalize job is needed.
     $Provenance = Get-WorkflowJobBlock -Name 'provenance'
 
     $Provenance | Should -Match 'generator_generic_slsa3\.yml@v2\.1\.0'
     $Provenance | Should -Match 'base64-subjects:\s+\$\{\{\s*needs\.seal\.outputs\.hashes\s*\}\}'
-    $Provenance | Should -Match 'upload-assets:\s+false'
-    $Provenance | Should -Not -Match 'upload-tag-name'
+    $Provenance | Should -Match 'upload-assets:\s+true'
+    $Provenance | Should -Not -Match 'upload-assets:\s+false'
+    $Provenance | Should -Match 'upload-tag-name:\s+\$\{\{\s*github\.ref_name\s*\}\}'
+    $Provenance | Should -Match 'needs:\s+\[seal,\s*release\]'
     $Provenance | Should -Match 'contents:\s+write'
-  }
-
-  It 'locates the draft release by id so finalize can find a draft' {
-    # GET /releases/tags/{tag} never returns drafts, so publish must list-or-create the
-    # draft and hand finalize its id; finalize then looks it up by id, never by tag.
-    $Publish = Get-WorkflowJobBlock -Name 'publish'
-    $Finalize = Get-WorkflowJobBlock -Name 'finalize'
-
-    $Publish | Should -Match 'release_id:\s+\$\{\{\s*steps\.release\.outputs\.release_id\s*\}\}'
-    $Publish | Should -Match 'release_id=\$\(\$Release\.id\)'
-    $Finalize | Should -Match 'RELEASE_ID:\s+\$\{\{\s*needs\.publish\.outputs\.release_id\s*\}\}'
-    $Finalize | Should -Not -Match 'releases/tags/'
-  }
-
-  It 'keeps the public release flip in finalize after provenance' {
-    $Finalize = Get-WorkflowJobBlock -Name 'finalize'
-
-    $Finalize | Should -Match 'needs:\s+\[publish,\s*provenance\]'
-    $Finalize | Should -Match 'needs\.provenance\.outputs\.provenance-name'
-    $Finalize | Should -Match 'draft\s*=\s*\$False'
-
-    foreach ($JobName in @('seal', 'validate', 'publish', 'provenance')) {
-      (Get-WorkflowJobBlock -Name $JobName) | Should -Not -Match 'draft\s*=\s*\$False'
-    }
   }
 }
