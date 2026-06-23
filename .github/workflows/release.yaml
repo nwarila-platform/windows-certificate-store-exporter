@@ -323,6 +323,9 @@ jobs:
     needs: [seal, publish]
     permissions:
       id-token: write   # OIDC identity for keyless Sigstore/Fulcio signing
+      contents: write   # REQUIRED by generator_generic_slsa3.yml at startup (its jobs declare contents read/write).
+                        #   Under upload-assets:false this is granted-but-UNUSED: the generator's release-attaching job is
+                        #   if-skipped, so finalize still owns the asset attach + the draft->public flip (AUD-08 Option A).
       actions: read     # the generator reads this workflow run
     # SLSA REQUIREMENT - do NOT SHA-pin this one: the trusted builder MUST be referenced by a full
     # semantic version tag (@vX.Y.Z). slsa-verifier resolves/trusts the builder by that tag; a commit
