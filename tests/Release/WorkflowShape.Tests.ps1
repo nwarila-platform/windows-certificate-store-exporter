@@ -91,14 +91,19 @@ Describe 'release workflow shape' {
     (Get-WorkflowJobBlock -Name 'finalize') | Should -Match 'needs:\s+\[publish,\s*provenance\]'
   }
 
-  It 'keeps provenance artifact mode and least privilege' {
+  It 'keeps provenance in artifact mode with the generator-required startup permission' {
+    # The SLSA generator (generator_generic_slsa3.yml) declares contents read/write across its
+    # internal jobs, and GitHub validates reusable-workflow caller permissions AT STARTUP, so the
+    # provenance caller MUST grant contents: write or the whole run is a startup_failure. With
+    # upload-assets: false the generator's release-attaching job is if-skipped, so the grant stays
+    # unused and finalize remains the sole asset attacher + draft->public flip (AUD-08 Option A).
     $Provenance = Get-WorkflowJobBlock -Name 'provenance'
 
     $Provenance | Should -Match 'generator_generic_slsa3\.yml@v2\.1\.0'
     $Provenance | Should -Match 'base64-subjects:\s+\$\{\{\s*needs\.seal\.outputs\.hashes\s*\}\}'
     $Provenance | Should -Match 'upload-assets:\s+false'
     $Provenance | Should -Not -Match 'upload-tag-name'
-    $Provenance | Should -Not -Match 'contents:\s+write'
+    $Provenance | Should -Match 'contents:\s+write'
   }
 
   It 'keeps the public release flip in finalize after provenance' {
