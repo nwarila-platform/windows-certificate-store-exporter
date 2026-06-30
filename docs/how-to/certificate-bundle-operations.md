@@ -5,10 +5,11 @@ Use these recipes after you have built or downloaded
 
 ## Verify a Release Artifact
 
-Download both release assets into the same directory:
+Download the release assets into the same directory:
 
 - `Export-CertificateStoreBundle.ps1`
 - `Export-CertificateStoreBundle.ps1.sha256`
+- `Export-CertificateStoreBundle.ps1.intoto.jsonl`
 
 Then verify the script hash:
 
@@ -26,6 +27,9 @@ if ($Actual -ne $Expected) {
 
 The project does not publish Authenticode signatures yet. The `.sha256` sidecar
 is the integrity check for release assets.
+
+For SLSA provenance verification, see
+[Verify build provenance](../../README.md#verify-build-provenance-recommended).
 
 ## Include Expired Certificates
 
