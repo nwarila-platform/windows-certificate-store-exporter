@@ -2,7 +2,7 @@
 
 This project is intentionally small: it ships one Windows PowerShell 5.1 script,
 `Export-CertificateStoreBundle.ps1`, that reads Windows certificate stores and
-writes a deterministic PEM bundle. The current public release is `1.0.0`, and
+writes a deterministic PEM bundle. The current public release is `2.0.0`, and
 the repository decisions describe a single-script distribution model rather than
 a module package.
 
